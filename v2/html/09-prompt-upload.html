@@ -1,0 +1,138 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ลงขายภาพ · LUMI</title><style>@font-face{font-family:Prompt;font-weight:300;src:url(../fonts/Prompt-Light.ttf)}
+@font-face{font-family:Prompt;font-weight:400;src:url(../fonts/Prompt-Regular.ttf)}
+@font-face{font-family:Prompt;font-weight:500;src:url(../fonts/Prompt-Medium.ttf)}
+@font-face{font-family:Prompt;font-weight:600;src:url(../fonts/Prompt-SemiBold.ttf)}
+@font-face{font-family:Prompt;font-weight:700;src:url(../fonts/Prompt-Bold.ttf)}
+:root{--p:#6C2BD9;--grad:linear-gradient(100deg,#7B2FF2 0%,#C13AE0 55%,#F0508A 100%);--ink:#16132B;--ink2:#3A3654;--mut:#8A86A0;--line:#ECEAF3;--soft:#F4F2F9;--soft2:#F6F1FF;--red:#E5484D;--green:#16A34A}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Prompt,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45;background:#fff}
+.ic{display:block;flex:none}
+.row{display:flex;align-items:center}.sp{justify-content:space-between}.col{display:flex;flex-direction:column}
+.mut{color:var(--mut)}.b{font-weight:600}
+.img{background-size:cover;background-position:center}
+.av{border-radius:50%;background-size:cover;background-position:center;flex:none}
+.logo{background:linear-gradient(135deg,#7B2FF2,#C13AE0 60%,#F0508A);display:flex;align-items:center;justify-content:center;flex:none}
+.gtext{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.wrap{max-width:1360px;margin:0 auto;padding:0 16px}
+.btn{height:42px;padding:0 18px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:600;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);white-space:nowrap}
+.btn.g{background:var(--grad);color:#fff;border:0;box-shadow:0 8px 18px rgba(193,58,224,.25)}
+.btn.dk{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.sm{height:34px;padding:0 12px;font-size:13px;border-radius:10px}
+.ib{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;position:relative;background:#fff;flex:none}
+.cnt{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;border-radius:10px;background:var(--p);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+.dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:50%;background:#F0508A;border:2px solid #fff}
+.chip{height:36px;padding:0 15px;border-radius:18px;border:1px solid var(--line);display:inline-flex;align-items:center;font-size:13.5px;font-weight:500;color:var(--ink2);background:#fff;flex:none;gap:6px;white-space:nowrap}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.h2{font-size:19px;font-weight:600}.more{font-size:13.5px;color:var(--p);font-weight:500}
+.card{border:1px solid var(--line);border-radius:18px;background:#fff}
+.tag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:500;background:var(--soft2);color:var(--p)}
+.pill{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;font-size:12px;font-weight:500;white-space:nowrap}
+.sec{margin-top:28px}
+.sechead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+/* header */
+.hdr{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line)}
+.hrow{height:62px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:600;flex:none}
+.brand small{font-size:11px;color:var(--mut);font-weight:500;display:block;line-height:1;margin-top:2px}
+.srch{flex:1;height:44px;border-radius:14px;background:var(--soft);display:flex;align-items:center;gap:10px;padding:0 14px;min-width:0}
+.srch span{flex:1;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srch .q{color:var(--ink);font-weight:500}
+.hdr .srch.top{display:none}
+.msrch{padding:0 16px 10px}
+.catbar{display:flex;gap:8px;overflow:hidden;padding:0 16px 12px}
+.hact{display:flex;gap:10px;align-items:center;margin-left:auto}
+.t-up,.d-only{display:none!important}
+.tabbar{position:fixed;left:0;right:0;bottom:0;height:72px;border-top:1px solid var(--line);background:rgba(255,255,255,.98);display:flex;justify-content:space-around;padding-top:8px;z-index:60}
+.tab{width:72px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--mut);font-weight:500}
+.tab.on{color:var(--p);font-weight:600}
+.mid{width:50px;height:50px;border-radius:16px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin-top:-16px;box-shadow:0 10px 22px rgba(193,58,224,.35)}
+body.hasTab{padding-bottom:84px}
+.sample{position:fixed;right:12px;bottom:84px;z-index:70;font-size:11px;background:rgba(22,19,43,.78);color:#fff;border-radius:8px;padding:3px 9px}
+/* masonry */
+.mas{column-count:2;column-gap:10px}
+.pin{break-inside:avoid;margin-bottom:14px;display:block}
+.pin .ph{border-radius:16px;position:relative;overflow:hidden}
+.pin .sv{position:absolute;right:8px;top:8px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center}
+.pin .bd{position:absolute;left:8px;top:8px;font-size:11px;font-weight:600;border-radius:7px;padding:2px 7px;background:rgba(22,19,43,.75);color:#fff}
+.pin .tt{font-size:13.5px;font-weight:500;margin-top:7px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pin .by{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);margin-top:4px}
+.pin .pr{margin-left:auto;font-weight:600;color:var(--ink);font-size:13.5px}
+.foot{display:none}
+@media(min-width:700px){
+ .wrap{padding:0 28px}
+ .t-up{display:flex!important}.m-only{display:none!important}
+ .hdr .srch.top{display:flex}.msrch{display:none}
+ .catbar{padding:0 28px 12px}
+ .tabbar{display:none}body.hasTab{padding-bottom:0}
+ .mas{column-count:3;column-gap:16px}
+ .pin{margin-bottom:18px}
+ .h2{font-size:21px}.sec{margin-top:36px}
+ .foot{display:block;border-top:1px solid var(--line);margin-top:48px;padding:28px 0 36px;color:var(--mut);font-size:13px}
+ .sample{bottom:14px}
+}
+@media(min-width:1200px){
+ .wrap{padding:0 40px}.catbar{padding:0 40px 12px;gap:6px}
+ .d-only{display:flex!important}.t-only{display:none!important}
+ .hrow{height:72px;gap:22px}
+ .mas{column-count:5;column-gap:18px}
+}
+
+
+.pb{position:absolute;left:8px;bottom:8px;display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px 0 6px;border-radius:11px;font-size:11px;font-weight:600;color:#fff;background:rgba(22,19,43,.42);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.28)}
+.top{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line);height:56px;display:flex;align-items:center;gap:10px;padding:0 12px}
+.top .t{flex:1;font-weight:600;font-size:16px;text-align:center}
+.ib2{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none}
+.hero{height:330px;margin:0 -16px;position:relative}
+.glass{position:absolute;display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.9)}
+.tier{border:1.5px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:12px;position:relative;background:#fff}
+.tier.on{border-color:var(--p);background:linear-gradient(180deg,#FBF8FF,#F6F1FF)}
+.tier .rd{width:20px;height:20px;border-radius:50%;border:2px solid #C9C4DA;flex:none}.tier.on .rd{border:6px solid var(--p)}
+.tier .ti{width:42px;height:42px;border-radius:11px;flex:none;position:relative;overflow:hidden}
+.ribbon{position:absolute;top:-10px;right:12px;height:20px;padding:0 9px;border-radius:10px;background:var(--grad);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center}
+.strike{text-decoration:line-through;color:var(--mut);font-size:12px;font-weight:400;display:block;text-align:right}
+.sw{display:flex;gap:0;border-radius:12px;overflow:hidden;height:38px}.sw div{flex:1}
+.swl{display:flex;margin-top:6px}.swl span{flex:1;font-size:10px;color:var(--mut);text-align:center;font-family:ui-monospace,monospace}
+.lockbox{position:relative;border-radius:16px;background:#16132B;color:#E9E5FF;padding:16px;overflow:hidden;margin-top:10px}
+.lockbox .ln{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.7}
+.blur{filter:blur(5px);user-select:none;opacity:.85}
+.lockov{position:absolute;left:0;right:0;bottom:0;top:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(180deg,rgba(22,19,43,0) 0%,rgba(22,19,43,.65) 45%,rgba(22,19,43,.9) 100%);text-align:center;padding:0 20px}
+.lockov .lk{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.kv div{background:var(--soft);border-radius:12px;padding:9px 11px;font-size:11.5px;color:var(--mut)}
+.kv b{display:block;font-size:13.5px;color:var(--ink);font-weight:600}
+.kv .lkd b{display:flex;align-items:center;gap:5px;color:var(--mut)}
+.vars{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.vars .v{height:150px;border-radius:14px;position:relative;overflow:hidden}
+.vars .v span{position:absolute;left:8px;bottom:8px;font-size:10.5px;color:#fff;background:rgba(22,19,43,.55);border-radius:6px;padding:1px 6px}
+.get{display:flex;flex-direction:column;gap:9px;margin-top:10px}
+.get div{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--ink2)}
+.get .ck{width:22px;height:22px;border-radius:50%;background:#EEE6FF;display:flex;align-items:center;justify-content:center;flex:none;margin-top:1px}
+.note{border-radius:14px;background:#FFF8EC;color:#8A5A00;font-size:12.5px;padding:10px 12px;display:flex;gap:8px;margin-top:14px}
+.fld{margin-top:14px}.fld label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.inp{border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13.5px;color:var(--ink2);background:#fff}
+.inp.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.6;min-height:84px}
+.tg{width:46px;height:28px;border-radius:14px;background:var(--p);position:relative;flex:none}.tg:after{content:"";position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.tg.off{background:#D9D5E6}.tg.off:after{right:auto;left:3px}
+.pbox{border:1.5px solid var(--p);border-radius:18px;padding:14px;background:linear-gradient(180deg,#FBF8FF,#fff);margin-top:14px}
+.price3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
+.price3 div{border:1.5px solid var(--line);border-radius:12px;padding:8px 10px;background:#fff}
+.price3 small{display:block;font-size:11px;color:var(--mut)}.price3 b{font-size:15px}
+.step{display:flex;gap:6px;margin:14px 0 4px}.step div{flex:1;height:4px;border-radius:2px;background:var(--line)}.step .on{background:var(--grad)}
+.mwrap{max-width:560px;margin:0 auto;padding:0 16px}
+.bbar{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.98);border-top:1px solid var(--line);padding:10px 16px 16px;display:flex;gap:10px;align-items:center;z-index:60}
+@media(min-width:700px){.hero{margin:0;border-radius:22px;height:560px}.bbar{max-width:560px;margin:0 auto;border:1px solid var(--line);border-radius:18px 18px 0 0}}
+</style></head><body class=""><div class="top"><div class="ib2"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div><div class="t">ลงขายภาพ</div><div class="ib2" style="width:auto;color:var(--p);font-weight:600;font-size:14px">ร่าง</div></div>
+<main class="mwrap"><div class="step"><div class="on"></div><div class="on"></div><div class="on"></div><div></div></div><div class="mut" style="font-size:12px">ขั้นที่ 3 จาก 4 · ราคาและพรอมต์</div>
+<div class="row" style="gap:12px;margin-top:14px"><div class="img" style="width:64px;height:84px;border-radius:12px;background-image:url(../img/g_anime.jpg);flex:none"></div><div style="flex:1"><b style="font-size:14.5px">ตลาดกลางคืนแห่งแสงโคม</b><div class="mut" style="font-size:12px">ภาพ · 3072 × 4096 px · JPG</div><span class="tag" style="margin-top:6px">ระบบใส่ลายน้ำให้แล้ว</span></div></div>
+<div class="fld"><label>ราคาภาพ (สิทธิ์เชิงพาณิชย์)</label><div class="inp row sp"><span>฿ 390</span><span class="mut" style="font-size:12px">ราคาแนะนำ ฿290–450</span></div></div>
+<div class="pbox"><div class="row" style="gap:12px"><div class="logo" style="width:38px;height:38px;border-radius:11px"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="#fff" stroke="#fff" stroke-width="0" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 3l1.9 5.6L18 10.5l-5.6 1.9L10.5 18l-1.9-5.6L3 10.5l5.6-1.9z"/></svg></div><div style="flex:1"><b style="font-size:14.5px">ขายพรอมต์ด้วย</b><div class="mut" style="font-size:12px">ให้ผู้ซื้อสร้างลุคนี้ได้เอง</div></div><div class="tg"></div></div>
+<div class="fld"><label>พรอมต์</label><div class="inp mono">a bustling Thai night market street, hundreds of glowing paper lanterns rising into a violet sky, wet stone road reflecting warm light...</div></div>
+<div class="fld"><label>Negative prompt <span class="mut" style="font-weight:400">(ไม่บังคับ)</span></label><div class="inp mono" style="min-height:0">blurry, text, watermark, extra fingers</div></div>
+<div class="row" style="gap:8px;margin-top:12px"><div class="fld" style="flex:1;margin:0"><label>โมเดล</label><div class="inp row sp">Midjourney v7 <svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div></div><div class="fld" style="flex:1;margin:0"><label>Seed</label><div class="inp">2847193</div></div></div>
+<div class="fld"><label>โทนสี <span class="mut" style="font-weight:400">· ดึงจากภาพให้อัตโนมัติ</span></label><div class="sw" style="height:30px;border-radius:10px"><div style="background:#120F22"></div><div style="background:#321C35"></div><div style="background:#5A335E"></div><div style="background:#8C4D7F"></div><div style="background:#CD7C91"></div><div style="background:#F2B36B"></div></div></div>
+<div class="fld"><label>ภาพตัวอย่างที่สร้างจากพรอมต์นี้ <span class="mut" style="font-weight:400">· อย่างน้อย 2 ภาพ</span></label><div class="row" style="gap:8px"><div class="img" style="width:62px;height:62px;border-radius:12px;background-image:url(../img/rainy.jpg)"></div><div class="img" style="width:62px;height:62px;border-radius:12px;background-image:url(../img/g_cyber.jpg)"></div><div class="img" style="width:62px;height:62px;border-radius:12px;background-image:url(../img/splashbg.jpg)"></div><div style="width:62px;height:62px;border-radius:12px;border:1.5px dashed #C9C4DA;display:flex;align-items:center;justify-content:center"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div></div></div>
+<div class="fld"><label>ราคา</label><div class="price3"><div><small>พรอมต์อย่างเดียว</small><b>฿149</b></div><div style="border-color:var(--p);background:var(--soft2)"><small>ภาพ + พรอมต์</small><b>฿449</b></div><div style="background:var(--soft);border-color:var(--soft)"><small>ส่วนลดชุด</small><b style="color:var(--green)">−17%</b></div></div></div>
+<div class="row" style="gap:8px;margin-top:12px;font-size:12px;color:var(--ink2)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>แนะนำให้ราคาชุดถูกกว่าซื้อแยก ผู้ซื้อส่วนใหญ่เลือกชุด</div></div>
+<div class="note" style="background:var(--soft);color:var(--ink2)"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></svg><span>พรอมต์ถูกซ่อนจนกว่าจะมีคนซื้อ หน้าร้านแสดงแค่บรรทัดแรก</span></div>
+<div style="height:100px"></div></main>
+<div class="bbar"><div class="btn" style="flex:1;height:46px">ย้อนกลับ</div><div class="btn g" style="flex:1.6;height:46px">ถัดไป ตรวจทานก่อนลงขาย</div></div><div class="sample" style="top:64px;bottom:auto;left:12px;right:auto">ข้อมูลตัวอย่าง</div></body></html>
