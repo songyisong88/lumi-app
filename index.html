@@ -1,0 +1,18 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6C2BD9"><title>ลูมิ · ต้นแบบแอปตลาดผลงาน AI</title>
+<link rel="stylesheet" href="styles.css"></head><body>
+<div id="stage">
+<aside id="side"><div class="row g10">${''}</div></aside>
+<div id="device"><div id="view"></div></div>
+</div>
+<script src="icons.js"></script><script src="data.js"></script><script src="app.js"></script>
+<script src="screens1.js"></script><script src="screens2.js"></script><script src="screens3.js"></script><script src="screens4.js"></script><script src="screens5.js"></script>
+<script>
+const NAV=[['splash','01 เปิดแอป'],['login','02 เข้าสู่ระบบ'],['home','03 หน้าแรก'],['search','04 ค้นหาและตัวกรอง'],['category/sticker','05 หมวดหมู่'],['product/thaitea','06 รายละเอียดผลงาน'],['prompt/prompt','07 แพ็กพรอมต์'],['cart','08 ตะกร้าและชำระเงิน'],['success/demo','09 ชำระสำเร็จ'],['library','10 คลังที่ซื้อแล้ว'],['creator/fasai','11 ร้านครีเอเตอร์'],['sell','12 ลงขายผลงาน'],['dashboard','13 แดชบอร์ด'],['promote','14 โปรโมต'],['notifications','15 แจ้งเตือน'],['chat/kenji','16 แชตจ้างงาน'],['me','17 โปรไฟล์และตั้งค่า'],['admin','18 หลังบ้าน ตรวจลิขสิทธิ์']];
+document.getElementById('side').innerHTML=`<div class="row g10">${lumiLogo(40)}<div><h1 style="line-height:1.1">ลูมิ</h1><div class="f13 mut" style="margin-top:12px">ต้นแบบแอปที่กดใช้งานได้</div></div></div>
+<div class="nav">${NAV.map(([h,l])=>`<a href="#/${h}">${l}</a>`).join('')}</div>
+<div class="note">ข้อมูล ราคา ครีเอเตอร์ และการชำระเงินทั้งหมดเป็น<b>ข้อมูลตัวอย่าง</b> ไม่มีการตัดเงินจริง<br>OTP ตัวอย่าง: <b>123456</b> · โค้ดส่วนลด: <b>LUMI50</b><br>ตะกร้า การซื้อ และรายการโปรดเก็บไว้ในเครื่องนี้ (localStorage)</div>
+<button class="reset" onclick="resetAll()">ล้างข้อมูลและเริ่มใหม่</button>`;
+setupFrame();render();
+</script></body></html>
