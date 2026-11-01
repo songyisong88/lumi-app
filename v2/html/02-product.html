@@ -1,0 +1,158 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
+@font-face{font-family:Prompt;font-weight:300;src:url(../fonts/Prompt-Light.ttf)}
+@font-face{font-family:Prompt;font-weight:400;src:url(../fonts/Prompt-Regular.ttf)}
+@font-face{font-family:Prompt;font-weight:500;src:url(../fonts/Prompt-Medium.ttf)}
+@font-face{font-family:Prompt;font-weight:600;src:url(../fonts/Prompt-SemiBold.ttf)}
+@font-face{font-family:Prompt;font-weight:700;src:url(../fonts/Prompt-Bold.ttf)}
+:root{--p:#6C2BD9;--grad:linear-gradient(100deg,#7B2FF2 0%,#C13AE0 55%,#F0508A 100%);--ink:#16132B;--ink2:#3A3654;--mut:#8A86A0;--line:#ECEAF3;--soft:#F4F2F9;--soft2:#F6F1FF;--red:#E5484D;--green:#16A34A}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Prompt,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45;background:#fff}
+.ic{display:block;flex:none}
+.row{display:flex;align-items:center}.sp{justify-content:space-between}.col{display:flex;flex-direction:column}
+.mut{color:var(--mut)}.b{font-weight:600}
+.img{background-size:cover;background-position:center}
+.av{border-radius:50%;background-size:cover;background-position:center;flex:none}
+.logo{background:linear-gradient(135deg,#7B2FF2,#C13AE0 60%,#F0508A);display:flex;align-items:center;justify-content:center;flex:none}
+.gtext{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.wrap{max-width:1360px;margin:0 auto;padding:0 16px}
+.btn{height:42px;padding:0 18px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:600;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);white-space:nowrap}
+.btn.g{background:var(--grad);color:#fff;border:0;box-shadow:0 8px 18px rgba(193,58,224,.25)}
+.btn.dk{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.sm{height:34px;padding:0 12px;font-size:13px;border-radius:10px}
+.ib{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;position:relative;background:#fff;flex:none}
+.cnt{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;border-radius:10px;background:var(--p);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+.dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:50%;background:#F0508A;border:2px solid #fff}
+.chip{height:36px;padding:0 15px;border-radius:18px;border:1px solid var(--line);display:inline-flex;align-items:center;font-size:13.5px;font-weight:500;color:var(--ink2);background:#fff;flex:none;gap:6px;white-space:nowrap}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.h2{font-size:19px;font-weight:600}.more{font-size:13.5px;color:var(--p);font-weight:500}
+.card{border:1px solid var(--line);border-radius:18px;background:#fff}
+.tag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:500;background:var(--soft2);color:var(--p)}
+.pill{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;font-size:12px;font-weight:500;white-space:nowrap}
+.sec{margin-top:28px}
+.sechead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+/* header */
+.hdr{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line)}
+.hrow{height:62px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:600;flex:none}
+.brand small{font-size:11px;color:var(--mut);font-weight:500;display:block;line-height:1;margin-top:2px}
+.srch{flex:1;height:44px;border-radius:14px;background:var(--soft);display:flex;align-items:center;gap:10px;padding:0 14px;min-width:0}
+.srch span{flex:1;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srch .q{color:var(--ink);font-weight:500}
+.hdr .srch.top{display:none}
+.msrch{padding:0 16px 10px}
+.catbar{display:flex;gap:8px;overflow:hidden;padding:0 16px 12px}
+.hact{display:flex;gap:10px;align-items:center;margin-left:auto}
+.t-up,.d-only{display:none!important}
+.tabbar{position:fixed;left:0;right:0;bottom:0;height:72px;border-top:1px solid var(--line);background:rgba(255,255,255,.98);display:flex;justify-content:space-around;padding-top:8px;z-index:60}
+.tab{width:72px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--mut);font-weight:500}
+.tab.on{color:var(--p);font-weight:600}
+.mid{width:50px;height:50px;border-radius:16px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin-top:-16px;box-shadow:0 10px 22px rgba(193,58,224,.35)}
+body.hasTab{padding-bottom:84px}
+.sample{position:fixed;right:12px;bottom:84px;z-index:70;font-size:11px;background:rgba(22,19,43,.78);color:#fff;border-radius:8px;padding:3px 9px}
+/* masonry */
+.mas{column-count:2;column-gap:10px}
+.pin{break-inside:avoid;margin-bottom:14px;display:block}
+.pin .ph{border-radius:16px;position:relative;overflow:hidden}
+.pin .sv{position:absolute;right:8px;top:8px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center}
+.pin .bd{position:absolute;left:8px;top:8px;font-size:11px;font-weight:600;border-radius:7px;padding:2px 7px;background:rgba(22,19,43,.75);color:#fff}
+.pin .tt{font-size:13.5px;font-weight:500;margin-top:7px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pin .by{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);margin-top:4px}
+.pin .pr{margin-left:auto;font-weight:600;color:var(--ink);font-size:13.5px}
+.foot{display:none}
+@media(min-width:700px){
+ .wrap{padding:0 28px}
+ .t-up{display:flex!important}.m-only{display:none!important}
+ .hdr .srch.top{display:flex}.msrch{display:none}
+ .catbar{padding:0 28px 12px}
+ .tabbar{display:none}body.hasTab{padding-bottom:0}
+ .mas{column-count:3;column-gap:16px}
+ .pin{margin-bottom:18px}
+ .h2{font-size:21px}.sec{margin-top:36px}
+ .foot{display:block;border-top:1px solid var(--line);margin-top:48px;padding:28px 0 36px;color:var(--mut);font-size:13px}
+ .sample{bottom:14px}
+}
+@media(min-width:1200px){
+ .wrap{padding:0 40px}.catbar{padding:0 40px 12px;gap:6px}
+ .d-only{display:flex!important}.t-only{display:none!important}
+ .hrow{height:72px;gap:22px}
+ .mas{column-count:5;column-gap:18px}
+}
+
+.crumb{font-size:12.5px;color:var(--mut);margin:14px 0 10px;display:none}
+.pd{display:block}
+.gal .main{height:380px;border-radius:0;margin:0 -16px;position:relative}
+.wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);font-weight:700;font-size:28px;letter-spacing:4px;transform:rotate(-18deg)}
+.thumbs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}.thumbs div{height:58px;border-radius:10px}.thumbs .on{outline:2px solid var(--p);outline-offset:2px}
+.info h1{font-size:22px;font-weight:600;line-height:1.3;margin-top:8px}
+.price{font-size:30px;font-weight:700;margin-top:10px}
+.lic{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.lo{border:1.5px solid var(--line);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:12px}
+.lo.on{border-color:var(--p);background:var(--soft2)}
+.rd{width:20px;height:20px;border-radius:50%;border:2px solid #C9C4DA;flex:none}.lo.on .rd{border:6px solid var(--p)}
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.feat div{background:var(--soft);border-radius:12px;padding:9px 11px;font-size:12.5px}
+.feat b{display:block;font-size:14px}
+.cc{display:flex;align-items:center;gap:12px;padding:14px;margin-top:16px}
+.below{display:grid;grid-template-columns:1fr;gap:18px;margin-top:26px}
+.rv{padding:14px 0;border-top:1px solid var(--line)}
+.buybar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 16px 16px;display:flex;gap:10px;align-items:center;z-index:60}
+body{padding-bottom:84px}
+@media(min-width:700px){
+ body{padding-bottom:0}.buybar{display:none}.crumb{display:block}
+ .pd{display:grid;grid-template-columns:1.05fr 1fr;gap:28px;align-items:start}
+ .gal .main{height:520px;border-radius:22px;margin:0}
+ .info h1{font-size:26px;margin-top:0}
+ .below{grid-template-columns:1fr}
+}
+@media(min-width:700px) and (max-width:1199px){.cc{flex-wrap:wrap}.cc>.col{flex-direction:row!important;width:100%}.cc>.col .btn{flex:1}}
+@media(min-width:1200px){
+ .pd{grid-template-columns:1.3fr 1fr;gap:48px}.gal .main{height:620px}
+ .gal{display:grid;grid-template-columns:84px 1fr;gap:14px}.thumbs{grid-template-columns:1fr;grid-auto-rows:84px;margin-top:0;order:-1}.thumbs div{height:84px}
+ .info h1{font-size:30px}
+ .below{grid-template-columns:1.3fr 1fr;gap:48px}
+}
+</style></head><body class=" "><header class="hdr"><div class="wrap hrow">
+<div class="brand"><div class="logo" style="width:38px;height:38px;border-radius:11.4px"><svg width="22.04" height="22.04" viewBox="0 0 24 24" fill="#fff"><path d="M10.5 3l1.9 5.6L18 10.5l-5.6 1.9L10.5 18l-1.9-5.6L3 10.5l5.6-1.9z"/><path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9z"/></svg></div><div>LUMI<small>ตลาดงานครีเอเตอร์ AI</small></div></div>
+<div class="srch top"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5"/></svg><span>ค้นหาภาพ สติกเกอร์ เทมเพลต หรือครีเอเตอร์</span><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4zM12 11a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></div>
+<div class="hact"><div class="ib d-only"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg><span class="dot"></span></div><div class="ib"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/></svg><span class="dot"></span></div><div class="ib"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.2l2.3 11h10.7l2.3-8H7M9.5 20a1 1 0 1 0 0-.01M17 20a1 1 0 1 0 0-.01"/></svg><span class="cnt">2</span></div>
+<div class="btn t-up">เข้าสู่ระบบ</div><div class="btn g t-up"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>ลงขาย</div></div></div>
+<div class="msrch"><div class="srch "><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5"/></svg><span>ค้นหาภาพ สติกเกอร์ เทมเพลต หรือครีเอเตอร์</span><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4zM12 11a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></div></div>
+</header>
+<main class="wrap"><div class="crumb">หน้าแรก / ภาพโปรโมตสินค้า / เครื่องดื่ม / ชุดภาพโปรโมตชาไทย 20 ภาพ</div>
+<div class="pd"><div class="gal"><div class="main img" style="background-image:url(../img/thaitea.jpg)"><div class="wm">LUMI · ตัวอย่าง</div>
+<div class="row" style="position:absolute;right:14px;top:14px;gap:8px"><div class="ib" style="border:0"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.3a4.2 4.2 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z"/></svg></div><div class="ib" style="border:0"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v6a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-6M12 3.5v12M8 7.5l4-4 4 4"/></svg></div></div>
+<span class="pill" style="position:absolute;left:14px;bottom:14px;background:rgba(22,19,43,.75);color:#fff">1 / 20 ภาพ</span></div>
+<div class="thumbs"><div class="img on" style="background-image:url(../img/thaitea.jpg)"></div><div class="img" style="background-image:url(../img/coffee.jpg)"></div><div class="img" style="background-image:url(../img/stickyrice.jpg)"></div><div class="img" style="background-image:url(../img/cafe.jpg)"></div><div class="img" style="background-image:url(../img/bakery.jpg)"></div></div></div>
+<div class="info" style="margin-top:16px"><div class="row" style="gap:6px"><span class="tag">ภาพโปรโมตสินค้า</span><span class="tag" style="background:#E9F8EF;color:var(--green)"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v6c0 4.7-3.3 7.8-7.5 9-4.2-1.2-7.5-4.3-7.5-9V6zM8.8 12.2l2.2 2.2 4.3-4.3"/></svg>ตรวจลิขสิทธิ์แล้ว</span></div>
+<h1 style="margin-top:10px">ชุดภาพโปรโมตชาไทย 20 ภาพ สำหรับร้านเครื่องดื่ม</h1>
+<div class="row" style="gap:8px;margin-top:6px;font-size:13px"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><b>4.9</b><span class="mut">328 รีวิว · ขายแล้ว 1.2k ครั้ง</span></div>
+<div class="row" style="gap:10px;align-items:baseline"><div class="price">฿490</div><span class="mut" style="font-size:13px">สิทธิ์เชิงพาณิชย์ · รวม VAT</span></div>
+<div class="b" style="margin-top:14px">เลือกสิทธิ์การใช้งาน</div>
+<div class="lic"><div class="lo "><div class="rd"></div><div style="flex:1"><b style="font-size:14px">ส่วนตัว</b><div class="mut" style="font-size:12px">ใช้ในงานส่วนตัว ไม่ใช้หารายได้</div></div><b style="font-size:15px">฿249</b></div><div class="lo on"><div class="rd"></div><div style="flex:1"><b style="font-size:14px">เชิงพาณิชย์</b><div class="mut" style="font-size:12px">โพสต์ขายของ โฆษณาออนไลน์ ป้ายหน้าร้าน</div></div><b style="font-size:15px">฿490</b></div><div class="lo "><div class="rd"></div><div style="flex:1"><b style="font-size:14px">เชิงพาณิชย์ขยาย</b><div class="mut" style="font-size:12px">พิมพ์บนบรรจุภัณฑ์หรือสินค้าเกิน 5,000 ชิ้น</div></div><b style="font-size:15px">฿1,290</b></div></div>
+<div class="feat"><div><b>20 ภาพ</b>ความละเอียด 4K</div><div><b>ZIP 186 MB</b>JPG และ PNG</div><div><b>ดาวน์โหลดทันที</b>หลังชำระเงิน</div><div><b>ใบอนุญาต PDF</b>ออกในชื่อผู้ซื้อ</div></div>
+<div class="row t-up" style="gap:10px;margin-top:16px"><div class="btn" style="flex:1;height:48px"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.2l2.3 11h10.7l2.3-8H7M9.5 20a1 1 0 1 0 0-.01M17 20a1 1 0 1 0 0-.01"/></svg>ใส่ตะกร้า</div><div class="btn g" style="flex:1.3;height:48px">ซื้อเลย</div><div class="ib" style="width:48px;height:48px"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.3a4.2 4.2 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20z"/></svg></div></div>
+<div class="card cc"><div class="av" style="width:50px;height:50px;background-image:url(../img/av_fasai.jpg)"></div><div style="flex:1"><div class="row b" style="gap:4px">ฟ้าใส ครีเอท <svg width="14" height="14" viewBox="0 0 24 24" class="ic"><path d="M12 2.5l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 21.5l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z" fill="#2F7BF6"/><path d="M8 12.3l2.6 2.6L16.2 9.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="mut" style="font-size:12px">เชียงใหม่ · ตอบกลับภายใน 1 ชั่วโมง</div><div style="font-size:12px;margin-top:2px"><svg class="ic" width="11" height="11" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg> 4.9 · ผลงาน 148 · ขายแล้ว 9.6k</div></div><div class="col" style="gap:6px"><div class="btn sm">ดูโปรไฟล์</div><div class="btn sm dk">จ้างทำแบบนี้</div></div></div>
+</div></div>
+<div class="below"><div><div class="row" style="gap:22px;border-bottom:1px solid var(--line);font-weight:600"><span style="padding:10px 0;border-bottom:2px solid var(--p);color:var(--p)">รายละเอียด</span><span class="mut" style="padding:10px 0">รีวิว (328)</span><span class="mut" style="padding:10px 0">คำถาม</span></div>
+<p style="margin-top:14px;color:var(--ink2)">ชุดภาพชาไทยสาดน้ำบนพื้นหลังโทนส้มทอง ถ่ายทอดความสดชื่นของเครื่องดื่มเย็น เหมาะสำหรับโพสต์โปรโมชัน เมนูหน้าร้าน และแบนเนอร์ Shopee หรือ LINE OA มีทั้งแนวตั้ง แนวนอน และสี่เหลี่ยมจัตุรัส</p>
+<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:12px"><span class="chip">เครื่องดื่ม</span><span class="chip">ชาไทย</span><span class="chip">ร้านคาเฟ่</span><span class="chip">สร้างด้วย Grok Imagine</span></div></div>
+<div><div class="b" style="font-size:16px">รีวิวล่าสุด</div><div class="rv"><div class="row" style="gap:10px"><div class="av" style="width:34px;height:34px;background-image:url(../img/av_shop.jpg)"></div><div style="flex:1"><b style="font-size:13.5px">ร้านชาบ้านนา</b><div class="row" style="gap:2px"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><span class="mut" style="font-size:11.5px;margin-left:6px">2 วันก่อน</span></div></div></div><p style="margin-top:8px;font-size:13.5px;color:var(--ink2)">ภาพสวยมาก โพสต์ลงเพจแล้วลูกค้าทักเพิ่มขึ้นชัดเจน ไฟล์ใหญ่พอพิมพ์ป้ายหน้าร้านได้</p></div><div class="rv"><div class="row" style="gap:10px"><div class="av" style="width:34px;height:34px;background-image:url(../img/av_ton.jpg)"></div><div style="flex:1"><b style="font-size:13.5px">ต้นกล้า ดีไซน์</b><div class="row" style="gap:2px"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><span class="mut" style="font-size:11.5px;margin-left:6px">สัปดาห์ที่แล้ว</span></div></div></div><p style="margin-top:8px;font-size:13.5px;color:var(--ink2)">สีตรงตามตัวอย่าง ได้ใบอนุญาตใช้งานชัดเจน ใช้ทำแบนเนอร์ร้านได้ทันที</p></div></div></div>
+<section class="sec"><div class="sechead"><div class="h2">ผลงานที่คล้ายกัน</div><span class="more">ดูเพิ่มเติม</span></div><div class="mas"><div class="pin"><div class="ph img" style="height:260px;background-image:url(../img/thaitea.jpg)"><span class="bd">ขายดี</span><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ชุดภาพโปรโมตชาไทย 20 ภาพ</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_fasai.jpg)"></div>ฟ้าใส ครีเอท<span class="pr">฿249</span></div></div><div class="pin"><div class="ph img" style="height:270px;background-image:url(../img/serum.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="#6C2BD9" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ภาพสินค้าสกินแคร์โทนกล้วยไม้</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_shop.jpg)"></div>Glow Studio<span class="pr">฿299</span></div></div><div class="pin"><div class="ph img" style="height:200px;background-image:url(../img/cats.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">สติกเกอร์แมวส้มจอมงอน 24 ตัว</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_fasai.jpg)"></div>ฟ้าใส ครีเอท<span class="pr">฿69</span></div></div><div class="pin"><div class="ph img" style="height:240px;background-image:url(../img/coffee.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ชุดภาพโปรโมตร้านกาแฟ 30 ภาพ</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_ton.jpg)"></div>Brew Visual<span class="pr">฿390</span></div></div><div class="pin"><div class="ph img" style="height:210px;background-image:url(../img/stickyrice.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ภาพเมนูข้าวเหนียวมะม่วง</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_fasai.jpg)"></div>ฟ้าใส ครีเอท<span class="pr">฿119</span></div></div><div class="pin"><div class="ph img" style="height:220px;background-image:url(../img/house.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ร้านกาแฟไม้ไอโซเมตริก</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_fasai.jpg)"></div>ฟ้าใส ครีเอท<span class="pr">฿390</span></div></div><div class="pin"><div class="ph img" style="height:250px;background-image:url(../img/g_product.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="#6C2BD9" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ภาพสินค้าบนแท่นพาสเทล เงาใบไม้</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_shop.jpg)"></div>Glow Studio<span class="pr">฿99</span></div></div><div class="pin"><div class="ph img" style="height:290px;background-image:url(../img/perfume.jpg)"><span class="bd">วิดีโอ</span><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">วิดีโอเปิดตัวน้ำหอม 15 วินาที</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_shop.jpg)"></div>Glow Studio<span class="pr">฿490</span></div></div><div class="pin"><div class="ph img" style="height:260px;background-image:url(../img/elephant.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ภาพสีน้ำช้างน้อยกับดอกไม้</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_fasai.jpg)"></div>ฟ้าใส ครีเอท<span class="pr">฿129</span></div></div><div class="pin"><div class="ph img" style="height:200px;background-image:url(../img/bakery.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ภาพเบเกอรี่โทนอบอุ่น</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_ton.jpg)"></div>Brew Visual<span class="pr">฿179</span></div></div><div class="pin"><div class="ph img" style="height:250px;background-image:url(../img/rainy.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">เมืองฝนพรำยามค่ำคืน</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_fasai.jpg)"></div>ฟ้าใส ครีเอท<span class="pr">฿149</span></div></div><div class="pin"><div class="ph img" style="height:260px;background-image:url(../img/thaitea.jpg)"><span class="bd">ขายดี</span><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="#6C2BD9" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ชุดภาพโปรโมตชาไทย 20 ภาพ</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_fasai.jpg)"></div>ฟ้าใส ครีเอท<span class="pr">฿249</span></div></div><div class="pin"><div class="ph img" style="height:300px;background-image:url(../img/g_anime.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ตลาดกลางคืนแห่งแสงโคม ชุด 12 ภาพ</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_nova.jpg)"></div>NOVA Lab<span class="pr">฿390</span></div></div><div class="pin"><div class="ph img" style="height:220px;background-image:url(../img/mascot.jpg)"><span class="bd">รับงานจ้าง</span><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">มาสคอตมะม่วง พร้อมท่าทาง 8 ท่า</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_mint.jpg)"></div>มิ้นท์ สตูดิโอ<span class="pr">฿590</span></div></div><div class="pin"><div class="ph img" style="height:230px;background-image:url(../img/shiba.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">สติกเกอร์ LINE ชิบะอารมณ์ดี 40 ตัว</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_kenji.jpg)"></div>Kenji Art<span class="pr">฿89</span></div></div></div></section>
+</main><footer class="foot"><div class="wrap row sp"><div class="row" style="gap:10px"><div class="logo" style="width:26px;height:26px;border-radius:7.8px"><svg width="15.079999999999998" height="15.079999999999998" viewBox="0 0 24 24" fill="#fff"><path d="M10.5 3l1.9 5.6L18 10.5l-5.6 1.9L10.5 18l-1.9-5.6L3 10.5l5.6-1.9z"/><path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9z"/></svg></div><span>LUMI ตลาดงานครีเอเตอร์ AI</span></div>
+<div class="row" style="gap:22px"><span>เกี่ยวกับเรา</span><span>เริ่มขายกับ LUMI</span><span>นโยบายลิขสิทธิ์ภาพ AI</span><span>นโยบายความเป็นส่วนตัว (PDPA)</span><span>ศูนย์ช่วยเหลือ</span></div></div></footer>
+<div class="buybar"><div style="flex:1"><div class="mut" style="font-size:11.5px">เชิงพาณิชย์</div><b style="font-size:20px">฿490</b></div><div class="ib"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.2l2.3 11h10.7l2.3-8H7M9.5 20a1 1 0 1 0 0-.01M17 20a1 1 0 1 0 0-.01"/></svg></div><div class="btn g" style="height:46px;padding:0 30px">ซื้อเลย</div></div><div class="sample">ข้อมูลตัวอย่าง</div></body></html>

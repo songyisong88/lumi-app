@@ -1,0 +1,154 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
+@font-face{font-family:Prompt;font-weight:300;src:url(../fonts/Prompt-Light.ttf)}
+@font-face{font-family:Prompt;font-weight:400;src:url(../fonts/Prompt-Regular.ttf)}
+@font-face{font-family:Prompt;font-weight:500;src:url(../fonts/Prompt-Medium.ttf)}
+@font-face{font-family:Prompt;font-weight:600;src:url(../fonts/Prompt-SemiBold.ttf)}
+@font-face{font-family:Prompt;font-weight:700;src:url(../fonts/Prompt-Bold.ttf)}
+:root{--p:#6C2BD9;--grad:linear-gradient(100deg,#7B2FF2 0%,#C13AE0 55%,#F0508A 100%);--ink:#16132B;--ink2:#3A3654;--mut:#8A86A0;--line:#ECEAF3;--soft:#F4F2F9;--soft2:#F6F1FF;--red:#E5484D;--green:#16A34A}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Prompt,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45;background:#fff}
+.ic{display:block;flex:none}
+.row{display:flex;align-items:center}.sp{justify-content:space-between}.col{display:flex;flex-direction:column}
+.mut{color:var(--mut)}.b{font-weight:600}
+.img{background-size:cover;background-position:center}
+.av{border-radius:50%;background-size:cover;background-position:center;flex:none}
+.logo{background:linear-gradient(135deg,#7B2FF2,#C13AE0 60%,#F0508A);display:flex;align-items:center;justify-content:center;flex:none}
+.gtext{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.wrap{max-width:1360px;margin:0 auto;padding:0 16px}
+.btn{height:42px;padding:0 18px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:600;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);white-space:nowrap}
+.btn.g{background:var(--grad);color:#fff;border:0;box-shadow:0 8px 18px rgba(193,58,224,.25)}
+.btn.dk{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.sm{height:34px;padding:0 12px;font-size:13px;border-radius:10px}
+.ib{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;position:relative;background:#fff;flex:none}
+.cnt{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;border-radius:10px;background:var(--p);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+.dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:50%;background:#F0508A;border:2px solid #fff}
+.chip{height:36px;padding:0 15px;border-radius:18px;border:1px solid var(--line);display:inline-flex;align-items:center;font-size:13.5px;font-weight:500;color:var(--ink2);background:#fff;flex:none;gap:6px;white-space:nowrap}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.h2{font-size:19px;font-weight:600}.more{font-size:13.5px;color:var(--p);font-weight:500}
+.card{border:1px solid var(--line);border-radius:18px;background:#fff}
+.tag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:500;background:var(--soft2);color:var(--p)}
+.pill{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;font-size:12px;font-weight:500;white-space:nowrap}
+.sec{margin-top:28px}
+.sechead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+/* header */
+.hdr{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line)}
+.hrow{height:62px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:600;flex:none}
+.brand small{font-size:11px;color:var(--mut);font-weight:500;display:block;line-height:1;margin-top:2px}
+.srch{flex:1;height:44px;border-radius:14px;background:var(--soft);display:flex;align-items:center;gap:10px;padding:0 14px;min-width:0}
+.srch span{flex:1;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srch .q{color:var(--ink);font-weight:500}
+.hdr .srch.top{display:none}
+.msrch{padding:0 16px 10px}
+.catbar{display:flex;gap:8px;overflow:hidden;padding:0 16px 12px}
+.hact{display:flex;gap:10px;align-items:center;margin-left:auto}
+.t-up,.d-only{display:none!important}
+.tabbar{position:fixed;left:0;right:0;bottom:0;height:72px;border-top:1px solid var(--line);background:rgba(255,255,255,.98);display:flex;justify-content:space-around;padding-top:8px;z-index:60}
+.tab{width:72px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--mut);font-weight:500}
+.tab.on{color:var(--p);font-weight:600}
+.mid{width:50px;height:50px;border-radius:16px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin-top:-16px;box-shadow:0 10px 22px rgba(193,58,224,.35)}
+body.hasTab{padding-bottom:84px}
+.sample{position:fixed;right:12px;bottom:84px;z-index:70;font-size:11px;background:rgba(22,19,43,.78);color:#fff;border-radius:8px;padding:3px 9px}
+/* masonry */
+.mas{column-count:2;column-gap:10px}
+.pin{break-inside:avoid;margin-bottom:14px;display:block}
+.pin .ph{border-radius:16px;position:relative;overflow:hidden}
+.pin .sv{position:absolute;right:8px;top:8px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center}
+.pin .bd{position:absolute;left:8px;top:8px;font-size:11px;font-weight:600;border-radius:7px;padding:2px 7px;background:rgba(22,19,43,.75);color:#fff}
+.pin .tt{font-size:13.5px;font-weight:500;margin-top:7px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pin .by{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);margin-top:4px}
+.pin .pr{margin-left:auto;font-weight:600;color:var(--ink);font-size:13.5px}
+.foot{display:none}
+@media(min-width:700px){
+ .wrap{padding:0 28px}
+ .t-up{display:flex!important}.m-only{display:none!important}
+ .hdr .srch.top{display:flex}.msrch{display:none}
+ .catbar{padding:0 28px 12px}
+ .tabbar{display:none}body.hasTab{padding-bottom:0}
+ .mas{column-count:3;column-gap:16px}
+ .pin{margin-bottom:18px}
+ .h2{font-size:21px}.sec{margin-top:36px}
+ .foot{display:block;border-top:1px solid var(--line);margin-top:48px;padding:28px 0 36px;color:var(--mut);font-size:13px}
+ .sample{bottom:14px}
+}
+@media(min-width:1200px){
+ .wrap{padding:0 40px}.catbar{padding:0 40px 12px;gap:6px}
+ .d-only{display:flex!important}.t-only{display:none!important}
+ .hrow{height:72px;gap:22px}
+ .mas{column-count:5;column-gap:18px}
+}
+
+body{background:#FAF9FD}
+.cw{display:block}
+.cl,.op{display:none}
+.cv{background:#fff;display:flex;flex-direction:column;min-height:calc(100vh - 118px)}
+.chd{display:flex;align-items:center;gap:11px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.strip{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--soft2);font-size:12.5px}
+.msgs{flex:1;padding:16px;display:flex;flex-direction:column;gap:10px}
+.m{max-width:78%;padding:10px 14px;border-radius:18px;font-size:14px;background:var(--soft)}
+.m small{display:block;text-align:right;font-size:11px;color:var(--mut);margin-top:2px}
+.m.me{align-self:flex-end;background:var(--grad);color:#fff}.m.me small{color:rgba(255,255,255,.75)}
+.sys{align-self:center;font-size:12px;color:var(--green);background:#E9F8EF;border-radius:10px;padding:5px 12px;display:flex;gap:6px;align-items:center}
+.qc{max-width:380px;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#fff;box-shadow:0 8px 24px rgba(40,20,90,.08)}
+.qc .qh{background:var(--grad);color:#fff;padding:11px 15px;display:flex;justify-content:space-between;font-weight:600}
+.qc .qr{display:flex;justify-content:space-between;font-size:13.5px;padding:3px 0}
+.dr{max-width:300px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#fff}
+.dr .img{height:190px;position:relative}
+.wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.6);font-weight:700;font-size:22px;letter-spacing:3px;transform:rotate(-18deg)}
+.comp{display:flex;gap:10px;align-items:center;padding:12px 16px;border-top:1px solid var(--line);background:#fff}
+.warn{margin:0 16px 10px;border:1px solid #F6D58A;background:#FFF8E6;border-radius:14px;padding:9px 13px;font-size:12.5px;color:#8A5A00;display:flex;gap:8px}
+.ci{display:flex;gap:11px;padding:12px 14px;border-radius:14px;align-items:center}
+.ci.on{background:var(--soft2)}
+.tl{position:relative;padding-left:30px}
+.ts{position:relative;padding:0 0 18px}
+.ts:before{content:"";position:absolute;left:-19px;top:22px;bottom:-2px;width:2px;background:var(--line)}
+.ts.dn:before{background:var(--p)}
+.ts:last-child:before{display:none}
+.ts .k{position:absolute;left:-30px;top:0;width:24px;height:24px;border-radius:50%;background:#fff;border:2px solid #D9D5E5;display:flex;align-items:center;justify-content:center}
+.ts.dn .k{background:var(--p);border-color:var(--p)}
+.ts.cur .k{border-color:var(--p);box-shadow:0 0 0 5px rgba(108,43,217,.14)}
+.ts b{font-size:13.5px}.ts div{font-size:12px;color:var(--mut)}
+@media(min-width:700px){
+ .cw{display:grid;grid-template-columns:1fr 320px;gap:0;height:calc(100vh - 63px)}
+ .cv{min-height:0;border-right:1px solid var(--line)}.msgs{overflow:hidden}
+ .op{display:block;background:#fff;padding:18px;overflow:hidden}
+ .strip{display:none}
+}
+@media(min-width:1200px){
+ .cw{grid-template-columns:330px 1fr 370px;height:calc(100vh - 73px)}
+ .cl{display:block;background:#fff;border-right:1px solid var(--line);padding:16px 12px}
+ .msgs{padding:20px 28px}.op{padding:22px}
+}
+</style></head><body class=" "><header class="hdr"><div class="wrap hrow">
+<div class="brand"><div class="logo" style="width:38px;height:38px;border-radius:11.4px"><svg width="22.04" height="22.04" viewBox="0 0 24 24" fill="#fff"><path d="M10.5 3l1.9 5.6L18 10.5l-5.6 1.9L10.5 18l-1.9-5.6L3 10.5l5.6-1.9z"/><path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9z"/></svg></div><div>LUMI<small>ตลาดงานครีเอเตอร์ AI</small></div></div>
+<div class="srch top"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5"/></svg><span>ค้นหาภาพ สติกเกอร์ เทมเพลต หรือครีเอเตอร์</span><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4zM12 11a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></div>
+<div class="hact"><div class="ib d-only"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg><span class="dot"></span></div><div class="ib"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/></svg><span class="dot"></span></div><div class="ib"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.2l2.3 11h10.7l2.3-8H7M9.5 20a1 1 0 1 0 0-.01M17 20a1 1 0 1 0 0-.01"/></svg><span class="cnt">2</span></div>
+<div class="t-up"><div class="av" style="width:38px;height:38px;background-image:url(../img/av_shop.jpg)"></div></div><div class="btn g t-up"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>ลงขาย</div></div></div>
+<div class="msrch"><div class="srch "><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5"/></svg><span>ค้นหาภาพ สติกเกอร์ เทมเพลต หรือครีเอเตอร์</span><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4zM12 11a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></div></div>
+</header>
+<div class="cw"><aside class="cl"><div class="row sp" style="padding:0 4px 10px"><b style="font-size:18px">ข้อความ</b><span class="more">งานจ้างของฉัน</span></div>
+<div class="srch" style="height:40px;margin-bottom:10px"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5"/></svg><span>ค้นหาแชต</span></div>
+<div class="ci on"><div class="av" style="width:44px;height:44px;background-image:url(../img/av_mint.jpg)"></div><div style="flex:1;min-width:0"><div class="row sp"><b style="font-size:14px">มิ้นท์ สตูดิโอ</b><span class="mut" style="font-size:11px">10:42</span></div><div class="mut" style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">รับทราบค่ะ ส่งแบบแก้ภายในพรุ่งนี้</div></div></div><div class="ci "><div class="av" style="width:44px;height:44px;background-image:url(../img/av_kenji.jpg)"></div><div style="flex:1;min-width:0"><div class="row sp"><b style="font-size:14px">Kenji Art</b><span class="mut" style="font-size:11px">เมื่อวาน</span></div><div class="mut" style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">ใบเสนอราคาสติกเกอร์ 24 ตัว</div></div><span class=cnt style=position:static>2</span></div><div class="ci "><div class="av" style="width:44px;height:44px;background-image:url(../img/av_fasai.jpg)"></div><div style="flex:1;min-width:0"><div class="row sp"><b style="font-size:14px">ฟ้าใส ครีเอท</b><span class="mut" style="font-size:11px">31 ต.ค.</span></div><div class="mut" style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">ส่งไฟล์สุดท้ายแล้วค่ะ</div></div></div><div class="ci "><div class="av" style="width:44px;height:44px;background-image:url(../img/av_ton.jpg)"></div><div style="flex:1;min-width:0"><div class="row sp"><b style="font-size:14px">Brew Visual</b><span class="mut" style="font-size:11px">28 ต.ค.</span></div><div class="mut" style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">ขอบคุณที่อุดหนุนครับ</div></div></div><div class="ci "><div class="av" style="width:44px;height:44px;background-image:url(../img/av_nova.jpg)"></div><div style="flex:1;min-width:0"><div class="row sp"><b style="font-size:14px">NOVA Lab</b><span class="mut" style="font-size:11px">25 ต.ค.</span></div><div class="mut" style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">แพ็กพรอมต์อัปเดตเวอร์ชันใหม่</div></div></div></aside>
+<section class="cv"><div class="chd"><div class="av" style="width:44px;height:44px;background-image:url(../img/av_mint.jpg)"></div><div style="flex:1"><div class="row b" style="gap:4px">มิ้นท์ สตูดิโอ <svg width="14" height="14" viewBox="0 0 24 24" class="ic"><path d="M12 2.5l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 21.5l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z" fill="#2F7BF6"/><path d="M8 12.3l2.6 2.6L16.2 9.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div style="font-size:12px;color:var(--green)">ออนไลน์ · งาน #LM-2611-0418</div></div><div class="ib"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg></div></div>
+<div class="strip"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.5v5l3.2 2"/></svg><span style="flex:1"><b>แก้ไขครั้งที่ 1 จาก 3</b> · ส่งไฟล์สุดท้ายภายใน 8 พ.ย.</span><span class="more">ดูไทม์ไลน์</span></div>
+<div class="msgs"><div class="mut" style="text-align:center;font-size:12px">1 พ.ย. 2569</div>
+<div class="m">สวัสดีค่ะ ได้รับบรีฟมาสคอตมะม่วงแล้ว อยากให้มีท่าไหว้กับท่าชูนิ้วโป้งด้วยไหมคะ<small>10:12</small></div>
+<div class="m me">เอาครับ เพิ่มท่าถือจานข้าวเหนียวได้ไหม<small>10:14</small></div>
+<div class="qc"><div class="qh"><span class="row" style="gap:7px"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5h8l4 4v13H6zM14 3.5v4h4"/></svg>ใบเสนอราคา</span><span style="font-weight:500;opacity:.9">#Q-2611-0418</span></div><div style="padding:12px 15px">
+<div class="b" style="margin-bottom:6px">มาสคอตมะม่วง + 6 ท่า (รวมท่าถือจาน)</div>
+<div class="qr"><span class="mut">ส่งแบบร่างภายใน</span><b>3 วัน</b></div><div class="qr"><span class="mut">ไฟล์สุดท้ายภายใน</span><b>8 พ.ย.</b></div><div class="qr"><span class="mut">แก้ไขได้</span><b>3 ครั้ง</b></div><div class="qr"><span class="mut">สิทธิ์การใช้</span><b>เชิงพาณิชย์</b></div>
+<div class="row sp" style="border-top:1px solid var(--line);margin-top:8px;padding-top:9px"><b>ราคารวม</b><b class="gtext" style="font-size:22px">฿1,200</b></div>
+<div class="btn" style="width:100%;margin-top:10px;background:#E9F8EF;border-color:#D3EFDD;color:var(--green)"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>ยอมรับและชำระแล้ว</div></div></div>
+<div class="sys"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v6c0 4.7-3.3 7.8-7.5 9-4.2-1.2-7.5-4.3-7.5-9V6zM8.8 12.2l2.2 2.2 4.3-4.3"/></svg>ชำระ ฿1,200 แล้ว เงินพักไว้กับผู้ให้บริการรับชำระเงิน</div>
+<div class="mut" style="text-align:center;font-size:12px">วันนี้</div>
+<div class="dr"><div class="img" style="background-image:url(../img/mascot.jpg)"><div class="wm">LUMI ร่าง</div></div><div style="padding:10px 13px"><b style="font-size:13.5px">แบบร่างที่ 1</b><div class="mut" style="font-size:12px">มีลายน้ำ · ไฟล์จริงส่งหลังอนุมัติ</div></div></div>
+<div class="m me">ขอปรับสีเสื้อเป็นเขียวใบเตย และให้ยิ้มกว้างขึ้นอีกนิดครับ<small>10:38</small></div>
+<div class="m">รับทราบค่ะ ส่งแบบแก้ภายในพรุ่งนี้<small>10:42</small></div></div>
+<div class="warn"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B7791F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v6c0 4.7-3.3 7.8-7.5 9-4.2-1.2-7.5-4.3-7.5-9V6zM8.8 12.2l2.2 2.2 4.3-4.3"/></svg>คุยและจ่ายเงินใน LUMI เท่านั้น ถ้าโอนนอกแอป เงินจะไม่ได้รับความคุ้มครอง</div>
+<div class="comp"><div class="ib"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4L14.8 7"/></svg></div><div class="srch" style="border-radius:22px;background:#fff;border:1px solid var(--line)"><span>พิมพ์ข้อความ...</span></div><div class="ib" style="background:var(--grad);border:0"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10 14M21 3l-7 18-4-7-7-4z"/></svg></div></div></section>
+<aside class="op"><b style="font-size:17px">รายละเอียดงาน</b>
+<div class="row" style="gap:12px;margin-top:12px"><div class="img" style="width:62px;height:62px;border-radius:14px;background-image:url(../img/mascot.jpg)"></div><div><b style="font-size:14px">มาสคอตมะม่วง + 6 ท่า</b><div class="mut" style="font-size:12px">แพ็กเกจมาตรฐาน · #LM-2611-0418</div><b style="font-size:16px">฿1,200</b></div></div>
+<div class="card" style="padding:12px 14px;margin-top:14px;background:#F3FBF6;border-color:#D3EFDD"><div class="row sp"><span class="row b" style="gap:6px;color:var(--green);font-size:13.5px"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></svg>เงินพักไว้อย่างปลอดภัย</span><b>฿1,200</b></div><div style="font-size:12px;color:var(--ink2);margin-top:4px">ถือโดยผู้ให้บริการรับชำระเงินที่ได้รับอนุญาต จ่ายครีเอเตอร์ 2 งวด งวดละ ฿600</div></div>
+<div class="row sp" style="margin:18px 0 12px"><b style="font-size:15px">ไทม์ไลน์</b><span class="pill" style="background:var(--soft2);color:var(--p)">ใช้สิทธิ์แก้ 1 จาก 3</span></div>
+<div class="tl"><div class="ts dn"><span class="k"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><b>ส่งรายละเอียดงาน</b><div>1 พ.ย. 10:02</div></div><div class="ts dn"><span class="k"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><b>ตกลงใบเสนอราคา</b><div>1 พ.ย. 10:16</div></div><div class="ts dn"><span class="k"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><b>ชำระเงิน (พักเงิน)</b><div>1 พ.ย. 10:20</div></div><div class="ts dn"><span class="k"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><b>ส่งแบบร่างที่ 1</b><div>2 พ.ย. 09:30 · ปล่อยเงินงวดแรก ฿600</div></div><div class="ts cur"><span class="k"></span><b>กำลังแก้ไขครั้งที่ 1</b><div>ครีเอเตอร์จะส่งภายใน 3 พ.ย.</div></div><div class="ts "><span class="k"></span><b>ส่งไฟล์สุดท้าย</b><div>กำหนด 8 พ.ย.</div></div><div class="ts "><span class="k"></span><b>อนุมัติงานและปล่อยเงินงวดสุดท้าย</b><div>ถ้าไม่ตอบใน 3 วัน ระบบอนุมัติให้</div></div></div>
+<div class="btn" style="width:100%;opacity:.5">อนุมัติงาน (รอไฟล์สุดท้าย)</div><div class="row" style="justify-content:center;gap:6px;margin-top:12px;font-size:13px;color:var(--red)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#E5484D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>แจ้งปัญหา</div></aside></div><div class="sample">ข้อมูลตัวอย่าง</div></body></html>

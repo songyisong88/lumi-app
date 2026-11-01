@@ -1,0 +1,160 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
+@font-face{font-family:Prompt;font-weight:300;src:url(../fonts/Prompt-Light.ttf)}
+@font-face{font-family:Prompt;font-weight:400;src:url(../fonts/Prompt-Regular.ttf)}
+@font-face{font-family:Prompt;font-weight:500;src:url(../fonts/Prompt-Medium.ttf)}
+@font-face{font-family:Prompt;font-weight:600;src:url(../fonts/Prompt-SemiBold.ttf)}
+@font-face{font-family:Prompt;font-weight:700;src:url(../fonts/Prompt-Bold.ttf)}
+:root{--p:#6C2BD9;--grad:linear-gradient(100deg,#7B2FF2 0%,#C13AE0 55%,#F0508A 100%);--ink:#16132B;--ink2:#3A3654;--mut:#8A86A0;--line:#ECEAF3;--soft:#F4F2F9;--soft2:#F6F1FF;--red:#E5484D;--green:#16A34A}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Prompt,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45;background:#fff}
+.ic{display:block;flex:none}
+.row{display:flex;align-items:center}.sp{justify-content:space-between}.col{display:flex;flex-direction:column}
+.mut{color:var(--mut)}.b{font-weight:600}
+.img{background-size:cover;background-position:center}
+.av{border-radius:50%;background-size:cover;background-position:center;flex:none}
+.logo{background:linear-gradient(135deg,#7B2FF2,#C13AE0 60%,#F0508A);display:flex;align-items:center;justify-content:center;flex:none}
+.gtext{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.wrap{max-width:1360px;margin:0 auto;padding:0 16px}
+.btn{height:42px;padding:0 18px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:600;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);white-space:nowrap}
+.btn.g{background:var(--grad);color:#fff;border:0;box-shadow:0 8px 18px rgba(193,58,224,.25)}
+.btn.dk{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.sm{height:34px;padding:0 12px;font-size:13px;border-radius:10px}
+.ib{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;position:relative;background:#fff;flex:none}
+.cnt{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;border-radius:10px;background:var(--p);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+.dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:50%;background:#F0508A;border:2px solid #fff}
+.chip{height:36px;padding:0 15px;border-radius:18px;border:1px solid var(--line);display:inline-flex;align-items:center;font-size:13.5px;font-weight:500;color:var(--ink2);background:#fff;flex:none;gap:6px;white-space:nowrap}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.h2{font-size:19px;font-weight:600}.more{font-size:13.5px;color:var(--p);font-weight:500}
+.card{border:1px solid var(--line);border-radius:18px;background:#fff}
+.tag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:500;background:var(--soft2);color:var(--p)}
+.pill{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;font-size:12px;font-weight:500;white-space:nowrap}
+.sec{margin-top:28px}
+.sechead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+/* header */
+.hdr{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line)}
+.hrow{height:62px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:600;flex:none}
+.brand small{font-size:11px;color:var(--mut);font-weight:500;display:block;line-height:1;margin-top:2px}
+.srch{flex:1;height:44px;border-radius:14px;background:var(--soft);display:flex;align-items:center;gap:10px;padding:0 14px;min-width:0}
+.srch span{flex:1;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srch .q{color:var(--ink);font-weight:500}
+.hdr .srch.top{display:none}
+.msrch{padding:0 16px 10px}
+.catbar{display:flex;gap:8px;overflow:hidden;padding:0 16px 12px}
+.hact{display:flex;gap:10px;align-items:center;margin-left:auto}
+.t-up,.d-only{display:none!important}
+.tabbar{position:fixed;left:0;right:0;bottom:0;height:72px;border-top:1px solid var(--line);background:rgba(255,255,255,.98);display:flex;justify-content:space-around;padding-top:8px;z-index:60}
+.tab{width:72px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--mut);font-weight:500}
+.tab.on{color:var(--p);font-weight:600}
+.mid{width:50px;height:50px;border-radius:16px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin-top:-16px;box-shadow:0 10px 22px rgba(193,58,224,.35)}
+body.hasTab{padding-bottom:84px}
+.sample{position:fixed;right:12px;bottom:84px;z-index:70;font-size:11px;background:rgba(22,19,43,.78);color:#fff;border-radius:8px;padding:3px 9px}
+/* masonry */
+.mas{column-count:2;column-gap:10px}
+.pin{break-inside:avoid;margin-bottom:14px;display:block}
+.pin .ph{border-radius:16px;position:relative;overflow:hidden}
+.pin .sv{position:absolute;right:8px;top:8px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center}
+.pin .bd{position:absolute;left:8px;top:8px;font-size:11px;font-weight:600;border-radius:7px;padding:2px 7px;background:rgba(22,19,43,.75);color:#fff}
+.pin .tt{font-size:13.5px;font-weight:500;margin-top:7px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pin .by{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);margin-top:4px}
+.pin .pr{margin-left:auto;font-weight:600;color:var(--ink);font-size:13.5px}
+.foot{display:none}
+@media(min-width:700px){
+ .wrap{padding:0 28px}
+ .t-up{display:flex!important}.m-only{display:none!important}
+ .hdr .srch.top{display:flex}.msrch{display:none}
+ .catbar{padding:0 28px 12px}
+ .tabbar{display:none}body.hasTab{padding-bottom:0}
+ .mas{column-count:3;column-gap:16px}
+ .pin{margin-bottom:18px}
+ .h2{font-size:21px}.sec{margin-top:36px}
+ .foot{display:block;border-top:1px solid var(--line);margin-top:48px;padding:28px 0 36px;color:var(--mut);font-size:13px}
+ .sample{bottom:14px}
+}
+@media(min-width:1200px){
+ .wrap{padding:0 40px}.catbar{padding:0 40px 12px;gap:6px}
+ .d-only{display:flex!important}.t-only{display:none!important}
+ .hrow{height:72px;gap:22px}
+ .mas{column-count:5;column-gap:18px}
+}
+
+.cover{height:150px;margin:0 -16px;position:relative}
+.cover:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(18,8,48,.35),transparent)}
+.phd{display:flex;flex-direction:column;gap:12px;margin-top:-40px;position:relative;z-index:2}
+.phd .a{border:4px solid #fff;border-radius:50%;width:92px;height:92px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;text-align:center}
+.stats b{display:block;font-size:17px}.stats span{font-size:11.5px;color:var(--mut)}
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--line);font-weight:600;margin-top:20px;overflow:hidden}
+.tabs span{padding:11px 0;white-space:nowrap;color:var(--mut)}.tabs .on{color:var(--p);border-bottom:2px solid var(--p)}
+.cl{display:block}
+.pk{display:grid;grid-template-columns:1fr;gap:14px;margin-top:16px}
+.pkc{border:1.5px solid var(--line);border-radius:20px;padding:18px;position:relative;background:#fff}
+.pkc.hot{border-color:var(--p);box-shadow:0 12px 30px rgba(108,43,217,.12)}
+.pkc .rb{position:absolute;top:-12px;right:16px;background:var(--grad);color:#fff;font-size:12px;font-weight:600;border-radius:9px;padding:2px 11px}
+.pkc .pp{font-size:28px;font-weight:700;margin:6px 0 2px}
+.li{display:flex;gap:8px;font-size:13.5px;padding:4px 0;color:var(--ink2)}
+.meta{display:flex;gap:14px;font-size:12.5px;color:var(--mut);margin:10px 0 12px;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.aside{margin-top:24px;display:flex;flex-direction:column;gap:14px}
+.step{display:flex;gap:11px;padding:7px 0;font-size:13.5px}.step i{width:24px;height:24px;border-radius:50%;background:var(--soft2);color:var(--p);font-style:normal;font-weight:600;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none}
+@media(min-width:700px){
+ .cover{height:230px;margin:0;border-radius:0 0 26px 26px}
+ .phd{flex-direction:row;flex-wrap:wrap;align-items:flex-end;gap:16px 20px;margin-top:-50px;padding:0 8px}
+ .phd .a{width:120px;height:120px}
+ .phd .acts{width:100%}
+ .stats{grid-template-columns:repeat(5,auto);justify-content:start;gap:30px;text-align:left}
+ .pk{grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+ .pkc{padding:16px}
+ .aside{display:grid;grid-template-columns:1fr 1fr}
+}
+@media(min-width:1200px){
+ .cover{height:280px}
+ .phd{flex-wrap:nowrap}.phd .acts{width:auto}
+ .cl{display:grid;grid-template-columns:1fr 340px;gap:36px}
+ .aside{display:flex;margin-top:22px}
+ .pk{gap:18px}.pkc{padding:22px}
+ .mas{column-count:4}
+}
+</style></head><body class="hasTab "><header class="hdr"><div class="wrap hrow">
+<div class="brand"><div class="logo" style="width:38px;height:38px;border-radius:11.4px"><svg width="22.04" height="22.04" viewBox="0 0 24 24" fill="#fff"><path d="M10.5 3l1.9 5.6L18 10.5l-5.6 1.9L10.5 18l-1.9-5.6L3 10.5l5.6-1.9z"/><path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9z"/></svg></div><div>LUMI<small>ตลาดงานครีเอเตอร์ AI</small></div></div>
+<div class="srch top"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5"/></svg><span>ค้นหาภาพ สติกเกอร์ เทมเพลต หรือครีเอเตอร์</span><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4zM12 11a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></div>
+<div class="hact"><div class="ib d-only"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg><span class="dot"></span></div><div class="ib"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/></svg><span class="dot"></span></div><div class="ib"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2.2l2.3 11h10.7l2.3-8H7M9.5 20a1 1 0 1 0 0-.01M17 20a1 1 0 1 0 0-.01"/></svg><span class="cnt">2</span></div>
+<div class="btn t-up">เข้าสู่ระบบ</div><div class="btn g t-up"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>ลงขาย</div></div></div>
+<div class="msrch"><div class="srch "><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5"/></svg><span>ค้นหาภาพ สติกเกอร์ เทมเพลต หรือครีเอเตอร์</span><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4zM12 11a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg></div></div>
+</header>
+<main class="wrap"><div class="cover img" style="background-image:url(../img/mascot.jpg);background-position:50% 40%"></div>
+<div class="phd"><div class="av a" style="background-image:url(../img/av_mint.jpg)"></div>
+<div style="flex:1"><div class="row" style="gap:6px;font-size:24px;font-weight:600">มิ้นท์ สตูดิโอ <svg width="20" height="20" viewBox="0 0 24 24" class="ic"><path d="M12 2.5l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 21.5l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z" fill="#2F7BF6"/><path d="M8 12.3l2.6 2.6L16.2 9.4" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="tag" style="margin:2px 0 4px"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8l4.2 3.5L12 5l3.8 6.5L20 8l-1.6 10H5.6z"/></svg>ครีเอเตอร์ระดับโปร</span>
+<div class="mut" style="font-size:13.5px">ออกแบบมาสคอต 3 มิติ และภาพเมนูอาหารไทย · ขอนแก่น · ตอบกลับภายใน 3 ชั่วโมง</div></div>
+<div class="row acts" style="gap:8px"><div class="btn">ติดตาม</div><div class="btn"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>ส่งข้อความ</div><div class="btn g">จ้างงาน</div></div></div>
+<div class="stats" style="margin-top:18px"><div><b>72</b><span>ผลงาน</span></div><div><b>3.4k</b><span>ขายแล้ว</span></div><div><b>186</b><span>งานจ้างสำเร็จ</span></div><div><b>9.2k</b><span>ผู้ติดตาม</span></div><div><b>4.9</b><span>คะแนน (214)</span></div></div>
+<div class="tabs"><span class="on">แพ็กเกจบริการ</span><span>ผลงาน 72</span><span>รีวิว 214</span><span>เกี่ยวกับ</span></div>
+<div class="cl"><div><div class="pk">
+<div class="pkc "><div class="b" style="font-size:15px">เริ่มต้น</div><div class="pp">฿600</div><div class="mut" style="font-size:12.5px">มาสคอต 1 ตัว ท่ายืนหลัก</div>
+<div class="meta"><span class="row" style="gap:4px"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.5v5l3.2 2"/></svg>3 วัน</span><span class="row" style="gap:4px"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>แก้ได้ 2 ครั้ง</span></div>
+<div class="li"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>ไฟล์ PNG พื้นหลังโปร่งใส</div><div class="li"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>ความละเอียด 4K</div><div class="li"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>ใช้เชิงพาณิชย์ได้</div><div class="btn dk" style="width:100%;margin-top:14px">เลือกแพ็กเกจนี้</div></div>
+<div class="pkc hot"><span class="rb">แนะนำ</span><div class="b" style="font-size:15px">มาตรฐาน</div><div class="pp">฿1,200</div><div class="mut" style="font-size:12.5px">มาสคอต + 6 ท่าทาง สำหรับโพสต์และป้ายร้าน</div>
+<div class="meta"><span class="row" style="gap:4px"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.5v5l3.2 2"/></svg>5 วัน</span><span class="row" style="gap:4px"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>แก้ได้ 3 ครั้ง</span></div>
+<div class="li"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>ทุกอย่างในแพ็กเริ่มต้น</div><div class="li"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>6 ท่าทางตามบรีฟ</div><div class="li"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>ไฟล์ PNG และ AI แก้ไขได้</div><div class="li"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>ใบอนุญาตเชิงพาณิชย์</div><div class="btn g" style="width:100%;margin-top:14px">เลือกแพ็กเกจนี้</div></div>
+<div class="pkc "><div class="b" style="font-size:15px">พรีเมียม</div><div class="pp">฿2,900</div><div class="mut" style="font-size:12.5px">ชุดแบรนด์ครบ มาสคอต + สติกเกอร์ LINE</div>
+<div class="meta"><span class="row" style="gap:4px"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM12 7.5v5l3.2 2"/></svg>10 วัน</span><span class="row" style="gap:4px"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>แก้ได้ 5 ครั้ง</span></div>
+<div class="li"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>12 ท่าทาง</div><div class="li"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>สติกเกอร์ LINE 16 ตัว พร้อมส่ง</div><div class="li"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>ไฟล์ต้นฉบับทั้งหมด</div><div class="li"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>สิทธิ์เชิงพาณิชย์ขยาย</div><div class="btn dk" style="width:100%;margin-top:14px">เลือกแพ็กเกจนี้</div></div>
+</div>
+<section class="sec"><div class="sechead"><div class="h2">ผลงานล่าสุด</div><span class="more">ดูทั้งหมด 72</span></div><div class="mas"><div class="pin"><div class="ph img" style="height:220px;background-image:url(../img/mascot.jpg)"><span class="bd">รับงานจ้าง</span><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">มาสคอตมะม่วง พร้อมท่าทาง 8 ท่า</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_mint.jpg)"></div>มิ้นท์ สตูดิโอ<span class="pr">฿590</span></div></div><div class="pin"><div class="ph img" style="height:200px;background-image:url(../img/padthai.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="#6C2BD9" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ภาพเมนูผัดไทยกุ้งสด</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_mint.jpg)"></div>มิ้นท์ สตูดิโอ<span class="pr">฿159</span></div></div><div class="pin"><div class="ph img" style="height:210px;background-image:url(../img/stickyrice.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ภาพเมนูข้าวเหนียวมะม่วง</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_fasai.jpg)"></div>ฟ้าใส ครีเอท<span class="pr">฿119</span></div></div><div class="pin"><div class="ph img" style="height:220px;background-image:url(../img/house.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ร้านกาแฟไม้ไอโซเมตริก</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_fasai.jpg)"></div>ฟ้าใส ครีเอท<span class="pr">฿390</span></div></div><div class="pin"><div class="ph img" style="height:210px;background-image:url(../img/toys.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ตุ๊กตาดินปั้นแสนหวาน 16 ตัว</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_pim.jpg)"></div>Pim Draw<span class="pr">฿129</span></div></div><div class="pin"><div class="ph img" style="height:200px;background-image:url(../img/cats.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">สติกเกอร์แมวส้มจอมงอน 24 ตัว</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_fasai.jpg)"></div>ฟ้าใส ครีเอท<span class="pr">฿69</span></div></div><div class="pin"><div class="ph img" style="height:230px;background-image:url(../img/shiba.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="#6C2BD9" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">สติกเกอร์ LINE ชิบะอารมณ์ดี 40 ตัว</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_kenji.jpg)"></div>Kenji Art<span class="pr">฿89</span></div></div><div class="pin"><div class="ph img" style="height:280px;background-image:url(../img/robot.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">คาแรกเตอร์หุ่นยนต์ส้มขาว</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_nova.jpg)"></div>NOVA Lab<span class="pr">฿350</span></div></div><div class="pin"><div class="ph img" style="height:250px;background-image:url(../img/g_product.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ภาพสินค้าบนแท่นพาสเทล เงาใบไม้</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_shop.jpg)"></div>Glow Studio<span class="pr">฿99</span></div></div><div class="pin"><div class="ph img" style="height:220px;background-image:url(../img/mascot.jpg)"><span class="bd">รับงานจ้าง</span><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">มาสคอตมะม่วง พร้อมท่าทาง 8 ท่า</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_mint.jpg)"></div>มิ้นท์ สตูดิโอ<span class="pr">฿590</span></div></div><div class="pin"><div class="ph img" style="height:200px;background-image:url(../img/padthai.jpg)"><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ภาพเมนูผัดไทยกุ้งสด</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_mint.jpg)"></div>มิ้นท์ สตูดิโอ<span class="pr">฿159</span></div></div><div class="pin"><div class="ph img" style="height:260px;background-image:url(../img/thaitea.jpg)"><span class="bd">ขายดี</span><div class="sv"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="#6C2BD9" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11v17l-5.5-3.8-5.5 3.8z"/></svg></div></div>
+<div class="tt">ชุดภาพโปรโมตชาไทย 20 ภาพ</div><div class="by"><div class="av" style="width:18px;height:18px;background-image:url(../img/av_fasai.jpg)"></div>ฟ้าใส ครีเอท<span class="pr">฿249</span></div></div></div></section></div>
+<aside class="aside"><div class="card" style="padding:18px"><div class="b" style="font-size:15px;margin-bottom:6px">จ้างงานกับ LUMI ทำงานอย่างไร</div>
+<div class="step"><i>1</i>เลือกแพ็กเกจและส่งรายละเอียดงาน</div><div class="step"><i>2</i>คุยในแชต รับใบเสนอราคา</div><div class="step"><i>3</i>ชำระเงิน เงินพักไว้กับผู้ให้บริการรับชำระเงิน</div><div class="step"><i>4</i>ตรวจแบบร่างที่มีลายน้ำ สั่งแก้ได้ตามแพ็กเกจ</div><div class="step"><i>5</i>อนุมัติงาน รับไฟล์จริง</div><div class="step"><i>6</i>ครีเอเตอร์ได้รับเงิน</div></div>
+<div class="card" style="padding:18px;background:#F3FBF6;border-color:#D3EFDD"><div class="row b" style="gap:8px;color:var(--green)"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v6c0 4.7-3.3 7.8-7.5 9-4.2-1.2-7.5-4.3-7.5-9V6zM8.8 12.2l2.2 2.2 4.3-4.3"/></svg>ชำระเงินปลอดภัย</div><p style="font-size:13px;color:var(--ink2);margin-top:6px">เงินของคุณไม่ถึงมือครีเอเตอร์จนกว่าคุณจะอนุมัติงาน ถ้ามีปัญหา กดแจ้งได้ ระบบจะหยุดจ่ายเงินไว้ก่อน</p></div>
+<div class="card" style="padding:18px"><div class="b" style="font-size:15px">รีวิวล่าสุด</div><div class="row" style="gap:10px;margin-top:10px"><div class="av" style="width:34px;height:34px;background-image:url(../img/av_shop.jpg)"></div><div><b style="font-size:13px">ร้านข้าวเหนียวมะม่วงแม่สมใจ</b><div class="row"><svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg><svg class="ic" width="12" height="12" viewBox="0 0 24 24" fill="#F5A524" stroke="#F5A524" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17.1 6.6 20l1.1-6.1-4.5-4.3 6.1-.8z"/></svg></div></div></div><p style="font-size:13px;color:var(--ink2);margin-top:8px">ส่งงานตรงเวลา แก้ให้ละเอียดมาก ลูกค้าจำมาสคอตร้านได้</p></div></aside></div>
+</main><footer class="foot"><div class="wrap row sp"><div class="row" style="gap:10px"><div class="logo" style="width:26px;height:26px;border-radius:7.8px"><svg width="15.079999999999998" height="15.079999999999998" viewBox="0 0 24 24" fill="#fff"><path d="M10.5 3l1.9 5.6L18 10.5l-5.6 1.9L10.5 18l-1.9-5.6L3 10.5l5.6-1.9z"/><path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9z"/></svg></div><span>LUMI ตลาดงานครีเอเตอร์ AI</span></div>
+<div class="row" style="gap:22px"><span>เกี่ยวกับเรา</span><span>เริ่มขายกับ LUMI</span><span>นโยบายลิขสิทธิ์ภาพ AI</span><span>นโยบายความเป็นส่วนตัว (PDPA)</span><span>ศูนย์ช่วยเหลือ</span></div></div></footer><nav class="tabbar"><div class="tab "><svg class="ic" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>หน้าแรก</span></div><div class="tab "><svg class="ic" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5"/></svg><span>ค้นหา</span></div><div class="tab"><div class="mid"><svg class="ic" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div><span>ลงขาย</span></div><div class="tab "><svg class="ic" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg><span>แชต</span></div><div class="tab on"><svg class="ic" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"/></svg><span>โปรไฟล์</span></div></nav><div class="sample">ข้อมูลตัวอย่าง</div></body></html>
