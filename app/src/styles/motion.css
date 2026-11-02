@@ -1,0 +1,81 @@
+/* ===== iOS-like motion system. transform/opacity only. ===== */
+:root{--ios:cubic-bezier(.32,.72,0,1);--spring:cubic-bezier(.2,1.25,.4,1);--out:cubic-bezier(.2,.8,.2,1);--dur:.46s}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+.stage{position:fixed;inset:0;overflow:hidden;background:#F4F2F9}
+.layer{position:absolute;inset:0;overflow:hidden;background:#fff;backface-visibility:hidden;contain:layout paint}
+.lsc{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+.layer[data-active="0"]{pointer-events:none}
+.l-under{transform:translate3d(-30%,0,0)}
+.l-push-in{animation:pushIn var(--dur) var(--ios) both;box-shadow:-8px 0 24px rgba(22,19,43,.08)}
+.l-push-out{animation:pushOut var(--dur) var(--ios) both}
+.l-pop-in{animation:popIn var(--dur) var(--ios) both}
+.l-pop-out{animation:popOut var(--dur) var(--ios) both;box-shadow:-8px 0 24px rgba(22,19,43,.08)}
+.l-fade-in{animation:fadeIn .24s ease-out both}
+.l-fade-out{animation:fadeOut .2s ease-in both}
+.l-up-in{animation:upIn .5s var(--ios) both;border-radius:16px 16px 0 0}
+.l-up-out{animation:recede .5s var(--ios) both}
+.l-down-out{animation:downOut .42s var(--ios) both}
+.l-down-in{animation:unrecede .42s var(--ios) both}
+.shade{position:fixed;inset:0;background:rgba(22,19,43,.16);pointer-events:none}
+.shade-in{animation:fadeIn var(--dur) var(--ios) both}
+.shade-out{animation:fadeOut var(--dur) var(--ios) both}
+@keyframes pushIn{from{transform:translate3d(100%,0,0)}to{transform:none}}
+@keyframes pushOut{from{transform:none}to{transform:translate3d(-30%,0,0)}}
+@keyframes popIn{from{transform:translate3d(-30%,0,0)}to{transform:none}}
+@keyframes popOut{from{transform:none}to{transform:translate3d(100%,0,0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
+@keyframes upIn{from{transform:translate3d(0,100%,0)}to{transform:none}}
+@keyframes downOut{from{transform:none}to{transform:translate3d(0,100%,0)}}
+@keyframes recede{from{transform:none;opacity:1}to{transform:scale(.94);opacity:.7}}
+@keyframes unrecede{from{transform:scale(.94);opacity:.7}to{transform:none;opacity:1}}
+
+/* press feedback: uses the independent `scale` property so it never fights a transform */
+button,.press{transition:scale .16s var(--out),opacity .16s;-webkit-tap-highlight-color:transparent}
+button:not(:disabled):active,.press:active{scale:.96}
+a{-webkit-tap-highlight-color:transparent}
+
+/* images: shimmer skeleton until loaded, then fade in */
+.sk{background:linear-gradient(100deg,#EFEDF5 30%,#F8F7FC 50%,#EFEDF5 70%) #EFEDF5;background-size:220% 100%;animation:sk 1.3s linear infinite}
+@keyframes sk{from{background-position:120% 0}to{background-position:-120% 0}}
+.img-fade{opacity:0;transition:opacity .4s ease}
+.img-fade.is-in{opacity:1}
+
+/* list items rising in */
+.rise{animation:rise .42s var(--out) both;animation-delay:calc(min(var(--i,0),10) * 35ms)}
+@keyframes rise{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:none}}
+.pop-in{animation:popIn2 .34s var(--spring) both}
+@keyframes popIn2{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
+.bubble-in{animation:bubble .32s var(--spring) both}
+@keyframes bubble{from{opacity:0;transform:translate3d(0,12px,0) scale(.92)}to{opacity:1;transform:none}}
+.collapse{animation:collapse .26s var(--out) both}
+@keyframes collapse{to{opacity:0;transform:translate3d(-24px,0,0) scale(.98)}}
+.tab-fade{animation:fadeIn .22s ease-out both}
+@keyframes heartPop{0%{scale:1}35%{scale:1.38}65%{scale:.9}100%{scale:1}}
+.heart-pop{animation:heartPop .45s var(--out)}
+
+/* bottom sheets */
+.sheet-back{position:fixed;inset:0;z-index:200;background:rgba(22,19,43,.42);opacity:0;transition:opacity .36s var(--ios)}
+.sheet-back.open{opacity:1}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:201;max-height:92vh;background:#fff;border-radius:22px 22px 0 0;display:flex;flex-direction:column;transform:translate3d(0,105%,0);transition:transform .5s var(--ios);box-shadow:0 -10px 40px rgba(22,19,43,.16);padding-bottom:env(safe-area-inset-bottom);will-change:transform}
+.sheet::after{content:'';position:absolute;left:0;right:0;top:100%;height:60px;background:#fff}
+.sheet.open{transform:none}
+.sheet.dragging{transition:none}
+.sheet-grab{flex:none;padding:8px 16px 4px;touch-action:none;cursor:grab}
+.sheet-grab::before{content:'';display:block;width:38px;height:5px;border-radius:3px;background:#DCD9E6;margin:0 auto 8px}
+.sheet-h{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:600;min-height:28px}
+.sheet-h small{display:block;font-size:12px;color:var(--mut);font-weight:400}
+.sheet-x{margin-left:auto;width:32px;height:32px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;flex:none}
+.sheet-body{overflow-y:auto;padding:4px 16px 18px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+@media(min-width:720px){.sheet{left:50%;width:520px;margin-left:-260px;border-radius:22px;bottom:24px;max-height:80vh}.sheet::after{display:none}}
+
+/* toast */
+.toast2{position:fixed;left:50%;bottom:calc(var(--tabbar-h) + 22px + env(safe-area-inset-bottom));z-index:300;transform:translate3d(-50%,20px,0) scale(.96);opacity:0;transition:transform .42s var(--spring),opacity .25s;background:rgba(22,19,43,.94);color:#fff;font-size:13.5px;border-radius:14px;padding:10px 16px;max-width:calc(100% - 32px);text-align:center;pointer-events:none;box-shadow:0 10px 30px rgba(22,19,43,.25)}
+.toast2.show{transform:translate3d(-50%,0,0);opacity:1}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  .sk{animation:none}
+}
+.card-press{transition:scale .18s var(--out)}
+.card-press:has(> a:active){scale:.97}

@@ -18,7 +18,7 @@ export function Favorites() {
     <>
       <header className={s.hdr}>
         <div className={`wrap ${s.row}`}>
-          <button className={s.ib} onClick={() => (history.length > 1 ? nav(-1) : nav('/'))} aria-label="กลับ"><Icon name="back" size={20} /></button>
+          <button className={s.ib} onClick={() => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/profile'))} aria-label="กลับ"><Icon name="back" size={20} /></button>
           <div><h1 className={s.t}>ที่ชอบ</h1><div className={s.n}>{ids.length} รายการ</div></div>
         </div>
       </header>

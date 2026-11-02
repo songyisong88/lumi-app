@@ -51,8 +51,10 @@ function Media({ p }: { p: Product }) {
       )
     default:
       return (
-        <div className={s.pm} style={style}>
-          <img src={imgUrl(p.image!.src)} alt="" loading="lazy" width={p.image!.w} height={p.image!.h} />
+        <div className={`${s.pm} sk`} style={style}>
+          <img src={imgUrl(p.image!.src)} alt="" loading="lazy" decoding="async" width={p.image!.w} height={p.image!.h} className="img-fade"
+            ref={(i) => { if (i?.complete && i.naturalWidth) { i.classList.add('is-in'); i.parentElement?.classList.remove('sk') } }}
+            onLoad={(e) => { e.currentTarget.classList.add('is-in'); e.currentTarget.parentElement?.classList.remove('sk') }} />
           {p.video && <span className={s.play}><Icon name="play" size={16} color="#E0620B" fill="#E0620B" /></span>}
           {p.meta && <span className={s.dur}>{p.meta}</span>}
           {p.freeFirst && <span className={s.first}>{p.freeFirst}</span>}
@@ -96,7 +98,7 @@ function Footer({ p }: { p: Product }) {
 /** Feed card. NO price by design: price shows on the product/story view. Free items get a green "ฟรี" pill. */
 export function ProductCard({ p, badge }: { p: Product; badge?: ReactNode }) {
   return (
-    <article className={s.card} data-kind={p.kind}>
+    <article className={`${s.card} card-press`} data-kind={p.kind}>
       <Link to={`/product/${p.id}`} className={s.link} aria-label={p.title} />
       <div className={s.mw}>
         <Media p={p} />

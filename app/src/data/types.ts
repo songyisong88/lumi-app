@@ -2,7 +2,7 @@
 export type ProductKind = 'image' | 'template' | 'tool' | 'bot' | 'course' | 'commission'
 
 /** Filter-chip type keys (row 2). Several kinds can share one type chip. */
-export type TypeKey = 'img' | 'tpl' | 'tool' | 'bot' | 'course' | 'svc'
+export type TypeKey = 'img' | 'tpl' | 'tool' | 'bot' | 'course' | 'svc' | 'media' | 'skill' | 'data'
 
 export interface Creator {
   id: string
@@ -42,6 +42,30 @@ export interface Product {
   freeFirst?: string // e.g. "บทแรกฟรี"
   days?: number
   revisions?: number
+  // set on works published from the sell wizard (local service)
+  /** Which product-page layout to use. Derived from kind/label when absent. */
+  dk?: DetailKind
+  options?: ProductOption[]
+  desc?: string
+  tags?: string[]
+  mine?: boolean
+  createdAt?: number
+  covers?: string[] // data URLs or img file names
+  /** Sell type + answers from the listing spec (see listingSpec.ts). */
+  st?: import('./listingSpec').SellType
+  spec?: import('./listingSpec').Spec
+}
+
+/** The 8 product-page layouts (approved product-b). */
+export type DetailKind = 'img' | 'tpl' | 'sw' | 'bot' | 'course' | 'font' | 'hire' | 'free' | 'media' | 'skill' | 'data'
+
+export interface ProductOption {
+  id: string
+  label: string
+  sub: string
+  price: number
+  suffix?: string
+  best?: string
 }
 
 export interface StorySlide {

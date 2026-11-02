@@ -11,9 +11,12 @@ export const TYPES: Record<TypeKey, { name: string; color: string; bg: string }>
   bot: { name: 'บอท', color: '#05A84B', bg: '#E5F8EC' },
   course: { name: 'คอร์ส', color: '#E0620B', bg: '#FFF0E3' },
   svc: { name: 'งานจ้าง', color: '#D6336C', bg: '#FDEBF2' },
+  media: { name: 'วิดีโอ เสียง เพลง', color: '#9333EA', bg: '#F5EBFF' },
+  skill: { name: 'Agent Skills', color: '#0F766E', bg: '#E2F6F2' },
+  data: { name: 'ชุดข้อมูล', color: '#1D4ED8', bg: '#E8EFFF' },
 }
 
-export const TYPE_ORDER: TypeKey[] = ['img', 'tpl', 'tool', 'bot', 'course', 'svc']
+export const TYPE_ORDER: TypeKey[] = ['img', 'tpl', 'tool', 'bot', 'course', 'svc', 'media', 'skill', 'data']
 
 export const CREATORS: Creator[] = [
   { id: 'mint', name: 'มิ้นท์ สตูดิโอ', avatar: 'av_mint.jpg' },
@@ -23,7 +26,13 @@ export const CREATORS: Creator[] = [
   { id: 'pim', name: 'พิมพ์ดาว', avatar: 'av_pim.jpg' },
   { id: 'toy', name: 'Toy Mascot', avatar: 'av_toy.jpg' },
   { id: 'ton', name: 'Ton Data', avatar: 'av_ton.jpg' },
+  // customers (chat sample data)
+  { id: 'shop', name: 'ร้านกาแฟบ้านสวน', avatar: 'av_shop.jpg' },
+  { id: 'somjai', name: 'คุณสมใจ', avatar: 'av_somjai.jpg' },
 ]
+
+/** The signed-in sample user (โปรไฟล์ / ชุมชน). */
+export const ME = 'fasai'
 
 const img = (src: string, w: number, h: number) => ({ src, w, h })
 
@@ -71,7 +80,17 @@ export const SEARCH_EXTRA: Product[] = [
   { id: 'n10', kind: 'image', type: 'tpl', label: 'ฟอนต์', title: 'ฟอนต์ไทยลายมือ “ใบเตย”', use: 'ปก โพสต์ เมนู', creatorId: 'pim', price: 0, image: img('c_creator.jpg', 720, 720), instant: true },
   { id: 'n11', kind: 'image', type: 'tool', label: 'โปรแกรม', title: 'โปรแกรมตัดพื้นหลังภาพสินค้า', use: 'ตัดทีละร้อยภาพในคลิกเดียว', creatorId: 'nova', price: 590, image: img('c_software.jpg', 720, 720), platforms: ['Windows', 'Mac'] },
   { id: 'n12', kind: 'image', type: 'img', label: 'ภาพ 3D', title: 'เกาะลอยฟ้าวัดไทย 3D', use: 'ปกเกม พื้นหลัง', creatorId: 'toy', price: 159, image: img('g_island.jpg', 900, 900) },
+  // วิดีโอ เสียง และเพลง · Agent Skills · ชุดข้อมูล (added 2 Nov)
+  { id: 'n13', kind: 'image', type: 'media', label: 'วิดีโอ AI', title: 'วิดีโอ AI โปรโมตร้านกาแฟ 15 วินาที', use: 'รีลส์ ติ๊กต็อก โฆษณาร้าน', creatorId: 'nova', price: 290, image: img('coffee.jpg', 900, 506), video: true, instant: true },
+  { id: 'n14', kind: 'image', type: 'media', label: 'เพลงต้นฉบับ', title: 'เพลงประกอบคลิป ลูกทุ่งชิล 10 เพลง', use: 'ใส่คลิปรีวิว ไลฟ์ขายของ', creatorId: 'ton', price: 390, image: img('c_media.jpg', 720, 720), instant: true },
+  { id: 'n15', kind: 'image', type: 'media', label: 'เทมเพลตตัดต่อวิดีโอ', title: 'เทมเพลต CapCut รีวิวสกินแคร์ 5 แบบ', use: 'ใส่คลิปสินค้าแล้วโพสต์ได้เลย', creatorId: 'mint', price: 0, image: img('serum.jpg', 900, 900), video: true, instant: true },
+  { id: 'n16', kind: 'image', type: 'skill', label: 'Agent Skills', title: 'Agent Skill ตอบแชตร้านค้าภาษาไทย', use: 'ให้ AI agent ตอบลูกค้าแบบร้านคุณ', creatorId: 'kenji', price: 490, image: img('c_skill.jpg', 720, 720), platforms: ['Claude', 'Cursor'], instant: true },
+  { id: 'n17', kind: 'image', type: 'skill', label: 'Agent Skills', title: 'ชุดความรู้ภาษีร้านค้าออนไลน์ สำหรับ AI agent', use: 'ถามเรื่องภาษี VAT ใบกำกับ', creatorId: 'ton', price: 250, image: img('robot.jpg', 720, 720), platforms: ['ChatGPT', 'Claude'], instant: true },
+  { id: 'n18', kind: 'image', type: 'data', label: 'ชุดข้อมูล', title: 'ชุดข้อมูลเมนูอาหารไทย 5,000 รายการ', use: 'ทำแอปร้านอาหาร เทรนโมเดล', creatorId: 'ton', price: 690, image: img('c_data.jpg', 720, 720), instant: true },
+  { id: 'n19', kind: 'image', type: 'data', label: 'ชุดข้อมูล', title: 'ชุดข้อมูลรีวิวสินค้าภาษาไทย (ไม่มีข้อมูลส่วนตัว)', use: 'วิเคราะห์ความรู้สึก ทดสอบบอท', creatorId: 'nova', price: 0, image: img('padthai.jpg', 900, 900), instant: true },
 ]
+/** The 3 newer categories also show at the end of the home feed so their filter chips aren't empty. */
+export const NEW_CATEGORY_WORKS = SEARCH_EXTRA.filter((p) => ['media', 'skill', 'data'].includes(p.type))
 
 /** Every sample work (home feed + search extras). Use this for lookups by id. */
 export const ALL_PRODUCTS: Product[] = [...PRODUCTS, ...SEARCH_EXTRA]
@@ -97,5 +116,19 @@ export const QUICK_FILTERS: { id: string; label: string; match: (p: Product) => 
 
 export const creatorById = (id: string) => CREATORS.find((c) => c.id === id)!
 export const productById = (id: string) => ALL_PRODUCTS.find((p) => p.id === id)
-export const imgUrl = (file: string) => `${import.meta.env.BASE_URL}img/${file}`
+/** Add works published locally (sell wizard) to the catalog used by lookups and search. */
+export function registerProducts(list: Product[]) {
+  for (const p of list) {
+    const i = ALL_PRODUCTS.findIndex((x) => x.id === p.id)
+    if (i >= 0) ALL_PRODUCTS[i] = p
+    else ALL_PRODUCTS.push(p)
+  }
+}
+export function unregisterProduct(id: string) {
+  const i = ALL_PRODUCTS.findIndex((x) => x.id === id)
+  if (i >= 0) ALL_PRODUCTS.splice(i, 1)
+}
+/** File names resolve to public/img; data/blob URLs (local uploads) pass through. */
+export const imgUrl = (file: string) => (/^(data:|blob:|https?:)/.test(file) ? file : `${import.meta.env.BASE_URL}img/${file}`)
+export const baht = (n: number) => `฿${n.toLocaleString('th-TH')}`
 export const formatPrice = (p: Product) => (p.price === 0 ? 'ฟรี' : `฿${p.price.toLocaleString('th-TH')}${p.priceSuffix ?? ''}`)

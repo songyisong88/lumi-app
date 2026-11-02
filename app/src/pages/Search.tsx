@@ -2,11 +2,13 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { Icon } from '../components/Icon'
+import { scrollPageTop } from '../components/Stage'
+import { Sheet } from '../components/ui'
 import { MasonryFeed } from '../components/MasonryFeed'
 import { ProductCard } from '../components/ProductCard'
 import { PRODUCTS, creatorById, imgUrl } from '../data/sampleData'
 import {
-  CATEGORIES, CHALLENGE, GROUPS, HOT_KEYWORDS, LEADERBOARD, NEW_TODAY, NEW_TODAY_COUNT, TRENDS,
+  CATEGORIES, CAT_TOTAL, CHALLENGE, GROUPS, HOT_KEYWORDS, LEADERBOARD, NEW_TODAY, NEW_TODAY_COUNT, POPULAR, SHORT, TRENDS,
   isCatKey, searchWorks, type CatKey,
 } from '../data/searchData'
 import s from './Search.module.css'
@@ -22,25 +24,62 @@ function SectionHead({ title, right, onRight }: { title: ReactNode; right?: stri
   )
 }
 
-function CategoryGroup({ g, onPick }: { g: (typeof GROUPS)[number]; onPick: (k: CatKey) => void }) {
+/** Approved variant B: one horizontal chip row of the popular categories + “ดูทั้งหมด”. */
+function PopularCats({ onPick, onAll }: { onPick: (k: CatKey) => void; onAll: () => void }) {
   return (
     <section>
-      <div className={s.gh}><i style={{ background: g.color }} />{g.name}<span>{g.keys.length} ประเภท</span></div>
-      <div className={s.grid}>
-        {g.keys.map((k) => {
+      <SectionHead title="หมวดยอดนิยม" right="เลื่อนดู ›" />
+      <div className={`hscroll ${s.cps}`}>
+        {POPULAR.map((k, i) => {
           const c = CATEGORIES[k]
           return (
-            <button key={k} className={`${s.tile} ${c.span ? s[`s${c.span}`] : ''}`} style={c.span ? { borderTopColor: g.color } : undefined} onClick={() => onPick(k)}>
-              <span className={`${s.ti} ${c.flip ? s.flip : ''}`} style={{ backgroundImage: `url(${imgUrl(c.image)})` }} />
-              <span className={s.tx}>
-                <b><i style={{ background: c.accent }} />{c.name}</b>
-                <small>{c.count} ชิ้น · {c.sub}</small>
-              </span>
+            <button key={k} data-cat={k} className={`${s.cp} rise press`} style={{ '--i': i } as React.CSSProperties} onClick={() => onPick(k)}>
+              <span className={s.cpt}><span className={`${s.cth} ${c.flip ? s.flip : ''}`} style={{ backgroundImage: `url(${imgUrl(c.image)})` }} /><b>{SHORT[k] ?? c.name}</b></span>
+              <small>{c.desc}</small>
             </button>
           )
         })}
+        <button className={`${s.cp} ${s.cpAll} rise press`} style={{ '--i': POPULAR.length } as React.CSSProperties} onClick={onAll} aria-haspopup="dialog">
+          <span className={s.cpt}><span className={s.cai}><Icon name="grid" size={16} color="#fff" stroke={2} /></span><b>ดูทั้งหมด</b></span>
+          <small>{CAT_TOTAL} หมวด</small>
+        </button>
       </div>
     </section>
+  )
+}
+
+/** “ทุกหมวด” bottom sheet: search box + the 4 groups with all categories (new ones marked ใหม่). */
+function AllCatsSheet({ open, onClose, onPick }: { open: boolean; onClose: () => void; onPick: (k: CatKey) => void }) {
+  const [f, setF] = useState('')
+  const term = f.trim().toLowerCase()
+  const hit = (k: CatKey) => !term || `${CATEGORIES[k].name} ${CATEGORIES[k].desc} ${CATEGORIES[k].sub}`.toLowerCase().includes(term)
+  const groups = GROUPS.map((g) => ({ ...g, keys: g.keys.filter(hit) })).filter((g) => g.keys.length)
+  return (
+    <Sheet open={open} onClose={onClose} title="ทุกหมวด" sub={`${CAT_TOTAL} หมวด · แตะเพื่อดูผลงานในหมวด`} tall>
+      <div className={s.bsq}>
+        <Icon name="search" size={17} color="#8A86A0" />
+        <input value={f} onChange={(e) => setF(e.target.value)} placeholder="ค้นหาหมวด เช่น ฟอนต์ เพลง ข้อมูล" aria-label="ค้นหาหมวด" />
+        {f && <button onClick={() => setF('')} aria-label="ล้าง"><Icon name="x" size={14} stroke={2.6} /></button>}
+      </div>
+      {groups.length === 0 && <p className={s.bsNone}>ไม่พบหมวด “{f}” ลองคำอื่น หรือค้นหาผลงานโดยตรง</p>}
+      {groups.map((g) => (
+        <div key={g.name}>
+          <div className={s.bgh}><i style={{ background: g.color }} />{g.name}<span>{g.keys.length} หมวด</span></div>
+          {g.keys.map((k) => {
+            const c = CATEGORIES[k]
+            return (
+              <button key={k} data-sheetcat={k} className={s.brw} onClick={() => onPick(k)}>
+                <span className={`${s.bth} ${c.flip ? s.flip : ''}`} style={{ backgroundImage: `url(${imgUrl(c.image)})` }} />
+                <span className={s.brt}><b>{c.name}{c.isNew && <span className={s.nwb}>ใหม่</span>}</b><small>{c.desc}</small></span>
+                <em>{c.count}</em>
+                <Icon name="chev" size={16} color="#B4AFC8" stroke={2.2} />
+              </button>
+            )
+          })}
+        </div>
+      ))}
+      <div className={s.bsf}>ตัวเลขจำนวนผลงานเป็นข้อมูลตัวอย่าง · หมวดที่มีป้าย “ใหม่” เปิดให้ลงขายได้แล้ว</div>
+    </Sheet>
   )
 }
 
@@ -191,8 +230,10 @@ export function Search() {
     if (nc) p.set('cat', nc)
     setParams(p, { replace })
   }
-  const pickQuery = (text: string) => { update({ q: text, cat: null }); inputRef.current?.blur(); window.scrollTo(0, 0) }
-  const pickCat = (k: CatKey | 'new') => { update({ q: '', cat: k }); window.scrollTo(0, 0) }
+  const pickQuery = (text: string) => { update({ q: text, cat: null }); inputRef.current?.blur(); scrollPageTop() }
+  const pickCat = (k: CatKey | 'new') => { update({ q: '', cat: k }); scrollPageTop() }
+  const [allCats, setAllCats] = useState(false)
+  const pickFromSheet = (k: CatKey) => { setAllCats(false); setTimeout(() => pickCat(k), 180) }
 
   useEffect(() => {
     if (!toast) return
@@ -272,12 +313,9 @@ export function Search() {
         ) : (
           <>
             <TrendCarousel onPick={pickQuery} />
-            <CategoryGroup g={GROUPS[0]} onPick={pickCat} />
-            <CategoryGroup g={GROUPS[1]} onPick={pickCat} />
+            <PopularCats onPick={pickCat} onAll={() => setAllCats(true)} />
             <NewToday onAll={() => pickCat('new')} />
-            <CategoryGroup g={GROUPS[2]} onPick={pickCat} />
             <CreatorsOfWeek onPick={pickQuery} />
-            <CategoryGroup g={GROUPS[3]} onPick={pickCat} />
             <DailyChallenge />
             <section>
               <SectionHead title="ผลงานสำหรับคุณ" right="คละทุกประเภท" />
@@ -287,6 +325,7 @@ export function Search() {
         )}
       </main>
       {toast && <div className={s.toast} role="status">{toast}</div>}
+      <AllCatsSheet open={allCats} onClose={() => setAllCats(false)} onPick={pickFromSheet} />
     </>
   )
 }

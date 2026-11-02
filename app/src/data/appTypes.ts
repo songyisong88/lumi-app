@@ -1,0 +1,127 @@
+/** Shapes for the local (localStorage) database. Mirror these as Supabase tables later. */
+import type { ListingDraft } from './listingSpec'
+import type { Product } from './types'
+
+export interface CartItem {
+  key: string
+  productId: string
+  optionId?: string
+  optionLabel?: string
+  price: number
+  /** Custom lines (accepted offer in chat, tip). */
+  title?: string
+  image?: string
+  creatorId?: string
+  offerThreadId?: string
+  offerMsgId?: string
+}
+
+export interface Order { id: string; no: string; items: CartItem[]; total: number; discount: number; at: number; method: string }
+
+export interface Purchase {
+  id: string
+  productId: string
+  orderNo: string
+  optionLabel?: string
+  at: number
+  title: string
+  image?: string
+  creatorId: string
+  price: number
+  key?: string
+  threadId?: string
+}
+
+export type MsgKind = 'text' | 'brief' | 'offer' | 'progress' | 'delivery' | 'key' | 'file' | 'product' | 'system' | 'sticker' | 'tip' | 'coupon' | 'typing'
+
+export interface Message {
+  id: string
+  from: 'me' | 'them' | 'system'
+  kind: MsgKind
+  text?: string
+  at: number
+  title?: string
+  items?: string[]
+  amount?: number
+  status?: 'pending' | 'accepted' | 'declined' | 'revise'
+  image?: string
+  round?: number
+  left?: number
+  pct?: number
+  code?: string
+  fileName?: string
+  size?: string
+  productId?: string
+}
+
+export interface Thread {
+  id: string
+  partnerId: string
+  /** 'creator' = I am buying from them; 'customer' = they buy from me. */
+  role: 'creator' | 'customer'
+  title: string
+  image?: string
+  productId?: string
+  orderNo?: string
+  amount?: number
+  hire?: boolean
+  /** Index in HIRE_STEPS for hire orders. */
+  step?: number
+  status: string
+  tone: 'warn' | 'info' | 'ok' | 'done'
+  unread: number
+  online: boolean
+  quick: string[]
+  updatedAt: number
+  pinned?: boolean
+  muted?: boolean
+}
+
+export const HIRE_STEPS = ['บรีฟ', 'ใบเสนอราคา', 'ชำระเงิน', 'กำลังทำ', 'ส่งงาน', 'รีวิว'] as const
+
+export type PostTag = 'โชว์ผลงาน' | 'ความรู้' | 'เบื้องหลัง' | 'ถาม-ตอบ' | 'แจกฟรี'
+
+export interface Post {
+  id: string
+  authorId: string
+  at: number
+  tag: PostTag
+  text: string
+  images: string[]
+  productIds: string[]
+  prompt?: string
+  code?: string[]
+  roomId?: string
+  likes: number
+  comments: number
+  shares: number
+  hireButton?: boolean
+  mine?: boolean
+}
+
+export interface Comment { id: string; postId: string; authorId: string; text: string; at: number; likes: number; replyTo?: string; badge?: 'author' | 'buyer' }
+
+export interface Room { id: string; name: string; icon: string; color: string; bg: string; members: number; desc: string; cover: string; rules: string[] }
+
+export interface Notif { id: string; kind: 'order' | 'chat' | 'like' | 'follow' | 'system' | 'community' | 'sale'; text: string; at: number; link: string; read: boolean; avatar?: string; image?: string }
+
+export interface DB {
+  v: number
+  follows: string[]
+  cart: CartItem[]
+  orders: Order[]
+  purchases: Purchase[]
+  threads: Thread[]
+  messages: Record<string, Message[]>
+  posts: Post[]
+  liked: string[]
+  saved: string[]
+  comments: Comment[]
+  likedComments: string[]
+  joined: string[]
+  votes: string[]
+  notifs: Notif[]
+  drafts: ListingDraft[]
+  published: Product[]
+  missions: string[]
+}
