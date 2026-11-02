@@ -180,7 +180,7 @@ export function Empty({ icon = 'sparkle', title, text, action }: { icon?: string
 
 export function Stars({ v, size = 12 }: { v: number; size?: number }) {
   return (
-    <span className="stars" aria-label={`${v} ดาว`}>
+    <span className="stars" role="img" aria-label={`${v} ดาว`}>
       {[1, 2, 3, 4, 5].map((i) => <Icon key={i} name="star" size={size} stroke={0} color="none" fill={i <= Math.round(v) ? '#F5A524' : '#E4E1EC'} />)}
     </span>
   )
