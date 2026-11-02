@@ -100,7 +100,7 @@ export function toPost(r: Row): Post {
   return {
     id: r.id, authorId: r.author_id, at: ms(r.created_at), tag: r.tag, text: r.body, images: (r.images ?? []).map((i: string) => publicUrl(i)!),
     productIds: r.product_ids ?? [], prompt: r.prompt ?? undefined, code: r.code ?? undefined, roomId: r.room_id ?? undefined,
-    likes: r.like_count ?? 0, comments: r.comment_count ?? 0, shares: r.share_count ?? 0, hireButton: !!r.hire_button, mine: r.author_id === ME,
+    likes: (REAL ? r.real_like_count : r.like_count) ?? 0, comments: (REAL ? r.real_comment_count : r.comment_count) ?? 0, shares: r.share_count ?? 0, hireButton: !!r.hire_button, mine: r.author_id === ME,
   }
 }
 const toComment = (r: Row) => ({ id: r.id, postId: r.post_id, authorId: r.author_id, text: r.body, at: ms(r.created_at), likes: r.like_count ?? 0, replyTo: r.reply_to ?? undefined })
@@ -157,6 +157,8 @@ function toMsg(m: Row, offers: Map<string, Row>, job?: Row, latestDelivery?: str
 }
 
 // ---------- notifications
+/** Latest notices. The real site leaves out notices a test account caused (notifications.from_test, set server-side). */
+const notifQuery = () => { const q = S().from('notifications').select('*'); return (REAL ? q.eq('from_test', false) : q).order('created_at', { ascending: false }).limit(100) }
 const NOTIF_KIND: Record<string, Notif['kind']> = { moderation: 'system', payout: 'sale', refund: 'order' }
 const toNotif = (n: Row): Notif => ({ id: n.id, kind: NOTIF_KIND[n.kind] ?? n.kind, text: n.text, at: ms(n.created_at), link: n.link ?? '/', read: !!n.read_at, avatar: remoteCreator(n.actor_id)?.avatar, image: publicUrl(n.image) })
 
@@ -198,7 +200,7 @@ async function doHydrate() {
     c.from('follows').select('creator_id').eq('follower_id', me),
     c.from('room_members').select('room_id').eq('user_id', me),
     c.from('entitlements').select('*, products(id, title, covers, creator_id, sell_type)').eq('user_id', me).order('granted_at', { ascending: false }),
-    c.from('notifications').select('*').order('created_at', { ascending: false }).limit(100),
+    notifQuery(),
     c.from('stories').select('*').gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(200),
   ])
   const myProducts = (must(mine, 'my products') as Row[]).map(toProduct)
@@ -320,7 +322,7 @@ export async function refreshSales() {
   update((d) => { d.sales = sales })
 }
 async function refreshNotifs() {
-  const rows = must(await S().from('notifications').select('*').order('created_at', { ascending: false }).limit(100), 'notifications') as Row[]
+  const rows = must(await notifQuery(), 'notifications') as Row[]
   await loadProfiles(rows.map((n) => n.actor_id))
   update((d) => { d.notifs = [...rows.map(toNotif), ...keepLocal(d.notifs)].sort((a, b) => b.at - a.at) })
 }
