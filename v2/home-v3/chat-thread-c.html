@@ -1,0 +1,302 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LUMI ห้องแชต แบบ C</title><style>@font-face{font-family:Prompt;font-weight:300;src:url(../fonts/Prompt-Light.ttf)}
+@font-face{font-family:Prompt;font-weight:400;src:url(../fonts/Prompt-Regular.ttf)}
+@font-face{font-family:Prompt;font-weight:500;src:url(../fonts/Prompt-Medium.ttf)}
+@font-face{font-family:Prompt;font-weight:600;src:url(../fonts/Prompt-SemiBold.ttf)}
+@font-face{font-family:Prompt;font-weight:700;src:url(../fonts/Prompt-Bold.ttf)}
+:root{--p:#6C2BD9;--grad:linear-gradient(100deg,#7B2FF2 0%,#C13AE0 55%,#F0508A 100%);--ink:#16132B;--ink2:#3A3654;--mut:#8A86A0;--line:#ECEAF3;--soft:#F4F2F9;--soft2:#F6F1FF;--red:#E5484D;--green:#16A34A}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Prompt,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45;background:#fff}
+.ic{display:block;flex:none}
+.row{display:flex;align-items:center}.sp{justify-content:space-between}.col{display:flex;flex-direction:column}
+.mut{color:var(--mut)}.b{font-weight:600}
+.img{background-size:cover;background-position:center}
+.av{border-radius:50%;background-size:cover;background-position:center;flex:none}
+.logo{background:linear-gradient(135deg,#7B2FF2,#C13AE0 60%,#F0508A);display:flex;align-items:center;justify-content:center;flex:none}
+.gtext{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.wrap{max-width:1360px;margin:0 auto;padding:0 16px}
+.btn{height:42px;padding:0 18px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:600;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--ink);white-space:nowrap}
+.btn.g{background:var(--grad);color:#fff;border:0;box-shadow:0 8px 18px rgba(193,58,224,.25)}
+.btn.dk{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.sm{height:34px;padding:0 12px;font-size:13px;border-radius:10px}
+.ib{width:42px;height:42px;border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;position:relative;background:#fff;flex:none}
+.cnt{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;border-radius:10px;background:var(--p);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+.dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:50%;background:#F0508A;border:2px solid #fff}
+.chip{height:36px;padding:0 15px;border-radius:18px;border:1px solid var(--line);display:inline-flex;align-items:center;font-size:13.5px;font-weight:500;color:var(--ink2);background:#fff;flex:none;gap:6px;white-space:nowrap}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.h2{font-size:19px;font-weight:600}.more{font-size:13.5px;color:var(--p);font-weight:500}
+.card{border:1px solid var(--line);border-radius:18px;background:#fff}
+.tag{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:500;background:var(--soft2);color:var(--p)}
+.pill{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;font-size:12px;font-weight:500;white-space:nowrap}
+.sec{margin-top:28px}
+.sechead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+/* header */
+.hdr{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line)}
+.hrow{height:62px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:600;flex:none}
+.brand small{font-size:11px;color:var(--mut);font-weight:500;display:block;line-height:1;margin-top:2px}
+.srch{flex:1;height:44px;border-radius:14px;background:var(--soft);display:flex;align-items:center;gap:10px;padding:0 14px;min-width:0}
+.srch span{flex:1;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srch .q{color:var(--ink);font-weight:500}
+.hdr .srch.top{display:none}
+.msrch{padding:0 16px 10px}
+.catbar{display:flex;gap:8px;overflow:hidden;padding:0 16px 12px}
+.hact{display:flex;gap:10px;align-items:center;margin-left:auto}
+.t-up,.d-only{display:none!important}
+.tabbar{position:fixed;left:0;right:0;bottom:0;height:72px;border-top:1px solid var(--line);background:rgba(255,255,255,.98);display:flex;justify-content:space-around;padding-top:8px;z-index:60}
+.tab{width:72px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--mut);font-weight:500}
+.tab.on{color:var(--p);font-weight:600}
+.mid{width:50px;height:50px;border-radius:16px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin-top:-16px;box-shadow:0 10px 22px rgba(193,58,224,.35)}
+body.hasTab{padding-bottom:84px}
+.sample{position:fixed;right:12px;bottom:84px;z-index:70;font-size:11px;background:rgba(22,19,43,.78);color:#fff;border-radius:8px;padding:3px 9px}
+
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+.hdr{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.97)}
+.hrow{height:58px;display:flex;align-items:center;gap:12px}
+.ttl{font-size:19px;font-weight:600;margin:22px 0 4px}.sub{font-size:12.5px;color:var(--mut);margin-bottom:12px}
+.sechead{margin:24px 0 10px}.sechead .h2{font-size:17px}
+.shelf{display:flex;gap:10px;overflow-x:auto;margin:0 -16px;padding:2px 16px 6px;scrollbar-width:none}.shelf::-webkit-scrollbar{display:none}
+.shelf>.cd{width:186px;flex:none}
+.tb{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;font-size:10.5px;font-weight:600;white-space:nowrap}
+.cd{background:#fff;border-radius:16px;border:1px solid var(--line);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.cd .ph{position:relative}
+.bdl{position:absolute;left:8px;top:8px}
+.sv{position:absolute;right:8px;top:8px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center}
+.pbg{position:absolute;left:8px;bottom:8px;display:inline-flex;align-items:center;gap:4px;height:21px;padding:0 8px 0 6px;border-radius:11px;font-size:10.5px;font-weight:600;color:#fff;background:rgba(22,19,43,.45);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3)}
+.bd{padding:9px 10px 10px;display:flex;flex-direction:column;flex:1}
+.tt{font-size:13px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.use{display:flex;gap:4px;align-items:flex-start;font-size:11.5px;color:var(--ink2);margin-top:4px;line-height:1.35}.use svg{margin-top:2px}
+.use span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cf{display:flex;align-items:center;gap:5px;margin-top:auto;padding-top:7px;font-size:11px;color:var(--mut)}.who{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr{margin-left:auto;font-weight:700;color:var(--ink);font-size:13.5px;white-space:nowrap}
+/* template */
+.k-tpl .tfr{height:142px;background:#EAF1FF;position:relative;overflow:hidden}
+.paper{position:absolute;left:50%;top:26px;width:92px;height:118px;margin-left:-40px;border-radius:6px;box-shadow:0 6px 16px rgba(37,99,235,.25);border:3px solid #fff;z-index:2}
+.paper .pt{position:absolute;left:0;right:0;top:0;background:rgba(255,255,255,.92);font-size:8.5px;font-weight:700;color:#1E3A8A;padding:3px 5px}
+.paper2{position:absolute;left:50%;top:34px;width:84px;height:110px;margin-left:-64px;border-radius:6px;background:#C7D7FB;transform:rotate(-7deg)}
+.fcs{position:absolute;left:8px;bottom:8px;display:flex;gap:4px;z-index:3}
+.fc{font-size:9.5px;font-weight:700;letter-spacing:.3px;background:#fff;color:#1D4ED8;border-radius:5px;padding:2px 5px;border:1px solid #BFD3FB}
+.pv{position:absolute;right:8px;top:8px;display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:#2563EB;background:#fff;border-radius:10px;padding:2px 7px;z-index:3}
+.sheetm{position:absolute;left:14px;right:14px;top:34px;bottom:-8px;background:#fff;border-radius:8px 8px 0 0;box-shadow:0 6px 16px rgba(37,99,235,.18);padding:8px;display:flex;flex-direction:column;gap:5px}
+.shh{height:8px;border-radius:3px;background:#2563EB;width:60%}
+.shr{display:flex;gap:4px}.shr span{height:6px;border-radius:3px;background:#DCE6FB;display:block}.shr i{height:6px;width:14%;border-radius:3px;background:#EEF3FE;display:block}
+.shbar{position:absolute;right:10px;top:10px;height:36px;display:flex;align-items:flex-end;gap:3px}.shbar b{width:6px;background:#60A5FA;border-radius:2px;display:block}
+.webm{position:absolute;left:14px;right:14px;top:30px;bottom:-6px;background:#fff;border-radius:8px 8px 0 0;box-shadow:0 6px 16px rgba(37,99,235,.2);overflow:hidden}
+.wb{height:12px;background:#F1F5FD;display:flex;gap:3px;align-items:center;padding:0 6px}.wb i{width:5px;height:5px;border-radius:50%;background:#BFD3FB}
+.wi{height:58px}.wl{padding:6px}.wl span{display:block;height:5px;border-radius:3px;background:#DCE6FB;margin-bottom:4px}
+/* tool */
+.k-tool{padding:11px;background:linear-gradient(180deg,#F2FBF9 0,#fff 60px)}
+.th{display:flex;gap:9px;align-items:flex-start}
+.appi{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 6px 14px rgba(14,147,132,.25)}
+.plcs{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}.plc{font-size:10px;font-weight:600;color:#0E9384;background:#E3F7F4;border-radius:5px;padding:1px 6px}
+.tfoot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:9px;gap:6px}
+.tfoot .pr{margin-left:0}.per{font-size:10.5px;color:var(--mut)}
+.rt{white-space:nowrap;display:flex;align-items:center;gap:3px;font-size:10.5px;color:var(--mut)}
+.try{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 10px;border-radius:9px;border:1.5px solid #0E9384;color:#0E9384;font-size:11.5px;font-weight:600;white-space:nowrap}
+.try.g{border-color:#05A84B;color:#05A84B}.try.p{border:0;background:#D6336C;color:#fff}
+/* bot */
+.k-bot{background:#fff}
+.bh{display:flex;align-items:center;gap:7px;padding:9px 10px;background:#05A84B;color:#fff}
+.bh .tb{background:rgba(255,255,255,.2)!important}
+.bn{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bs{font-size:9.5px;opacity:.9;white-space:nowrap;display:flex;align-items:center;gap:3px}.bs i{width:6px;height:6px;border-radius:50%;background:#B9F5CF;display:block}
+.chatm{background:#E9F1F7;padding:9px 9px 10px;display:flex;flex-direction:column;gap:5px}
+.chatm .q{align-self:flex-end;background:#8DE08D;color:#0B3B17;font-size:10.5px;border-radius:10px 10px 2px 10px;padding:4px 8px;max-width:85%}
+.chatm .a{align-self:flex-start;background:#fff;font-size:10.5px;border-radius:10px 10px 10px 2px;padding:4px 8px;max-width:90%;color:var(--ink2)}
+/* course */
+.vid .plb{position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;padding-left:3px;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.dur{position:absolute;right:7px;bottom:7px;font-size:10px;font-weight:600;background:rgba(22,19,43,.78);color:#fff;border-radius:5px;padding:1px 6px}
+.free2{position:absolute;left:7px;top:7px;font-size:10px;font-weight:700;background:#E0620B;color:#fff;border-radius:5px;padding:1px 7px}
+.bookw{height:118px;background:linear-gradient(135deg,#FFF0E3,#FFE1C7);display:flex;align-items:center;gap:10px;padding:0 12px}
+.bookc{width:66px;height:94px;border-radius:3px 7px 7px 3px;box-shadow:-3px 0 0 #B4510A inset,0 8px 16px rgba(180,81,10,.3);position:relative;flex:none}
+.bkt{position:absolute;left:6px;right:4px;bottom:6px;font-size:9px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.bkm{display:flex;flex-direction:column;gap:6px;font-size:10.5px;color:#9A3F06}.bkm span{white-space:nowrap;display:flex;gap:4px;align-items:center}
+.bkm .free{background:#fff;border-radius:6px;padding:2px 6px;font-weight:600}
+/* service */
+.svav{position:absolute;left:10px;bottom:-17px}
+.who2{font-size:11px;color:var(--mut);display:flex;gap:6px}.who2 span{display:flex;align-items:center;gap:2px}
+.svm{display:flex;gap:8px;margin-top:6px;font-size:10.5px;color:#D6336C;font-weight:500}.svm span{white-space:nowrap;display:flex;align-items:center;gap:3px;background:#FDEBF2;border-radius:6px;padding:1px 6px}
+/* soon */
+.k-soon{border:1.5px dashed #CFCBDD;background:#FAFAFC;padding:12px;align-items:flex-start}
+.sni{width:42px;height:42px;border-radius:12px;background:#EEEDF3;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+.snu{font-size:11.5px;color:var(--mut);margin-top:2px}.snn{font-size:10.5px;color:var(--mut);margin-top:6px}
+.snb{display:inline-flex;align-items:center;gap:4px;margin-top:9px;font-size:11px;font-weight:600;color:#6C2BD9;background:#F3ECFF;border-radius:8px;padding:4px 8px}
+.shelf>.k-soon{width:150px}
+.sample{bottom:84px}
+
+a{color:inherit;text-decoration:none}
+body{background:#F7F7FA}
+.tab{text-decoration:none}.tbd{position:absolute;top:-4px;left:42px;min-width:18px;height:18px;border-radius:9px;background:#F0508A;color:#fff;font-size:10.5px;font-weight:700;display:grid;place-items:center;border:2px solid #fff;padding:0 4px}
+.view{display:none}.view.on{display:block}
+.top{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.97);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.trow{height:58px;display:flex;align-items:center;gap:10px;padding:0 16px}
+.trow h1{font-size:22px;font-weight:700}.trow .hact{gap:8px}.trow .ib{width:38px;height:38px;border-radius:12px}
+.gt{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.seg2{display:flex;gap:7px;padding:0 16px 10px;overflow:hidden}
+.seg2 span{height:32px;padding:0 13px;border-radius:16px;font-size:12.5px;font-weight:600;background:#F2F0F7;color:#5B5675;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.seg2 span.on{background:var(--ink);color:#fff}.seg2 span i{font-style:normal;min-width:17px;height:17px;border-radius:9px;background:#F0508A;color:#fff;font-size:10px;display:grid;place-items:center;padding:0 4px}
+.sbx{margin:0 16px 10px;height:40px;border-radius:12px;background:#F2F0F7;display:flex;align-items:center;gap:8px;padding:0 12px;color:var(--mut);font-size:13px}
+/* inbox row */
+.ir{display:flex;gap:11px;padding:11px 16px;background:#fff;position:relative;align-items:center;cursor:pointer}
+.ir+.ir{border-top:1px solid #F2F0F7}
+.ir .avw{position:relative;flex:none}.ir .on2{position:absolute;right:1px;bottom:1px;width:12px;height:12px;border-radius:50%;background:#22C55E;border:2px solid #fff}
+.ir .m{flex:1;min-width:0}.ir .n{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600}.ir .n small{margin-left:auto;font-size:11px;color:var(--mut);font-weight:400;white-space:nowrap}
+.ir .l{font-size:12.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}.ir.un .l{color:var(--ink);font-weight:500}
+.ir .st{display:flex;gap:6px;align-items:center;margin-top:5px}
+.ir .th{width:44px;height:44px;border-radius:10px;flex:none;background-size:cover;background-position:center;border:1px solid var(--line)}
+.ub{min-width:20px;height:20px;border-radius:10px;background:var(--grad);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+.sp2{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:6px;font-size:10.5px;font-weight:600;white-space:nowrap}
+.s-pay{background:#FFF4DB;color:#B45309}.s-work{background:#EAF1FF;color:#2563EB}.s-done{background:#E5F8EC;color:#15803D}.s-hire{background:#FDEBF2;color:#D6336C}.s-q{background:#F3ECFF;color:#6C2BD9}.s-buy{background:#F2F0F7;color:#5B5675}
+.role{font-size:10px;font-weight:600;color:#6C2BD9;background:#F3ECFF;border-radius:5px;padding:0 5px;line-height:17px}
+.role.c{color:#0E9384;background:#E3F7F4}
+.lbl{font-size:12px;font-weight:700;color:var(--mut);padding:14px 16px 6px;letter-spacing:.2px}
+/* thread */
+.th-top{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line)}
+.th-h{height:58px;display:flex;align-items:center;gap:10px;padding:0 12px}
+.th-h .nm{font-size:15px;font-weight:600;line-height:1.2}.th-h .nm small{display:block;font-size:11px;color:#16A34A;font-weight:500}
+.th-h .hact{gap:4px}.th-h .ib{border:0;width:36px;height:36px}
+.pcx{display:flex;gap:10px;align-items:center;margin:0 12px 10px;padding:8px;border-radius:14px;background:#F7F5FC;border:1px solid #EEE9FA}
+.pcx .im{width:46px;height:46px;border-radius:10px;background-size:cover;flex:none}
+.pcx .t{font-size:12.5px;font-weight:600;line-height:1.3}.pcx .p{font-size:12px;color:var(--mut)}.pcx .p b{color:var(--ink)}
+.pcx .go{margin-left:auto;font-size:11.5px;font-weight:600;color:#fff;background:var(--ink);border-radius:9px;padding:6px 10px;white-space:nowrap}
+.msgs{padding:12px 14px 160px;display:flex;flex-direction:column;gap:8px}
+.day{align-self:center;font-size:11px;color:var(--mut);background:#EEECF4;border-radius:10px;padding:2px 10px;margin:4px 0}
+.b{max-width:76%;padding:8px 12px;font-size:13.5px;line-height:1.45;border-radius:18px;position:relative}
+.b.me{align-self:flex-end;background:var(--grad);color:#fff;border-bottom-right-radius:6px}
+.b.yo{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:6px}
+.tm{font-size:10px;color:var(--mut);margin-top:-4px}.tm.r{align-self:flex-end}.tm.l{align-self:flex-start}
+.msgs .b{font-weight:400}
+body.nt .sample{bottom:116px}
+.imgb{width:150px;height:105px;border-radius:16px;background-size:cover;background-position:center;border:1px solid var(--line)}
+.offer{align-self:flex-start;width:84%;background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:0 6px 16px rgba(108,43,217,.08)}
+.offer .oh{background:linear-gradient(120deg,#FDEBF2,#F3ECFF);padding:9px 12px;display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#B4236A}
+.offer .ob{padding:10px 12px}.offer .ot{font-size:14px;font-weight:600}
+.offer .og{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:9px 0}
+.offer .og div{background:#F7F7FA;border-radius:10px;padding:6px;text-align:center;font-size:10.5px;color:var(--mut)}.offer .og b{display:block;font-size:13.5px;color:var(--ink)}
+.offer .ol{font-size:12px;color:var(--ink2);display:flex;flex-direction:column;gap:3px}.offer .ol span{display:flex;gap:5px;align-items:center}
+.offer .ob2{display:flex;gap:7px;margin-top:10px}.offer .ob2 span{flex:1;text-align:center;height:36px;line-height:36px;border-radius:11px;font-size:13px;font-weight:600;border:1px solid var(--line)}
+.offer .ob2 span.y{background:var(--grad);color:#fff;border:0}
+.esc{display:flex;gap:6px;align-items:center;font-size:10.5px;color:#15803D;margin-top:8px}
+.sysm{align-self:center;max-width:92%;display:flex;gap:7px;align-items:center;font-size:11.5px;color:#15803D;background:#E5F8EC;border-radius:12px;padding:6px 10px}
+.filec{align-self:flex-start;width:78%;background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px;display:flex;gap:10px;align-items:center}
+.filec .fi{width:42px;height:42px;border-radius:10px;background:#F3ECFF;display:grid;place-items:center;flex:none}
+.filec b{font-size:13px;display:block}.filec small{font-size:11px;color:var(--mut)}
+.compose{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:8px 10px 18px;z-index:60}
+.qr{display:flex;gap:6px;overflow-x:auto;padding:0 2px 8px;scrollbar-width:none}.qr::-webkit-scrollbar{display:none}
+.qr span{flex:none;height:31px;padding:0 12px;border-radius:16px;border:1px solid #E4DCF7;background:#FBF9FF;color:#5B21B6;font-size:12.5px;font-weight:500;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.qr span.hl{background:var(--grad);color:#fff;border:0}
+.inp{display:flex;align-items:center;gap:8px}
+.inp .f{flex:1;height:42px;border-radius:21px;background:#F2F0F7;display:flex;align-items:center;padding:0 14px;color:var(--mut);font-size:13.5px;gap:8px}
+.inp .f span{flex:1}
+.inp .c{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:none;background:#F2F0F7}
+.inp .s{background:var(--grad)}
+/* profile */
+.pst{display:grid;grid-template-columns:repeat(4,1fr);text-align:center}
+.pst b{display:block;font-size:17px;font-weight:700}.pst small{font-size:11px;color:var(--mut)}
+.pbtn{display:flex;gap:8px}.pbtn span{flex:1;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600;background:#fff;border:1px solid var(--line)}
+.pbtn span.g{background:var(--grad);color:#fff;border:0}
+.box{background:#fff;border-radius:20px;border:1px solid var(--line);margin:12px 16px 0}
+.mrow{display:flex;align-items:center;gap:12px;padding:13px 14px;font-size:14px}
+.mrow+.mrow{border-top:1px solid #F2F0F7}.mrow .mi{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none}
+.mrow .mt{flex:1;min-width:0}.mrow .mt small{display:block;font-size:11.5px;color:var(--mut)}
+.mrow .r{font-size:12px;color:var(--mut);display:flex;align-items:center;gap:4px}
+.wg{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.wg div{aspect-ratio:1;background-size:cover;background-position:center;position:relative}
+.wg div span{position:absolute;left:5px;bottom:5px;font-size:10px;color:#fff;font-weight:600;background:rgba(22,19,43,.55);border-radius:6px;padding:0 5px;display:flex;align-items:center;gap:3px}
+.wg div em{position:absolute;right:5px;top:5px;font-style:normal;font-size:9.5px;font-weight:700;color:#fff;background:#16A34A;border-radius:6px;padding:0 6px}
+.ptabs{display:flex;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:58px;z-index:40}
+.ptabs span{flex:1;text-align:center;height:44px;line-height:44px;font-size:13.5px;font-weight:600;color:var(--mut);position:relative;display:flex;align-items:center;justify-content:center;gap:5px}
+.ptabs span.on{color:var(--ink)}.ptabs span.on:after{content:"";position:absolute;left:28%;right:28%;bottom:0;height:3px;border-radius:3px;background:var(--grad)}
+.sh{display:flex;align-items:center;justify-content:space-between;padding:18px 16px 8px}.sh b{font-size:16px}.sh span{font-size:12.5px;color:var(--p);font-weight:600}
+
+body{background:#F4F2F9}
+.smpbar{text-align:center;font-size:10.5px;font-weight:600;color:#8A5A00;background:#FFF7E0;padding:2px 0;border-top:1px solid #F5E6B8}
+.th-h .nm{flex:1;min-width:0}.th-h .nm small{display:flex;gap:5px;align-items:center}
+.th-h .sp2{height:19px;font-size:10px}
+.msgs{padding:12px 14px 150px;gap:7px}
+.card{align-self:flex-start;width:86%;background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.card.me2{align-self:flex-end}
+.ch{padding:8px 12px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px}
+.cb{padding:10px 12px;font-size:12.5px;color:var(--ink2);display:flex;flex-direction:column;gap:7px}
+.cb .t{font-size:14px;font-weight:600;color:var(--ink);line-height:1.35}
+.btn2{display:flex;gap:7px}.btn2 span{flex:1;text-align:center;height:36px;line-height:36px;border-radius:11px;font-size:12.5px;font-weight:600;border:1px solid var(--line);white-space:nowrap}
+.btn2 span.y{background:var(--grad);color:#fff;border:0}.btn2 span.d{background:var(--ink);color:#fff;border:0}
+.note{display:flex;gap:5px;align-items:center;font-size:10.5px;color:#15803D}
+.kv{display:flex;justify-content:space-between}.kv span{color:var(--mut)}.kv b{color:var(--ink)}
+.opt{display:flex;align-items:center;gap:9px;border:1.5px solid var(--line);border-radius:12px;padding:8px 10px}
+.opt.on{border-color:#A855F7;background:#FBF8FF}.opt i{width:18px;height:18px;border-radius:50%;border:2px solid #CFC8E4;flex:none}.opt.on i{border:5px solid #A855F7}
+.opt div{flex:1;font-size:12.5px;color:var(--ink);font-weight:500}.opt div small{display:block;color:var(--mut);font-weight:400;font-size:11px}.opt b{font-size:13.5px}
+.blur{position:relative;background:#F7F5FC;border-radius:10px;padding:8px 10px;font-family:monospace;font-size:11.5px;color:#4C1D95;line-height:1.5}
+.blur em{font-style:normal;filter:blur(4px);user-select:none}
+.blur .lk{position:absolute;right:8px;bottom:6px;font-family:Prompt;font-size:10.5px;font-weight:600;color:#6C2BD9;background:#fff;border-radius:8px;padding:1px 7px;display:flex;gap:3px;align-items:center}
+.wm{height:150px;border-radius:12px;background-size:cover;background-position:center;position:relative;overflow:hidden}
+.wm:after{content:"LUMI ตัวอย่าง   LUMI ตัวอย่าง   LUMI ตัวอย่าง   LUMI ตัวอย่าง   LUMI ตัวอย่าง   LUMI ตัวอย่าง   LUMI ตัวอย่าง   LUMI ตัวอย่าง   LUMI ตัวอย่าง";position:absolute;inset:-40px;color:rgba(255,255,255,.55);font-size:15px;font-weight:700;transform:rotate(-24deg);line-height:44px;word-spacing:14px;text-shadow:0 1px 2px rgba(0,0,0,.2)}
+.rev{display:flex;gap:4px;align-items:center;font-size:11.5px;font-weight:600;color:#B45309;background:#FFF4DB;border-radius:8px;padding:3px 8px;align-self:flex-start}
+.rev i{width:8px;height:8px;border-radius:50%;background:#F59E0B}.rev i.o{background:#F3D9A4}
+.pbar{height:8px;border-radius:4px;background:#EEEBF5;overflow:hidden}.pbar b{display:block;height:100%;background:var(--grad);border-radius:4px}
+.keyb{display:flex;align-items:center;gap:8px;background:#16132B;color:#fff;border-radius:12px;padding:9px 10px;font-family:monospace;font-size:13.5px;letter-spacing:.5px}
+.keyb span{flex:1}.keyb u{text-decoration:none;font-family:Prompt;font-size:11.5px;font-weight:600;background:rgba(255,255,255,.16);border-radius:8px;padding:3px 8px;display:flex;gap:4px;align-items:center;letter-spacing:0}
+.file{display:flex;gap:10px;align-items:center;background:#F7F7FA;border-radius:12px;padding:8px}
+.file .fi{width:38px;height:38px;border-radius:10px;background:#F3ECFF;display:grid;place-items:center;flex:none}
+.file b{font-size:12.5px;display:block;color:var(--ink)}.file small{font-size:10.5px;color:#15803D;display:flex;gap:3px;align-items:center}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:5px}.cmp span{display:flex;gap:5px;align-items:center;font-size:12px;background:#F7F7FA;border-radius:9px;padding:5px 8px}
+.ul{margin:0;padding-left:16px;font-size:12px}
+.qrb{display:flex;gap:10px;align-items:center}.qrb .q{width:74px;height:74px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;flex:none;background:#fff}
+.stars{display:flex;gap:4px}.stars svg{flex:none}
+.cpn{align-self:flex-start;width:80%;display:flex;border-radius:16px;overflow:hidden;background:linear-gradient(110deg,#FFF1D6,#FFE0EE);border:1.5px dashed #F59E0B}
+.cpn .l{padding:10px 12px;flex:1}.cpn .l b{font-size:18px;color:#B4236A;display:block}.cpn .l small{font-size:11px;color:#9A3412}
+.cpn .r{display:grid;place-items:center;padding:0 12px;border-left:1.5px dashed #F59E0B;font-size:12px;font-weight:700;color:#B4236A}
+.tip{align-self:flex-end;display:flex;gap:9px;align-items:center;background:linear-gradient(120deg,#FFF4DB,#FFE7C2);border-radius:16px;padding:9px 12px;font-size:12.5px;color:#92400E}
+.tip b{font-size:15px;color:#B45309}
+.voice{display:flex;gap:8px;align-items:center;min-width:180px}.voice .pl{width:30px;height:30px;border-radius:50%;background:#fff;display:grid;place-items:center;flex:none}
+.voice .wv{flex:1;display:flex;gap:2px;align-items:center;height:24px}.voice .wv i{width:3px;border-radius:2px;background:rgba(255,255,255,.85)}
+.yo .voice .pl{background:#F3ECFF}.yo .voice .wv i{background:#C4B5FD}
+.tr{font-size:10.5px;color:var(--mut);display:flex;gap:4px;align-items:center;margin-top:4px}.tr a{color:var(--p);font-weight:600}
+.stkm{width:120px;height:120px;background-size:cover;border-radius:18px;align-self:flex-start}
+.quote{border-left:3px solid #A855F7;background:#F7F2FF;border-radius:6px;padding:4px 8px;font-size:11.5px;color:#5B21B6;margin-bottom:5px}
+.me .quote{background:rgba(255,255,255,.2);color:#fff;border-color:#fff}
+.mini{display:flex;gap:9px;align-items:center}.mini .im{width:54px;height:54px;border-radius:11px;background-size:cover;background-position:center;flex:none}
+.mini b{font-size:13px;display:block;color:var(--ink);line-height:1.3}.mini small{font-size:11px;color:var(--mut)}
+.read{font-size:10px;color:var(--mut);align-self:flex-end;display:flex;gap:3px;align-items:center;margin-top:-3px}.read.l{align-self:flex-start}
+.ctxs{display:flex;gap:6px;padding:0 12px 8px;overflow:hidden}.ctxs span{flex:none;height:30px;border-radius:15px;padding:0 4px 0 4px;display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;background:#F2F0F7;color:#5B5675;padding-right:10px}
+.ctxs span i{width:22px;height:22px;border-radius:50%;background-size:cover;display:block}.ctxs span.on{background:var(--ink);color:#fff}
+.mstep{margin:0 12px 8px;display:flex;align-items:center;gap:8px;background:#FBF9FF;border:1px solid #EEE9FA;border-radius:12px;padding:7px 10px;font-size:11.5px}
+.mstep .pbar{flex:1;height:6px}.mstep b{font-weight:700;white-space:nowrap}.mstep span{color:var(--p);font-weight:600;white-space:nowrap}
+.stps{display:flex;padding:2px 0 0}
+.stp{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative;font-size:10px;color:var(--mut);text-align:center}
+.stp:before{content:"";position:absolute;top:10px;left:-50%;right:50%;height:3px;background:#E7E4F0}.stp:first-child:before{display:none}
+.stp.d:before,.stp.c:before{background:#A855F7}
+.stp i{width:22px;height:22px;border-radius:50%;background:#E7E4F0;color:#8A86A0;font-style:normal;font-size:11px;font-weight:700;display:grid;place-items:center;z-index:1}
+.stp.d i{background:#7C3AED;color:#fff}.stp.c i{background:#fff;border:3px solid #C13AE0;color:#C13AE0}.stp.c span{color:var(--ink);font-weight:700}
+.trk{margin:0 12px 8px;background:#FBF9FF;border:1px solid #EEE9FA;border-radius:14px;padding:8px 6px 6px}
+.trk .tt2{display:flex;justify-content:space-between;font-size:12px;font-weight:600;padding:0 6px 6px}.trk .tt2 span{font-size:11px;color:var(--p)}
+.ttab{display:flex;border-top:1px solid var(--line)}.ttab span{flex:1;text-align:center;height:40px;line-height:40px;font-size:13px;font-weight:600;color:var(--mut);position:relative}
+.ttab span.on{color:var(--ink)}.ttab span.on:after{content:"";position:absolute;left:30%;right:30%;bottom:0;height:3px;border-radius:3px;background:var(--grad)}
+.ttab span em{font-style:normal;font-size:10px;background:#F0508A;color:#fff;border-radius:8px;padding:0 5px;margin-left:3px}
+/* sheet */
+.dim{position:fixed;inset:0;background:rgba(22,19,43,.4);z-index:75;display:none}
+.sheet{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:24px 24px 0 0;z-index:80;padding:10px 16px 22px;box-shadow:0 -10px 30px rgba(22,19,43,.15);display:none;max-height:86vh;overflow:auto}
+.view.so .dim,.view.so .sheet{display:block}
+.sheet .gr{width:40px;height:5px;border-radius:3px;background:#DDD9E8;margin:0 auto 10px}
+.sheet h3{font-size:14.5px;margin:4px 0 10px;display:flex;justify-content:space-between;align-items:center}.sheet h3 small{font-size:11px;color:var(--mut);font-weight:500}
+.acts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 4px}
+.acts div{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;text-align:center;line-height:1.25}
+.acts i{width:50px;height:50px;border-radius:16px;display:grid;place-items:center}
+.sug{display:flex;gap:8px;overflow:hidden;margin-bottom:6px}.sug div{flex:none;display:flex;gap:7px;align-items:center;border-radius:14px;padding:9px 11px;font-size:12.5px;font-weight:600;background:linear-gradient(120deg,#F6EEFF,#FFEFF6);color:#5B21B6}
+.lst .li{display:flex;gap:12px;align-items:center;padding:9px 0;font-size:13.5px}.lst .li i{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none}
+.lst .li small{display:block;font-size:11px;color:var(--mut)}.lst .sec{font-size:11.5px;font-weight:700;color:var(--mut);margin:8px 0 2px}
+.sheet .lst .li+.li{border-top:1px solid #F4F2F9}
+.fl{background:#fff}.fl .fr{display:flex;gap:11px;align-items:center;padding:12px 16px;border-bottom:1px solid #F2F0F7}
+.fl .fr .ic2{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;flex:none;background-size:cover;background-position:center}
+.fl .fr .m{flex:1;min-width:0}.fl .fr b{font-size:13.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fl .fr small{font-size:11px;color:var(--mut)}
+.fl .fr .a{font-size:12px;font-weight:600;color:#6C2BD9;background:#F3ECFF;border-radius:10px;padding:6px 10px;white-space:nowrap;display:flex;gap:4px;align-items:center}
+.fl h4{font-size:12px;color:var(--mut);padding:14px 16px 6px;background:#F4F2F9}
+</style></head>
+<body><div class="view" id="v1"><div class="th-top"><div class="th-h"><a class="ib" href="chat-a.html"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></a><div style="position:relative"><div class="av" style="width:38px;height:38px;background-image:url(../img/av_pim.jpg)"></div><i style="position:absolute;right:0;bottom:0;width:11px;height:11px;border-radius:50%;background:#22C55E;border:2px solid #fff"></i></div><div class="nm">Pim Draw<small>ออนไลน์<span class="sp2 s-buy">ซื้อแล้ว 2 ออเดอร์</span></small></div><div class="hact"><div class="ib"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM3.5 12h17M12 3.5c2.5 3 2.5 14 0 17M12 3.5c-2.5 3-2.5 14 0 17"/></svg></div><div class="ib"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg></div></div></div><div class="ttab"><span class="on" data-go="v1">แชต</span><span class="" data-go="v1">ออเดอร์ <em>2</em></span><span class="" data-go="v2">ไฟล์และคีย์ <em>6</em></span></div><div class="smpbar">ข้อมูลตัวอย่าง · ยังไม่ใช่ออเดอร์จริง</div></div><div class="msgs"><div class="card"><div class="ch" style="background:#E5F8EC;color:#15803D"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h16v10H4zM3 7h18v3H3zM12 7v13M12 7c-1-3-5-4-5-1.5S12 7 12 7zM12 7c1-3 5-4 5-1.5S12 7 12 7z"/></svg>ของฟรี · ดาวน์โหลดแล้ว</div><div class="cb"><div class="mini"><div class="im" style="background-image:url(../img/g_frogs.jpg)"></div><div><b>สติกเกอร์กบน้อย 6 อารมณ์</b><small>PNG พื้นใส · ใช้ส่วนตัวได้</small></div></div><div class="btn2"><span>โหลดอีกครั้ง</span><span class="y">ให้ทิปครีเอเตอร์</span></div></div></div><div class="tip"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h16v10H4zM3 7h18v3H3zM12 7v13M12 7c-1-3-5-4-5-1.5S12 7 12 7zM12 7c1-3 5-4 5-1.5S12 7 12 7z"/></svg><div>คุณให้ทิป <b>฿50</b><br><small>“ขอบคุณที่แจกฟรีครับ ☕”</small></div></div><div class="b yo">ขอบคุณมากค่า 🥰 ฝากคูปองไว้ให้นะคะ</div><div class="stkm" style="background-image:url(../img/shiba.jpg);background-size:300%;background-position:0 0"></div><div class="cpn"><div class="l"><b>ลด 15%</b><small>ทุกชิ้นในร้าน Pim Draw · ถึง 30 พ.ย.</small></div><div class="r">เก็บ<br>คูปอง</div></div><div class="b me">ฟอนต์ลายมือ ใช้ทำโลโก้ร้านได้ไหมครับ</div><div class="read">16:40 · อ่านแล้ว</div><div class="card"><div class="ch" style="background:#FDEBF2;color:#D6336C"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D6336C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19 10.5 5h3L19 19M7.5 14h9"/></svg>สิทธิ์การใช้ฟอนต์</div><div class="cb"><div class="cmp"><span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>โพสต์ขายของ</span><span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>โลโก้ร้าน</span><span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>พิมพ์บรรจุภัณฑ์</span><span><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></svg>ขายต่อไฟล์ ไม่ได้</span></div></div></div></div><div class="compose"><div class="qr"><span class="hl">เก็บคูปองเลย</span><span class="">ขอดูตัวอย่างฟอนต์</span><span class="">ซื้อเป็นชุดรวมได้ไหม</span></div><div class="inp"><div class="c pls"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div><div class="f"><span>พิมพ์ข้อความ…</span><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v9l-6 7H5zM13 20v-4a3 3 0 0 1 3-3h3"/></svg></div><div class="c"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></div><div class="c s"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 16-2.5-6.5z"/></svg></div></div></div><div class="dim"></div><div class="sheet"><div class="gr"></div></div></div><div class="view" id="v2"><div class="th-top"><div class="th-h"><a class="ib" href="chat-a.html"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></a><div style="position:relative"><div class="av" style="width:38px;height:38px;background-image:url(../img/av_pim.jpg)"></div><i style="position:absolute;right:0;bottom:0;width:11px;height:11px;border-radius:50%;background:#22C55E;border:2px solid #fff"></i></div><div class="nm">Pim Draw<small>ออนไลน์<span class="sp2 s-buy">ซื้อแล้ว 2 ออเดอร์</span></small></div><div class="hact"><div class="ib"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM3.5 12h17M12 3.5c2.5 3 2.5 14 0 17M12 3.5c-2.5 3-2.5 14 0 17"/></svg></div><div class="ib"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg></div></div></div><div class="ttab"><span class="" data-go="v1">แชต</span><span class="" data-go="v1">ออเดอร์ <em>2</em></span><span class="on" data-go="v2">ไฟล์และคีย์ <em>6</em></span></div><div class="smpbar">ข้อมูลตัวอย่าง · ยังไม่ใช่ออเดอร์จริง</div></div><div class="fl"><h4>คีย์และรหัส</h4><div class="fr"><div class="ic2" style="background:#EEF2FF"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM10.5 13.5 3.5 20.5M6 18l2.5 2.5M8 16l2 2"/></svg></div><div class="m"><b>รหัสลิขสิทธิ์ฟอนต์ “ลายมือพิม”</b><small style="font-family:monospace;font-size:12px;color:var(--ink)">PIM-FNT-82KD-77QA</small></div><span class="a"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9h10v11H9zM5 15V4h10"/></svg>คัดลอก</span></div><h4>ไฟล์ (สแกนไวรัสแล้วทุกไฟล์)</h4><div class="fr"><div class="ic2" style="background-image:url(../img/g_frogs.jpg)"></div><div class="m"><b>สติกเกอร์กบน้อย 6 อารมณ์.zip</b><small style="">ของฟรี · 4.2 MB</small></div><span class="a"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>โหลด</span></div><div class="fr"><div class="ic2" style="background-image:url(../img/shiba.jpg)"></div><div class="m"><b>สติกเกอร์ชิบะทักทาย 24 ตัว.zip</b><small style="">ซื้อ 28 ต.ค. · 12 MB</small></div><span class="a"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>โหลด</span></div><div class="fr"><div class="ic2" style="background:#FDEBF2"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D6336C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19 10.5 5h3L19 19M7.5 14h9"/></svg></div><div class="m"><b>PimHand-Regular.otf</b><small style="">ฟอนต์ · ใช้เชิงพาณิชย์ได้</small></div><span class="a"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>โหลด</span></div><h4>ลิงก์และเอกสาร</h4><div class="fr"><div class="ic2" style="background:#EAF1FF"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></div><div class="m"><b>สติกเกอร์ LINE ชุดชิบะ</b><small style="">เพิ่มเข้า LINE ของคุณ</small></div><span class="a"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>เปิด</span></div><div class="fr"><div class="ic2" style="background:#F2F0F7"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B5675" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6zM14 3v4h4"/></svg></div><div class="m"><b>ใบเสร็จ #LM-20390</b><small style="">฿59 · 28 ต.ค. 2569</small></div><span class="a"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>PDF</span></div></div><div style="padding:14px 16px;font-size:11.5px;color:var(--mut);text-align:center">ทุกอย่างที่ส่งในแชตนี้เก็บไว้ที่นี่ หาไม่ต้องเลื่อนแชต</div><div class="dim"></div><div class="sheet"></div></div><div class="view" id="v3"><div class="th-top"><div class="th-h"><a class="ib" href="chat-a.html"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></a><div style="position:relative"><div class="av" style="width:38px;height:38px;background-image:url(../img/av_pim.jpg)"></div><i style="position:absolute;right:0;bottom:0;width:11px;height:11px;border-radius:50%;background:#22C55E;border:2px solid #fff"></i></div><div class="nm">Pim Draw<small>ออนไลน์<span class="sp2 s-buy">ซื้อแล้ว 2 ออเดอร์</span></small></div><div class="hact"><div class="ib"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM3.5 12h17M12 3.5c2.5 3 2.5 14 0 17M12 3.5c-2.5 3-2.5 14 0 17"/></svg></div><div class="ib"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16132B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg></div></div></div><div class="ttab"><span class="on" data-go="v1">แชต</span><span class="" data-go="v1">ออเดอร์ <em>2</em></span><span class="" data-go="v2">ไฟล์และคีย์ <em>6</em></span></div><div class="smpbar">ข้อมูลตัวอย่าง · ยังไม่ใช่ออเดอร์จริง</div></div><div class="msgs"><div class="card"><div class="ch" style="background:#E5F8EC;color:#15803D"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#15803D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h16v10H4zM3 7h18v3H3zM12 7v13M12 7c-1-3-5-4-5-1.5S12 7 12 7zM12 7c1-3 5-4 5-1.5S12 7 12 7z"/></svg>ของฟรี · ดาวน์โหลดแล้ว</div><div class="cb"><div class="mini"><div class="im" style="background-image:url(../img/g_frogs.jpg)"></div><div><b>สติกเกอร์กบน้อย 6 อารมณ์</b><small>PNG พื้นใส · ใช้ส่วนตัวได้</small></div></div><div class="btn2"><span>โหลดอีกครั้ง</span><span class="y">ให้ทิปครีเอเตอร์</span></div></div></div><div class="tip"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h16v10H4zM3 7h18v3H3zM12 7v13M12 7c-1-3-5-4-5-1.5S12 7 12 7zM12 7c1-3 5-4 5-1.5S12 7 12 7z"/></svg><div>คุณให้ทิป <b>฿50</b><br><small>“ขอบคุณที่แจกฟรีครับ ☕”</small></div></div><div class="stkm" style="background-image:url(../img/shiba.jpg);background-size:300%;background-position:0 0"></div><div class="cpn"><div class="l"><b>ลด 15%</b><small>ทุกชิ้นในร้าน Pim Draw · ถึง 30 พ.ย.</small></div><div class="r">เก็บ<br>คูปอง</div></div><div class="b me">ฟอนต์ลายมือ ใช้ทำโลโก้ร้านได้ไหมครับ</div><div class="card"><div class="ch" style="background:#FDEBF2;color:#D6336C"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D6336C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19 10.5 5h3L19 19M7.5 14h9"/></svg>สิทธิ์การใช้ฟอนต์</div><div class="cb"><div class="cmp"><span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>โพสต์ขายของ</span><span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>โลโก้ร้าน</span><span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>พิมพ์บรรจุภัณฑ์</span><span><svg class="ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></svg>ขายต่อไฟล์ ไม่ได้</span></div></div></div></div><div class="compose"><div class="qr"><span class="hl">เก็บคูปองเลย</span></div><div class="inp"><div class="c pls"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></div><div class="f"><span>พิมพ์ข้อความ…</span><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8A86A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v9l-6 7H5zM13 20v-4a3 3 0 0 1 3-3h3"/></svg></div><div class="c"><svg class="ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></div><div class="c s"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 16-2.5-6.5z"/></svg></div></div></div><div class="dim"></div><div class="sheet"><div class="gr"></div><h3>แนะนำตอนนี้<small>จากสินค้าที่คุยกันอยู่</small></h3><div class="sug"><div><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DB2777" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8V6h17v2a2.5 2.5 0 0 0 0 5v2h-17v-2a2.5 2.5 0 0 0 0-5zM10 6v12"/></svg>ใช้คูปอง 15% ซื้อฟอนต์</div><div><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2"/></svg>ขอราคาชุดรวม</div><div><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D6336C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l4-1 11-11-3-3L5 16zM14 6l3 3"/></svg>จ้างวาดสติกเกอร์</div></div><h3 style="margin-top:12px">ส่งอะไรดี</h3><div class="acts"><div><i style="background:#FDEBF2"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D6336C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l4-1 11-11-3-3L5 16zM14 6l3 3"/></svg></i>ส่งบรีฟจ้างงาน</div><div><i style="background:#F3ECFF"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6C2BD9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4zM4 10h16M4 15h16M10 4v16"/></svg></i>ขอใบเสนอราคา</div><div><i style="background:#EAF1FF"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2"/></svg></i>แนบสินค้าในร้าน</div><div><i style="background:#E3F7F4"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E9384" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4zM4 15l4.5-4.5 4 4 2.5-2.5L20 17M15 9.5a1.2 1.2 0 1 0 0-.01"/></svg></i>รูป / วิดีโอ</div><div><i style="background:#FFF0E3"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E0620B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5l-8 8a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7L9.7 17a1.7 1.7 0 0 1-2.4-2.4L15 7"/></svg></i>ไฟล์ (สแกนไวรัส)</div><div><i style="background:#EEF2FF"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v9l-6 7H5zM13 20v-4a3 3 0 0 1 3-3h3"/></svg></i>สติกเกอร์</div><div><i style="background:#FFF4DB"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg></i>ขอแก้งาน</div><div><i style="background:#FAE8FF"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C026D3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h16v10H4zM3 7h18v3H3zM12 7v13M12 7c-1-3-5-4-5-1.5S12 7 12 7zM12 7c1-3 5-4 5-1.5S12 7 12 7z"/></svg></i>ให้ทิป</div><div><i style="background:#FDEBF2"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DB2777" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8V6h17v2a2.5 2.5 0 0 0 0 5v2h-17v-2a2.5 2.5 0 0 0 0-5zM10 6v12"/></svg></i>ใช้คูปอง</div><div><i style="background:#EAF1FF"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v14H4zM4 10h16M8 3.5v4M16 3.5v4"/></svg></i>นัดเวลา</div><div><i style="background:#E0F7FB"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17zM3.5 12h17M12 3.5c2.5 3 2.5 14 0 17M12 3.5c-2.5 3-2.5 14 0 17"/></svg></i>แปลภาษา</div><div><i style="background:#FEE2E2"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg></i>แจ้งปัญหา LUMI</div></div></div></div><script>
+function show(){var h=location.hash.slice(1)||'v1',so=/-s$/.test(h);h=h.replace(/-s$/,'');document.querySelectorAll('.view').forEach(function(v){v.classList.toggle('on',v.id==h);v.classList.toggle('so',v.id==h&&so)});setTimeout(function(){scrollTo(0,document.body.scrollHeight)},30)}
+addEventListener('hashchange',show);show();
+document.querySelectorAll('.pls').forEach(function(b){b.onclick=function(){b.closest('.view').classList.add('so')}});
+document.querySelectorAll('.dim').forEach(function(d){d.onclick=function(){d.closest('.view').classList.remove('so')}});
+document.querySelectorAll('[data-go]').forEach(function(e){e.onclick=function(){location.hash=e.dataset.go}});
+document.querySelectorAll('.qr span').forEach(function(q){q.onclick=function(){var m=document.querySelector('.view.on .msgs');m.insertAdjacentHTML('beforeend','<div class="b me">'+q.textContent+'</div><div class="read">ส่งแล้ว</div>');scrollTo(0,document.body.scrollHeight)}});
+document.querySelectorAll('.keyb u').forEach(function(u){u.onclick=function(){u.lastChild.textContent='คัดลอกแล้ว'}});
+document.querySelectorAll('.opt').forEach(function(o){o.onclick=function(){o.parentNode.querySelectorAll('.opt').forEach(function(x){x.classList.remove('on')});o.classList.add('on')}});
+</script></body></html>
