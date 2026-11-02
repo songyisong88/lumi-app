@@ -623,7 +623,7 @@ export function SellStatus() {
           </div>
         ) })}
       </div>
-      <div className="bottom-bar"><button className="btn btn-p btn-block" onClick={() => nav('/sell', { replace: !!sent })}>ลงขายชิ้นต่อไป</button></div>
+      {mine.length > 0 && <div className="bottom-bar"><button className="btn btn-p btn-block" onClick={() => nav('/sell', { replace: !!sent })}>ลงขายชิ้นต่อไป</button></div>}
     </div>
   )
 }
