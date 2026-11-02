@@ -1,0 +1,9 @@
+.box{margin:0 -16px}
+.r1{gap:7px;padding:0 16px 8px}
+.r2{gap:6px;padding:0 16px 4px}
+.chip{height:34px;padding:0 13px;border-radius:17px;border:1px solid var(--line);display:inline-flex;align-items:center;font-size:13px;font-weight:500;color:var(--ink2);background:#fff;flex:none;white-space:nowrap}
+.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tchip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--ink2);border-radius:8px;padding:4px 9px;background:var(--soft);white-space:nowrap;flex:none;border:1px solid transparent}
+.tchip i{width:7px;height:7px;border-radius:50%;display:block}
+.ton{font-weight:600}
+@media(min-width:1024px){.box{margin:0 -28px}.r1,.r2{padding-left:28px;padding-right:28px}}

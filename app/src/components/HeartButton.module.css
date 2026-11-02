@@ -1,0 +1,4 @@
+.fav{width:30px;height:30px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(22,19,43,.18);display:flex;align-items:center;justify-content:center}
+.glass{width:50px;height:50px;border-radius:15px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(8px);box-shadow:none}
+.pop{animation:pop .25s}
+@keyframes pop{50%{transform:scale(1.25)}}
