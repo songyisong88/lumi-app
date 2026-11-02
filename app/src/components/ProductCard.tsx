@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { TYPES, creatorById, imgUrl } from '../data/sampleData'
 import type { ComingSoon, Product } from '../data/types'
@@ -93,7 +94,7 @@ function Footer({ p }: { p: Product }) {
 }
 
 /** Feed card. NO price by design: price shows on the product/story view. Free items get a green "ฟรี" pill. */
-export function ProductCard({ p }: { p: Product }) {
+export function ProductCard({ p, badge }: { p: Product; badge?: ReactNode }) {
   return (
     <article className={s.card} data-kind={p.kind}>
       <Link to={`/product/${p.id}`} className={s.link} aria-label={p.title} />
@@ -101,6 +102,7 @@ export function ProductCard({ p }: { p: Product }) {
         <Media p={p} />
         <TypeTag p={p} />
         <HeartButton productId={p.id} className={s.heart} />
+        {badge}
       </div>
       <div className={s.bd}>
         <h3 className={s.tt}>{p.title}</h3>

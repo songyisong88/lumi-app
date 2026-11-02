@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { MasonryFeed } from '../components/MasonryFeed'
-import { PRODUCTS, TYPES, TYPE_ORDER } from '../data/sampleData'
+import { ALL_PRODUCTS, TYPES, TYPE_ORDER } from '../data/sampleData'
 import type { TypeKey } from '../data/types'
 import { useFavorites } from '../services/FavoritesContext'
 import s from './Favorites.module.css'
@@ -11,7 +11,7 @@ export function Favorites() {
   const nav = useNavigate()
   const { ids } = useFavorites()
   const [type, setType] = useState<TypeKey | 'all'>('all')
-  const favs = ids.map((id) => PRODUCTS.find((p) => p.id === id)).filter((p) => !!p)
+  const favs = ids.map((id) => ALL_PRODUCTS.find((p) => p.id === id)).filter((p) => !!p)
   const shown = favs.filter((p) => type === 'all' || p.type === type)
 
   return (

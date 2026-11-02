@@ -55,6 +55,28 @@ export const PRODUCTS: Product[] = [
   { id: 'p24', kind: 'image', type: 'img', title: 'ภาพกาแฟเย็นสาดน้ำ', use: 'ปกเพจ โฆษณาร้านกาแฟ', creatorId: 'mint', price: 79, image: img('coffee.jpg', 900, 506), instant: true },
 ]
 
+/**
+ * Extra SAMPLE works used by the search page (ใหม่วันนี้ shelf + software/app/game/plugin
+ * categories). Kept separate so the approved home feed stays unchanged.
+ */
+export const SEARCH_EXTRA: Product[] = [
+  { id: 'n01', kind: 'image', type: 'img', title: 'ภาพข้าวเหนียวมะม่วงสีน้ำ', use: 'เมนู ปกเพจ', creatorId: 'fasai', price: 49, image: img('stickyrice.jpg', 900, 900), instant: true },
+  { id: 'n02', kind: 'image', type: 'tool', label: 'อัตโนมัติ', title: 'ระบบแจ้งเตือนสต็อกใน LINE', use: 'ของใกล้หมดเตือนเอง', creatorId: 'kenji', price: 0, image: img('c_auto.jpg', 720, 720), tryable: true },
+  { id: 'n03', kind: 'image', type: 'img', title: 'ภาพน้ำหอมบนผ้าไหม', use: 'โฆษณาแบรนด์', creatorId: 'nova', price: 129, image: img('perfume.jpg', 900, 900), instant: true },
+  { id: 'n04', kind: 'image', type: 'img', title: 'ตุ๊กตาขนมหวาน 3D', use: 'ปกเพจ ร้านขนม', creatorId: 'toy', price: 99, image: img('toys.jpg', 900, 506), instant: true },
+  { id: 'n05', kind: 'image', type: 'tool', label: 'โปรแกรม', title: 'โปรแกรม POS ร้านค้าเล็ก', use: 'ขายหน้าร้าน ตัดสต็อกให้เอง', creatorId: 'nova', price: 990, image: img('c_sme.jpg', 720, 720), platforms: ['Windows', 'Mac'], tryable: true },
+  { id: 'n06', kind: 'image', type: 'tool', label: 'แอปมือถือ', title: 'แอปจองคิวร้านเสริมสวย', use: 'ลูกค้าจองเองผ่านมือถือ', creatorId: 'kenji', price: 1490, image: img('c_app.jpg', 720, 720), platforms: ['iOS', 'Android'] },
+  { id: 'n07', kind: 'image', type: 'tool', label: 'เกม', title: 'เกมจับคู่ผลไม้ไทย', use: 'ซอร์สโค้ด ปรับแต่งได้', creatorId: 'toy', price: 0, image: img('c_game.jpg', 720, 720), tryable: true },
+  { id: 'n08', kind: 'image', type: 'tool', label: 'ปลั๊กอิน', title: 'ปลั๊กอินรีวิวสินค้า Shopify', use: 'ติดดาว รีวิวมีรูป', creatorId: 'kenji', price: 390, image: img('c_plugin.jpg', 720, 720), platforms: ['Shopify'] },
+  { id: 'n09', kind: 'image', type: 'tool', label: 'ส่วนขยาย Chrome', title: 'ส่วนขยายจดออเดอร์จากแชต', use: 'กดเดียวเก็บออเดอร์ลงตาราง', creatorId: 'ton', price: 190, image: img('c_plugin.jpg', 720, 720), platforms: ['Chrome'] },
+  { id: 'n10', kind: 'image', type: 'tpl', label: 'ฟอนต์', title: 'ฟอนต์ไทยลายมือ “ใบเตย”', use: 'ปก โพสต์ เมนู', creatorId: 'pim', price: 0, image: img('c_creator.jpg', 720, 720), instant: true },
+  { id: 'n11', kind: 'image', type: 'tool', label: 'โปรแกรม', title: 'โปรแกรมตัดพื้นหลังภาพสินค้า', use: 'ตัดทีละร้อยภาพในคลิกเดียว', creatorId: 'nova', price: 590, image: img('c_software.jpg', 720, 720), platforms: ['Windows', 'Mac'] },
+  { id: 'n12', kind: 'image', type: 'img', label: 'ภาพ 3D', title: 'เกาะลอยฟ้าวัดไทย 3D', use: 'ปกเกม พื้นหลัง', creatorId: 'toy', price: 159, image: img('g_island.jpg', 900, 900) },
+]
+
+/** Every sample work (home feed + search extras). Use this for lookups by id. */
+export const ALL_PRODUCTS: Product[] = [...PRODUCTS, ...SEARCH_EXTRA]
+
 export const COMING_SOON: ComingSoon[] = [
   { id: 's1', icon: 'game', title: 'เกม', use: 'เกมเล่นบนเว็บ ลองเล่นก่อนซื้อ', waiting: 128 },
   { id: 's2', icon: 'code', title: 'ซอฟต์แวร์และแอป', use: 'โปรแกรมพร้อมรหัสใช้งาน', waiting: 96 },
@@ -82,6 +104,6 @@ export const QUICK_FILTERS: { id: string; label: string; match: (p: Product) => 
 ]
 
 export const creatorById = (id: string) => CREATORS.find((c) => c.id === id)!
-export const productById = (id: string) => PRODUCTS.find((p) => p.id === id)
+export const productById = (id: string) => ALL_PRODUCTS.find((p) => p.id === id)
 export const imgUrl = (file: string) => `${import.meta.env.BASE_URL}img/${file}`
 export const formatPrice = (p: Product) => (p.price === 0 ? 'ฟรี' : `฿${p.price.toLocaleString('th-TH')}${p.priceSuffix ?? ''}`)
