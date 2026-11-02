@@ -3,7 +3,7 @@ import { FollowButton } from '../../components/FollowButton'
 import { Link, useNavigate } from 'react-router-dom'
 import { HeartButton } from '../../components/HeartButton'
 import { Icon } from '../../components/Icon'
-import { Av, copyText, Img, Sheet, Stars } from '../../components/ui'
+import { Av, copyText, Img, Sheet, Stars, blockTap } from '../../components/ui'
 import { licRows, layoutOf, sellTypeOf, specOf, SPECS, str, arr, on, filesOf } from '../../data/listingSpec'
 import { galleryOf, highlightsOf, optionsOf, pageContent, REVIEWS, reviewer, similarOf, statsOf, creatorStats } from '../../data/productExtras'
 import { baht, creatorById, isRemoteId, ME } from '../../data/sampleData'
@@ -325,7 +325,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
       </Sheet>
       <Sheet open={sheet === 'lesson'} onClose={() => setSheet(null)} title={arr(spec.lessons)[0]?.split(' · ').slice(0, 2).join(' · ') ?? 'ตอนแรกฟรี'} sub={ebook ? 'อ่านฟรี ไม่ต้องซื้อ' : 'ดูฟรี ไม่ต้องซื้อ'}>
         {ebook ? <div className={s.box}>{arr(spec.lessons).slice(0, 3).map((l, i) => <div key={i} className={s.ok}><span className="ok-ic"><Icon name="book" size={13} /></span>{l}</div>)}</div>
-          : <div className={s.video}><Img src={gallery[0]} className={s.videoImg} sizes="100vw" /><span className={s.playBig}><Icon name="play" size={30} color="#fff" fill="#fff" /></span><div className={s.vbar}><i /></div></div>}
+          : <div className={s.video} role="button" tabIndex={0} aria-label="เล่นวิดีโอตอนแรก" onClick={() => toast('วิดีโอจริงจะเล่นได้เมื่อเชื่อมระบบเก็บไฟล์ (ข้อมูลตัวอย่าง)')}><Img src={gallery[0]} className={s.videoImg} sizes="100vw" /><span className={s.playBig}><Icon name="play" size={30} color="#fff" fill="#fff" /></span><div className={s.vbar}><i /></div></div>}
         <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>{ebook ? 'ตัวอ่านตัวอย่าง · หน้าจริงจะเปิดหลังเชื่อมระบบเก็บไฟล์' : 'ตัวเล่นวิดีโอตัวอย่าง · วิดีโอจริงจะเปิดหลังเชื่อมระบบเก็บไฟล์'}</p>
       </Sheet>
       <ReportSheet open={sheet === 'report'} onClose={() => setSheet(null)} target="product" id={p.id} />
@@ -372,7 +372,7 @@ function BriefSheet({ open, onClose, p, opts, optId, setOptId }: { open: boolean
   const ok = vals.filter((v) => v.trim()).length >= Math.min(2, needs.length)
   return (
     <Sheet open={open} onClose={onClose} title="ส่งบรีฟงานจ้าง" sub={`${creatorById(p.creatorId).name} จะส่งใบเสนอราคากลับในแชต`} tall
-      footer={<button className="btn btn-p btn-block" disabled={!ok || sending} onClick={async () => {
+      footer={<button className="btn btn-p btn-block" disabled={sending} {...blockTap(!ok, `กรอกบรีฟอย่างน้อย ${Math.min(2, needs.length)} ช่องก่อนส่ง`)} onClick={async () => {
         setSending(true)
         const id = await chat.sendBrief(p.creatorId, p.id, needs.map((n, i) => `${n}: ${vals[i] || '-'}`), `แพ็กเกจ${opt?.label ?? ''}`, opt?.price)
         onClose(); nav(`/chat/${id}`)
@@ -397,7 +397,7 @@ function TipSheet({ open, onClose, p, initial = 50 }: { open: boolean; onClose: 
   const ok = amt >= 10 && amt <= 10000
   return (
     <Sheet open={open} onClose={onClose} title={`ให้ทิป ${c.name}`} sub="ไม่บังคับ · ครีเอเตอร์ได้รับทิปหลังหักค่าธรรมเนียมการชำระเงิน"
-      footer={<button className="btn btn-p btn-block" disabled={!ok} onClick={async () => {
+      footer={<button className="btn btn-p btn-block" {...blockTap(!ok, 'ทิปได้ตั้งแต่ ฿10 ถึง ฿10,000')} onClick={async () => {
         const key = await cart.add({ productId: 'tip', price: amt, title: `ทิปให้ ${c.name}`, creatorId: p.creatorId, image: c.avatar, optionLabel: 'ทิปขอบคุณ', direct: true })
         onClose(); nav(`/checkout?keys=${key}`)
       }}>{ok ? `ให้ทิป ${baht(amt)}` : 'ใส่จำนวน ฿10 – ฿10,000'}</button>}>

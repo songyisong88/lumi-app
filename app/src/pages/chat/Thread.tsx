@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { Av, Empty, Img, Sheet, Stars, TopBar, copyText } from '../../components/ui'
+import { Av, Empty, Img, Sheet, Stars, TopBar, copyText, blockTap } from '../../components/ui'
 import { IssueSheet, issueOpen } from '../../components/OrderHelp'
 import { ReportSheet } from '../../components/Report'
 import { HIRE_STEPS, type Message, type Thread as T } from '../../data/appTypes'
@@ -253,7 +253,7 @@ function Bubble({ m, t, fresh, onPay, onReview, onRevise }: { m: Message; t: T; 
         <p className={s.ctx}>{m.text}</p>
         {m.status === 'pending' && !mine ? <>
           <small className={s.ps}>ขอแก้ได้อีก {m.left} ครั้ง · ตรวจงานภายใน {m.extended ? '6 วัน (ขยายแล้ว)' : '3 วัน'}{!m.extended && <> · <button className={s.lnk} onClick={() => orders.extendReview(t.id, m.id)}>ขอเวลาตรวจเพิ่ม 3 วัน</button></>}</small>
-          <div className={s.btns}><button className="btn btn-sm btn-o" disabled={!m.left} onClick={() => onRevise(m)}>ขอแก้ไข</button><button className="btn btn-sm btn-p" onClick={() => onReview(m)}>รับงาน</button></div>
+          <div className={s.btns}><button className="btn btn-sm btn-o" {...blockTap(!m.left, 'ใช้สิทธิ์ขอแก้ไขครบแล้ว · คุยกับครีเอเตอร์ในแชตได้')} onClick={() => onRevise(m)}>ขอแก้ไข</button><button className="btn btn-sm btn-p" onClick={() => onReview(m)}>รับงาน</button></div>
         </> : <div className={s.state}>{m.status === 'accepted' ? <><Icon name="check" size={14} color="#16A34A" stroke={2.6} />รับงานแล้ว</> : m.status === 'revise' ? 'ขอแก้ไขแล้ว' : 'รอลูกค้าตรวจ'}</div>}
       </div>{time}</div>
     )
@@ -270,7 +270,7 @@ function OfferSheet({ open, onClose, thread }: { open: boolean; onClose: () => v
   const ok = Number(amount) > 0 && items.trim()
   return (
     <Sheet open={open} onClose={onClose} title="ส่งใบเสนอราคา" sub={thread.title}
-      footer={<button className="btn btn-p btn-block" disabled={!ok} onClick={() => { chat.sendCard(thread.id, { kind: 'offer', title: 'ใบเสนอราคา', amount: Number(amount), items: items.split('\n').filter((x) => x.trim()), status: 'pending' }); onClose(); setAmount('') }}>ส่งใบเสนอราคา</button>}>
+      footer={<button className="btn btn-p btn-block" {...blockTap(!ok, 'ใส่ราคาและสิ่งที่ลูกค้าจะได้รับก่อนส่ง')} onClick={() => { chat.sendCard(thread.id, { kind: 'offer', title: 'ใบเสนอราคา', amount: Number(amount), items: items.split('\n').filter((x) => x.trim()), status: 'pending' }); onClose(); setAmount('') }}>ส่งใบเสนอราคา</button>}>
       <div className="field"><label className="flabel">ราคา (บาท)<span className="req">*</span></label><input className="inp" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} placeholder="เช่น 900" /></div>
       <div className="field"><label className="flabel">สิ่งที่ลูกค้าจะได้รับ<span className="req">*</span></label><textarea className="ta" rows={4} value={items} onChange={(e) => setItems(e.target.value)} /><p className="hint">บรรทัดละ 1 รายการ · LUMI หัก 10% เมื่อปิดงาน (ตัวอย่าง · ยังไม่รวม VAT และค่าธรรมเนียมการชำระเงิน)</p></div>
     </Sheet>
@@ -294,7 +294,7 @@ function ReviseSheet({ m, onClose, onDone }: { m?: Message; onClose: () => void;
   const [n, setN] = useState('')
   return (
     <Sheet open={!!m} onClose={onClose} title="ขอแก้ไขงาน" sub={m ? `เหลือขอแก้ได้อีก ${m.left} ครั้ง` : ''}
-      footer={<button className="btn btn-p btn-block" disabled={n.trim().length < 4} onClick={() => { onDone(n.trim()); setN('') }}>ส่งคำขอแก้ไข</button>}>
+      footer={<button className="btn btn-p btn-block" {...blockTap(n.trim().length < 4, 'เล่าสิ่งที่อยากให้แก้อย่างน้อย 4 ตัวอักษร')} onClick={() => { onDone(n.trim()); setN('') }}>ส่งคำขอแก้ไข</button>}>
       <div className="chips" style={{ flexWrap: 'wrap', marginBottom: 10 }}>{['ขอปรับสีให้สว่างขึ้น', 'ขอตัวหนังสือใหญ่ขึ้น', 'ขอเปลี่ยนท่าทาง'].map((x) => <button key={x} className="chip" onClick={() => setN(x)}>{x}</button>)}</div>
       <textarea className="ta" rows={4} value={n} onChange={(e) => setN(e.target.value)} placeholder="อยากให้แก้ตรงไหน อธิบายให้ชัดที่สุด" />
     </Sheet>

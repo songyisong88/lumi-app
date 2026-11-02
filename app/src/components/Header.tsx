@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useDb } from '../services/db'
 import { Icon } from './Icon'
 import { Sheet } from './ui'
+import { scrollPageTop } from './Stage'
 import s from './Header.module.css'
 
 export const NAV = [
@@ -17,9 +18,13 @@ export const NAV = [
 const TABBED = ['/', '/search', '/community', '/profile', '/chat', '/favorites', '/notifications']
 const ROOTS = ['/', '/search', '/community', '/profile']
 
+/** Re-tapping the tab or logo of the page you are already on scrolls it back to the top (like Instagram/TikTok). */
+const reTap = (here: boolean) => (e: React.MouseEvent) => { if (here) { e.preventDefault(); scrollPageTop(true) } }
+
 export function Brand() {
+  const { pathname } = useLocation()
   return (
-    <Link to="/" className={s.brand} aria-label="LUMI หน้าแรก">
+    <Link to="/" className={s.brand} aria-label="LUMI หน้าแรก" onClick={reTap(pathname === '/')}>
       <span className={s.logo}><Icon name="sparkle" size={22} color="none" stroke={0} fill="#fff" /></span>
       <span>LUMI<small>ตลาดงานครีเอเตอร์ AI</small></span>
     </Link>
@@ -49,6 +54,7 @@ export function HeaderActions({ search = true }: { search?: boolean }) {
 
 export function Header() {
   const [create, setCreate] = useState(false)
+  const { pathname } = useLocation()
   return (
     <header className={s.hdr}>
       <div className={`wrap ${s.row}`}>
@@ -57,7 +63,7 @@ export function Header() {
         <nav className={s.desk} aria-label="เมนูหลัก">
           {NAV.filter((n) => n.to !== '/search').map((n) => 'mid' in n
             ? <button key={n.to} className={`${s.dl} ${s.sell}`} onClick={() => setCreate(true)}><Icon name="plus" size={18} stroke={2} />สร้าง</button>
-            : <NavLink key={n.to} to={n.to} end className={({ isActive }) => `${s.dl} ${isActive ? s.on : ''}`}><Icon name={n.icon} size={18} stroke={2} />{n.label}</NavLink>)}
+            : <NavLink key={n.to} to={n.to} end onClick={reTap(pathname === n.to)} className={({ isActive }) => `${s.dl} ${isActive ? s.on : ''}`}><Icon name={n.icon} size={18} stroke={2} />{n.label}</NavLink>)}
         </nav>
         <HeaderActions />
       </div>
@@ -104,7 +110,7 @@ export function BottomNav() {
             <span className={s.mid}><Icon name="plus" size={26} color="#fff" stroke={2.4} /></span>
           </button>
         ) : (
-          <NavLink key={n.to} to={n.to} end replace={ROOTS.includes(pathname)} tabIndex={show ? 0 : -1} className={({ isActive }) => `${s.tab} ${isActive ? s.tabOn : ''}`}>
+          <NavLink key={n.to} to={n.to} end replace={ROOTS.includes(pathname)} onClick={reTap(pathname === n.to)} tabIndex={show ? 0 : -1} className={({ isActive }) => `${s.tab} ${isActive ? s.tabOn : ''}`}>
             <span className={s.ti}><Icon name={n.icon} size={23} stroke={1.9} />{n.to === '/profile' && b.notif > 0 && <i className={s.tdot} />}</span>
             <span>{n.label}</span>
           </NavLink>

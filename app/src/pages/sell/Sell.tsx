@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { Empty, Img, SampleNote, Sheet, Toggle, TopBar } from '../../components/ui'
+import { Empty, Img, SampleNote, Sheet, Toggle, TopBar, blockTap } from '../../components/ui'
 import { newSpec, licRows, presetRows, MAX_FILES, SPECS, uploadRule, arr, checkListing, completion, filesOf, on, str, visible, sellTypeOf, specOf, SELL_TYPE_ORDER } from '../../data/listingSpec'
 import type { Field, ListingDraft, SellType, Spec, SpecValue, Step, UploadedFile } from '../../data/listingSpec'
 import { CATEGORIES, childrenOf } from '../../data/searchData'
@@ -207,7 +207,7 @@ export function Sell() {
       <div className="bottom-bar">
         {d.step > 0 ? <button className="btn btn-o" onClick={() => go(d.step - 1)}>{d.step === 5 ? 'แก้ไข' : 'ย้อนกลับ'}</button> : <span />}
         {d.step < 5
-          ? <button className="btn btn-p" style={{ flex: 1 }} disabled={!d.type} onClick={() => go(d.step + 1)}>ถัดไป · {STEPS[d.step + 1]}{d.step > 0 && stepMissing(d.step) > 0 && <span className={s.miss}>ขาด {stepMissing(d.step)}</span>}</button>
+          ? <button className="btn btn-p" style={{ flex: 1 }} {...blockTap(!d.type, 'เลือกประเภทผลงานก่อน')} onClick={() => go(d.step + 1)}>ถัดไป · {STEPS[d.step + 1]}{d.step > 0 && stepMissing(d.step) > 0 && <span className={s.miss}>ขาด {stepMissing(d.step)}</span>}</button>
           : <button className="btn btn-p" style={{ flex: 1 }} disabled={busy} onClick={() => publish()}>{busy ? 'กำลังลงขาย…' : missing.length ? `ยังขาด ${missing.length} อย่าง` : d.publishedId && productById(d.publishedId) ? productById(d.publishedId)?.mod?.status === 'rejected' ? 'ส่งตรวจใหม่' : 'บันทึกการแก้ไข' : d.free && d.type !== 'hire' ? 'แจกฟรีเลย' : 'ลงขายเลย'}</button>}
       </div>
       <Sheet open={payout} onClose={() => setPayout(false)} title="ก่อนรับเงินจากการขายจริง" sub="ยืนยันตัวตนและผูกบัญชีรับเงิน · เร็ว ๆ นี้"

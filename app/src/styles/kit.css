@@ -17,7 +17,7 @@
 
 .btn{height:48px;padding:0 18px;border-radius:14px;font-weight:600;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
 .btn-p{background:var(--grad);color:#fff;box-shadow:0 8px 20px rgba(193,58,224,.25)}
-.btn-p:disabled{background:#D9D5E5;box-shadow:none;color:#fff;cursor:not-allowed}
+.btn-p:disabled,.btn-p[aria-disabled="true"]{background:#D9D5E5;box-shadow:none;color:#fff;cursor:not-allowed}
 .btn-o{border:1.5px solid var(--line);background:#fff;color:var(--ink)}
 .btn-s{background:var(--soft2);color:var(--p)}
 .btn-d{background:var(--ink);color:#fff}

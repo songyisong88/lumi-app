@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Icon } from './Icon'
-import { Sheet } from './ui'
+import { Sheet, blockTap } from './ui'
 import { toast } from '../services/toast'
 
 type Target = 'product' | 'post' | 'creator'
@@ -27,7 +27,7 @@ export function ReportSheet({ open, onClose, target, id }: { open: boolean; onCl
   const send = () => { save({ target, id, reason, note: note.trim() }); close(); toast('ส่งรายงานแล้ว ทีมงานจะตรวจสอบ (ทดลอง)') }
   return (
     <Sheet open={open} onClose={close} title={`รายงาน${NAME[target]}`} sub="ผู้ถูกรายงานจะไม่รู้ว่าใครรายงาน"
-      footer={<button className="btn btn-p btn-block" disabled={!reason || (reason === 'อื่น ๆ' && !note.trim())} onClick={send}>ส่งรายงาน</button>}>
+      footer={<button className="btn btn-p btn-block" {...blockTap(!reason || (reason === 'อื่น ๆ' && !note.trim()), reason ? 'เล่ารายละเอียดเพิ่มอีกนิดก่อนส่ง' : 'เลือกเหตุผลก่อนส่งรายงาน')} onClick={send}>ส่งรายงาน</button>}>
       <div className="chips" role="radiogroup" aria-label="เหตุผล">
         {REASONS[target].map((r) => <button key={r} role="radio" aria-checked={reason === r} className={`chip ${reason === r ? 'on' : ''}`} onClick={() => setReason(r)}>{r}</button>)}
       </div>

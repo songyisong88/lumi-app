@@ -33,6 +33,7 @@ html,body{height:100%;overflow:hidden;overscroll-behavior:none}
 /* press feedback: uses the independent `scale` property so it never fights a transform */
 button,.press{transition:scale .16s var(--out),opacity .16s;-webkit-tap-highlight-color:transparent}
 button:not(:disabled):active,.press:active{scale:.96}
+button[aria-disabled="true"]:active{scale:none}
 a{-webkit-tap-highlight-color:transparent}
 
 /* images: shimmer skeleton until loaded, then fade in */

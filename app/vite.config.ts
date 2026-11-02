@@ -11,6 +11,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: false, // registered in src/main.tsx (update checks + reload on new version)
       includeAssets: ['fonts/*.woff2', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'LUMI ตลาดงานครีเอเตอร์ AI',
@@ -29,8 +30,18 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,woff2,png,svg}'],
+        // index.html is NOT precached: it is fetched network-first so a new deploy shows on the next open.
+        globPatterns: ['**/*.{js,css,woff2,png,svg}'],
+        navigateFallback: null,
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: { cacheName: 'lumi-html', networkTimeoutSeconds: 4, expiration: { maxEntries: 5 } },
+          },
           {
             urlPattern: ({ url }) => url.pathname.startsWith(BASE + 'img/'),
             handler: 'CacheFirst',

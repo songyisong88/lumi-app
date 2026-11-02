@@ -19,6 +19,7 @@ export function StoryViewer() {
   const story = STORIES[idx]
   const [slide, setSlide] = useState(0)
   const [paused, setPaused] = useState(false)
+  const [round, setRound] = useState(0)
 
   useEffect(() => { setSlide(0) }, [creatorId])
   useEffect(() => { if (story) markStorySeen(story.creatorId) }, [story])
@@ -33,6 +34,7 @@ export function StoryViewer() {
   const prev = () => {
     if (slide > 0) setSlide(slide - 1)
     else if (idx > 0) nav(`/story/${STORIES[idx - 1].creatorId}`, { replace: true })
+    else setRound((r) => r + 1) // first slide of the first story: replay it from the start
   }
 
   useEffect(() => {
@@ -54,7 +56,7 @@ export function StoryViewer() {
         <div className={s.shade} />
         <div className={s.bars}>
           {story.slides.map((_, i) => (
-            <i key={i}><b className={i < slide ? s.full : i === slide ? s.run : ''} style={i === slide ? { animationDuration: `${DURATION}ms`, animationPlayState: paused ? 'paused' : 'running' } : undefined} key={`${creatorId}-${slide}`} /></i>
+            <i key={i}><b className={i < slide ? s.full : i === slide ? s.run : ''} style={i === slide ? { animationDuration: `${DURATION}ms`, animationPlayState: paused ? 'paused' : 'running' } : undefined} key={`${creatorId}-${slide}-${round}`} /></i>
           ))}
         </div>
         <div className={s.head}>

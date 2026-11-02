@@ -1,7 +1,7 @@
 import { FEATURES } from '../config'
 import { useEffect, useState } from 'react'
 import { Icon } from './Icon'
-import { Sheet, Stars } from './ui'
+import { Sheet, Stars, blockTap } from './ui'
 import { orders } from '../services/api'
 import { toast } from '../services/toast'
 import { cloudOn } from '../services/cloud'
@@ -32,7 +32,7 @@ export function IssueSheet({ open, onClose, purchaseId, threadId, hire = false, 
   }
   return (
     <Sheet open={open} onClose={onClose} title="แจ้งปัญหา / ขอคืนเงิน" sub={hire ? 'ยังไม่โอนเงินให้ครีเอเตอร์ระหว่างตรวจสอบ' : `แจ้งได้ภายใน ${ISSUE_DAYS} วันหลังซื้อ`}
-      footer={<button className="btn btn-p btn-block" disabled={!reason || (reason === 'อื่น ๆ' && !note.trim())} onClick={send}>ส่งเรื่อง</button>}>
+      footer={<button className="btn btn-p btn-block" {...blockTap(!reason || (reason === 'อื่น ๆ' && !note.trim()), reason ? 'เล่ารายละเอียดเพิ่มอีกนิดก่อนส่ง' : 'เลือกปัญหาที่พบก่อนส่งเรื่อง')} onClick={send}>ส่งเรื่อง</button>}>
       <div className="chips" role="radiogroup" aria-label="ปัญหาที่พบ">
         {REASONS[hire ? 'hire' : 'file'].map((r) => <button key={r} role="radio" aria-checked={reason === r} className={`chip ${reason === r ? 'on' : ''}`} onClick={() => setReason(r)}>{r}</button>)}
       </div>

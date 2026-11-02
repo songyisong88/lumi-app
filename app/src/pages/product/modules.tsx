@@ -143,10 +143,10 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
         <>
           <div className={s.st}>ตัวอย่าง{audio ? 'เสียง' : 'คลิป'}</div>
           {audio ? (
-            <div className={s.wave}><button className={s.wplay} aria-label="เล่นตัวอย่าง"><Icon name="play" size={18} color="#fff" fill="#fff" /></button>
+            <div className={s.wave}><button className={s.wplay} aria-label="เล่นตัวอย่าง" onClick={() => toast('ตัวอย่างเสียงจะเล่นได้เมื่อเชื่อมระบบเก็บไฟล์ (ข้อมูลตัวอย่าง)')}><Icon name="play" size={18} color="#fff" fill="#fff" /></button>
               <div className={s.wbars}>{Array.from({ length: 42 }, (_, i) => <i key={i} style={{ transform: `scaleY(${0.25 + Math.abs(Math.sin(i * 0.55)) * 0.75})` }} />)}</div><small>0:30</small></div>
           ) : (
-            <div className={s.video}><Img src={g[0]} className={s.videoImg} sizes="100vw" /><span className={s.playBig}><Icon name="play" size={30} color="#fff" fill="#fff" /></span><span className={s.wm}>ตัวอย่างมีลายน้ำ · ไฟล์จริงไม่มี</span></div>
+            <div className={s.video} role="button" tabIndex={0} aria-label="เล่นตัวอย่างคลิป" onClick={() => toast('ตัวอย่างคลิปจะเล่นได้เมื่อเชื่อมระบบเก็บไฟล์ (ข้อมูลตัวอย่าง)')}><Img src={g[0]} className={s.videoImg} sizes="100vw" /><span className={s.playBig}><Icon name="play" size={30} color="#fff" fill="#fff" /></span><span className={s.wm}>ตัวอย่างมีลายน้ำ · ไฟล์จริงไม่มี</span></div>
           )}
           <div className={s.scan} style={{ background: '#F5EBFF', color: '#6B21A8' }}><Icon name="shield" size={22} color="#9333EA" /><div><b>ผู้ขายรับรองว่าไม่ได้โคลนเสียงหรือหน้าคนจริง</b>สร้างด้วย {str(spec.aiTool)} · พบการละเมิด กดรายงานได้</div></div>
           <div className={s.st}>สิทธิ์เพลง / เสียง</div>

@@ -3,6 +3,14 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { imgSrcSet, imgUrl } from '../data/sampleData'
 import { Icon } from './Icon'
+import { toast } from '../services/toast'
+
+/** A button that is not ready yet keeps the disabled look (aria-disabled) but still answers a tap
+ *  with a toast saying what is missing, so it never feels frozen. */
+export const blockTap = (blocked: boolean, why: string) => ({
+  'aria-disabled': blocked || undefined,
+  onClickCapture: (e: React.MouseEvent) => { if (blocked) { e.stopPropagation(); e.preventDefault(); toast(why) } },
+})
 
 /* ---------- Bottom sheet: spring in, drag handle / swipe down to dismiss ---------- */
 export function Sheet({ open, onClose, title, sub, children, footer, tall }: {

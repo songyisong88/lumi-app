@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { Av, Empty, Img, SampleNote, Sheet, TopBar } from '../../components/ui'
+import { Av, Empty, Img, SampleNote, Sheet, TopBar, blockTap } from '../../components/ui'
 import { FEATURES } from '../../config'
 import { ROOMS } from '../../data/appSeed'
 import { ME, creatorById, imgUrl } from '../../data/sampleData'
@@ -58,7 +58,7 @@ export function PostDetail() {
         <div className={s.cin}>
           <Av src={creatorById(ME).avatar} size={32} />
           <input id="cmt-in" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) send() }} placeholder="เขียนความคิดเห็น…" aria-label="เขียนความคิดเห็น" />
-          <button className="btn btn-xs btn-p" disabled={!text.trim()} onClick={() => send()}>ส่ง</button>
+          <button className="btn btn-xs btn-p" {...blockTap(!text.trim(), 'พิมพ์คอมเมนต์ก่อนส่ง')} onClick={() => send()}>ส่ง</button>
         </div>
       </div>
       {FEATURES.accounts && p.authorId === ME && <>
