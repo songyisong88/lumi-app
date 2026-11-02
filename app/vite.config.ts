@@ -40,7 +40,12 @@ export default defineConfig({
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
             handler: 'NetworkFirst',
-            options: { cacheName: 'lumi-html', networkTimeoutSeconds: 4, expiration: { maxEntries: 5 } },
+            options: {
+              cacheName: 'lumi-html', networkTimeoutSeconds: 4, expiration: { maxEntries: 5 },
+              // GitHub Pages sends max-age=600 on HTML and Workbox ignores fetchOptions for navigations,
+              // so re-issue the request with cache: 'no-cache' (cheap ETag revalidation) to never get a stale index.html.
+              plugins: [{ requestWillFetch: async ({ request }) => new Request(request.url, { cache: 'no-cache', credentials: 'same-origin', redirect: 'manual' }) }],
+            },
           },
           {
             urlPattern: ({ url }) => url.pathname.startsWith(BASE + 'img/'),
