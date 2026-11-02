@@ -4,7 +4,7 @@
  * until the owner approves these screens. Everything reuses the existing kit classes.
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Av, Empty, SampleNote, Sheet, Tabs, TopBar, blockTap } from '../../components/ui'
 import type { Sale } from '../../data/appTypes'
@@ -25,8 +25,13 @@ const err = (e: unknown) => toast(e instanceof Error ? thaiError(e.message) : '�
 /** Protected route: real account required, otherwise go to sign in (and come back). */
 export function NeedAccount({ children }: { children: ReactNode }) {
   const s = useSession()
+  const loc = useLocation()
   if (!s.ready && s.mode !== 'cloud') return <><TopBar title="" /><div style={pad}><p className="muted">กำลังโหลด…</p></div></>
-  if (s.mode !== 'cloud') return <Navigate to={`/account/login?next=${encodeURIComponent(location.hash.slice(1))}`} replace />
+  if (s.mode !== 'cloud') {
+    // Router path (not the global hash, which can already hold the login URL mid-navigation) so next= never nests
+    if (loc.pathname.startsWith('/account/login')) return null
+    return <Navigate to={`/account/login?next=${encodeURIComponent(loc.pathname + loc.search)}`} replace />
+  }
   return <>{children}</>
 }
 
