@@ -50,7 +50,7 @@ export function Compose() {
   const r = ROOMS.find((x) => x.id === room)
   return (
     <div className="page">
-      <TopBar title="สร้างโพสต์" back onBack={() => nav(-1)} right={<button className="btn btn-sm btn-p" disabled={!ok || busy} onClick={post}>{busy ? 'กำลังโพสต์…' : 'โพสต์'}</button>} />
+      <TopBar title="สร้างโพสต์" back onBack={() => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/community'))} right={<button className="btn btn-sm btn-p" disabled={!ok || busy} onClick={post}>{busy ? 'กำลังโพสต์…' : 'โพสต์'}</button>} />
       <div className="narrow">
         <div className={s.cTop}><Av src={me.avatar} size={40} /><div><b>{me.name}</b><div className="muted" style={{ fontSize: 12 }}>{r ? `โพสต์ใน ${r.name}` : 'สาธารณะ · ชุมชน LUMI'}</div></div></div>
         <div className="chips hscroll" style={{ padding: '12px 16px 0' }}>

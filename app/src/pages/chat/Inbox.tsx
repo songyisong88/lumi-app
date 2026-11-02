@@ -61,7 +61,7 @@ export function Inbox() {
           })}
         </div>
         <div style={{ padding: '6px 16px 2px' }}><SampleNote>แชตตัวอย่าง · ข้อความไม่ได้ส่งถึงใครจริง</SampleNote></div>
-        {list.length === 0 ? <Empty icon="chat" title={q ? 'ไม่พบแชตที่ค้นหา' : 'ยังไม่มีแชตในหมวดนี้'} text="ทักครีเอเตอร์ได้จากหน้าสินค้า หรือกดส่งบรีฟเพื่อจ้างงาน" /> : (
+        {list.length === 0 ? <Empty icon="chat" title={q ? 'ไม่พบแชตที่ค้นหา' : 'ยังไม่มีแชตในหมวดนี้'} text="ทักครีเอเตอร์ได้จากหน้าผลงาน หรือกดส่งบรีฟเพื่อจ้างงาน" action={<Link to="/search" className="btn btn-o btn-sm">ค้นหาครีเอเตอร์</Link>} /> : (
           <div className={s.list}>
             {list.map((t, i) => {
               const c = creatorById(t.partnerId)
@@ -73,7 +73,7 @@ export function Inbox() {
                   onTouchStart={() => startPress(t)} onTouchEnd={endPress} onTouchMove={endPress} onContextMenu={(e) => { e.preventDefault(); setMenu(t) }}>
                   <Av src={c.avatar} size={52} online={t.online} />
                   <div className={s.rm}>
-                    <div className={s.r1}><b className="ell">{c.name}</b>{t.pinned && <Icon name="pin" size={13} color="var(--mut)" />}{t.muted && <Icon name="eyeoff" size={13} color="var(--mut)" />}<small>{ago(t.updatedAt)}</small></div>
+                    <div className={s.r1}><b className="ell">{c.name}</b>{t.pinned && <Icon name="pin" size={13} color="var(--mut)" />}{t.muted && <Icon name="eyeoff" size={13} color="var(--mut)" />}<small>{ago(t.updatedAt, undefined, true)}</small></div>
                     <div className={s.r2}><span className={`${s.tone} ${TONE[t.tone]}`}>{t.hire ? 'งานจ้าง · ' : t.role === 'customer' ? 'ลูกค้า · ' : ''}{t.status}</span></div>
                     <div className={s.r3}><span className={`ell ${t.unread ? s.bold : ''}`}>{typing ? <em className={s.typ}>กำลังพิมพ์…</em> : preview(last)}</span>{t.unread > 0 && <span className="badge-n">{t.unread}</span>}</div>
                   </div>

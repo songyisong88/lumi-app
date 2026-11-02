@@ -44,7 +44,7 @@ export const PRODUCTS: Product[] = [
   { id: 'p05', kind: 'bot', type: 'bot', label: 'บอท LINE', title: 'บอทร้านอาหาร', use: 'ตอบเมนู รับออเดอร์ จองโต๊ะ', creatorId: 'kenji', price: 1500, ratio: '1/1', chat: { q: 'มีเมนูแนะนำไหมคะ', a: 'วันนี้แนะนำข้าวเหนียวมะม่วง สั่งเลยไหมคะ' }, tryable: true },
   { id: 'p06', kind: 'image', type: 'img', label: 'สติกเกอร์ LINE', title: 'สติกเกอร์กบน้อย 6 อารมณ์', use: 'ส่งแชต LINE ใช้ได้ทันที', creatorId: 'fasai', price: 0, image: img('g_frogs.jpg', 1024, 1024), instant: true },
   { id: 'p07', kind: 'template', type: 'tpl', title: 'เทมเพลตโพสต์ร้านกาแฟ 30 แบบ', use: 'โพสต์โปรโมชันรายวัน', creatorId: 'mint', price: 199, ratio: '4/5', image: img('cafe.jpg', 900, 675), files: ['CANVA', 'PSD'], tryable: true, instant: true },
-  { id: 'p08', kind: 'course', type: 'course', title: 'สร้างภาพสินค้าด้วย AI ใน 1 วัน', use: 'ทำภาพขายของเองไม่ต้องจ้าง', creatorId: 'nova', price: 590, image: img('g_cyber.jpg', 1280, 720), video: true, meta: '12 ตอน · 3 ชม.', freeFirst: 'บทแรกฟรี', tryable: true },
+  { id: 'p08', kind: 'course', type: 'course', title: 'สร้างภาพสินค้าด้วย AI ใน 1 วัน', use: 'ทำภาพขายของเองไม่ต้องจ้าง', creatorId: 'nova', price: 590, image: img('g_cyber.jpg', 1280, 720), video: true, meta: '6 ตอน · 1.5 ชม.', freeFirst: 'บทแรกฟรี', tryable: true },
   { id: 'p09', kind: 'image', type: 'img', title: 'ตุ๊กตุ๊กดินปั้น 3D ชุด 8 มุม', use: 'ภาพโฆษณา ของที่ระลึก', creatorId: 'toy', price: 290, image: img('g_tuktuk.jpg', 864, 1152), hasPrompt: true, instant: true },
   { id: 'p10', kind: 'tool', type: 'tool', label: 'เครื่องมือร้านค้า', title: 'เขียนคำบรรยายสินค้าด้วย AI', use: 'ใส่รูปสินค้า ได้แคปชันขาย 5 แบบ', creatorId: 'ton', price: 149, priceSuffix: '/เดือน', ratio: '1/1', gradient: 'linear-gradient(160deg,#14B8A6,#0E7490)', icon: 'pen', platforms: ['Shopee', 'Lazada', 'TikTok'], rating: 4.8, tryable: true, instant: true },
   { id: 'p11', kind: 'course', type: 'course', label: 'อีบุ๊ก', title: 'อีบุ๊กพรอมต์ขายของ 30 แบบ', use: 'ก๊อปไปใช้กับ ChatGPT ได้ทันที', creatorId: 'ton', price: 0, image: img('g_poster.jpg', 864, 1152), meta: '24 หน้า', hasPrompt: true, instant: true },
@@ -96,11 +96,11 @@ export const NEW_CATEGORY_WORKS = SEARCH_EXTRA.filter((p) => ['media', 'skill', 
 export const ALL_PRODUCTS: Product[] = [...PRODUCTS, ...SEARCH_EXTRA]
 
 export const STORIES: Story[] = [
-  { creatorId: 'mint', slides: [{ productId: 'p07', postedAgo: '1 ชม.' }, { productId: 'p16', postedAgo: '3 ชม.' }] },
-  { creatorId: 'nova', slides: [{ productId: 'p20', postedAgo: '2 ชม.' }, { productId: 'p15', postedAgo: '5 ชม.' }, { productId: 'p08', postedAgo: '8 ชม.' }] },
-  { creatorId: 'fasai', slides: [{ productId: 'p01', postedAgo: '30 นาที' }, { productId: 'p06', postedAgo: '4 ชม.' }] },
-  { creatorId: 'kenji', slides: [{ productId: 'p12', postedAgo: '6 ชม.' }, { productId: 'p05', postedAgo: '9 ชม.' }] },
-  { creatorId: 'pim', slides: [{ productId: 'p02', postedAgo: '1 วัน' }] },
+  { creatorId: 'mint', slides: [{ productId: 'p07', postedAgo: '1 ชม.ที่แล้ว' }, { productId: 'p16', postedAgo: '3 ชม.ที่แล้ว' }] },
+  { creatorId: 'nova', slides: [{ productId: 'p20', postedAgo: '2 ชม.ที่แล้ว' }, { productId: 'p15', postedAgo: '5 ชม.ที่แล้ว' }, { productId: 'p08', postedAgo: '8 ชม.ที่แล้ว' }] },
+  { creatorId: 'fasai', slides: [{ productId: 'p01', postedAgo: '30 นาทีที่แล้ว' }, { productId: 'p06', postedAgo: '4 ชม.ที่แล้ว' }] },
+  { creatorId: 'kenji', slides: [{ productId: 'p12', postedAgo: '6 ชม.ที่แล้ว' }, { productId: 'p05', postedAgo: '9 ชม.ที่แล้ว' }] },
+  { creatorId: 'pim', slides: [{ productId: 'p02', postedAgo: 'เมื่อวาน' }] },
 ]
 
 /** Quick filters (row 1). `match` decides which products pass. */

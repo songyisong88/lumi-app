@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Empty, Img, SampleNote, Sheet, Toggle, TopBar } from '../../components/ui'
-import { LIC_PRESETS, LIC_ROWS, SPECS, arr, checkListing, completion, filesOf, on, str, visible } from '../../data/listingSpec'
+import { LIC_PRESETS, LIC_ROWS, MAX_FILES, SPECS, uploadRule, arr, checkListing, completion, filesOf, on, str, visible } from '../../data/listingSpec'
 import type { Field, ListingDraft, SellType, Spec, SpecValue, Step, UploadedFile } from '../../data/listingSpec'
-import { baht } from '../../data/sampleData'
+import { baht, ME } from '../../data/sampleData'
+import { creatorStats } from '../../data/productExtras'
 import { draftToProduct, sell } from '../../services/api'
 import { getDb, uid, useDb } from '../../services/db'
 import { toast } from '../../services/toast'
@@ -37,6 +38,18 @@ export function Sell() {
     return t && SPECS[t] ? { ...b, type: t, spec: { ...SPECS[t].defaults }, options: PRICE_OPTS[t].map((x) => ({ ...x })), step: 1 } : b
   })
   const [saved, setSaved] = useState<'idle' | 'saving' | 'saved'>('idle')
+  // same /sell screen re-targeted (deep link, “ทำต่อ” on another draft, back/forward): load what the URL asks for
+  useEffect(() => {
+    const dId = sp.get('draft'); const ty = sp.get('type') as SellType | null
+    if (dId && dId !== d.id) {
+      const ex = getDb().drafts.find((x) => x.id === dId)
+      if (ex) { published.current = false; setDone(undefined); setD(ex) }
+    } else if (!dId && ty && SPECS[ty] && ty !== d.type) {
+      published.current = false; setDone(undefined)
+      setD({ ...blank(), type: ty, spec: { ...SPECS[ty].defaults }, options: PRICE_OPTS[ty].map((x) => ({ ...x })), step: 1 })
+    }
+  }, [sp]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const [share, setShare] = useState(true)
   const [notify, setNotify] = useState(true)
   const [done, setDone] = useState<string>()
@@ -50,9 +63,14 @@ export function Sell() {
   const missing = checks.filter((c) => !c.ok)
   const t = d.type ? SPECS[d.type] : undefined
 
-  // autosave (debounced) — only once a type is chosen
+  // autosave (debounced) — only once the seller has actually entered something, so just
+  // opening /sell or tapping a type never leaves empty drafts behind
   useEffect(() => {
     if (!d.type || published.current) return
+    const exists = getDb().drafts.some((x) => x.id === d.id)
+    const touched = !!(d.title.trim() || d.use.trim() || d.desc.trim() || d.tags.length || d.covers.length || d.step >= 2
+      || JSON.stringify(d.spec) !== JSON.stringify(SPECS[d.type].defaults))
+    if (!exists && !touched) { setSaved('idle'); return }
     setSaved('saving')
     const h = setTimeout(() => { if (published.current) return; sell.saveDraft(d).then(() => setSaved('saved')); if (!draftId) setSp({ draft: d.id }, { replace: true }) }, 600)
     return () => clearTimeout(h)
@@ -82,7 +100,14 @@ export function Sell() {
     } catch { published.current = false; setCheckOpen(true) } finally { setBusy(false) }
   }
 
-  if (done) return <Success id={done} d={d} share={share} notify={notify} />
+  const startNext = () => {
+    published.current = false
+    setDone(undefined); setSaved('idle'); setShare(true); setNotify(true); setDir(1)
+    setD(blank())
+    setSp({}, { replace: true })
+    requestAnimationFrame(() => (document.querySelector('.layer[data-active="1"] .lsc') as HTMLElement | null)?.scrollTo({ top: 0 }))
+  }
+  if (done) return <Success id={done} d={d} share={share} notify={notify} onNext={startNext} />
 
   const stepMissing = (n: number) => checks.filter((c) => !c.ok && c.step === n).length
   const close = () => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/profile?mode=creator'))
@@ -106,7 +131,7 @@ export function Sell() {
         {d.step === 1 && t && <>
           <H t={d.type === 'hire' ? 'ผลงานตัวอย่างและสิ่งที่ส่ง' : 'อัปโหลดผลงาน'} s="รูปหน้าปก ไฟล์ที่ผู้ซื้อได้รับ และข้อมูลไฟล์" />
           <Covers d={d} patch={patch} />
-          <Fields fs={t.fields} step="files" spec={d.spec} set={setSpec} />
+          <Fields fs={t.fields} step="files" spec={d.spec} set={setSpec} type={d.type} />
         </>}
         {d.step === 2 && t && <>
           <H t="บอกผู้ซื้อให้ชัด" s="ชื่อ ประโยคบอกว่าเหมาะกับใคร และรายละเอียด" />
@@ -133,7 +158,7 @@ export function Sell() {
           <div className={s.prvWrap}><ProductView p={draftToProduct(d)} preview /></div>
           <div className={s.bx}>
             <Row icon="share" c="#6C2BD9" bg="#F3ECFF" t="แชร์ลงชุมชน LUMI" sub="โพสต์พร้อมลิงก์สินค้า" on={share} set={setShare} />
-            <Row icon="megaphone" c="#D6336C" bg="#FDEBF2" t="แจ้งผู้ติดตาม 1.2K คน" sub="ทดลอง · ยังไม่ส่งจริง" on={notify} set={setNotify} />
+            <Row icon="megaphone" c="#D6336C" bg="#FDEBF2" t={`แจ้งผู้ติดตาม ${creatorStats(ME).followersLabel} คน`} sub="ทดลอง · ยังไม่ส่งจริง" on={notify} set={setNotify} />
           </div>
           <SampleNote>ลงขายในโหมดทดลอง ผลงานเก็บในเครื่องนี้ ยังไม่มีผู้ซื้อจริง</SampleNote>
         </>}
@@ -160,7 +185,7 @@ function StepType({ d, pick }: { d: ListingDraft; pick: (k: SellType) => void })
   const other = db.drafts.filter((x) => x.id !== d.id)
   return <>
     {other.length > 0 && (
-      <Link to="/sell/drafts" className={`${s.drb} press`}><Img src={other[0].covers[0] ?? 'g_lotus.jpg'} className={s.drbI} /><span className="grow"><b>ร่างค้างไว้ {other.length} ชิ้น</b><small className="ell">{other[0].title || 'ยังไม่ตั้งชื่อ'} · แก้ล่าสุด{ago(other[0].updatedAt)}</small></span><span className={s.go}>ทำต่อ ›</span></Link>
+      <Link to="/sell/drafts" className={`${s.drb} press`}><Img src={other[0].covers[0] ?? 'g_lotus.jpg'} className={s.drbI} /><span className="grow"><b>ร่างค้างไว้ {other.length} ชิ้น</b><small className="ell">{other[0].title || 'ยังไม่ตั้งชื่อ'} · แก้ล่าสุด {ago(other[0].updatedAt)}</small></span><span className={s.go}>ทำต่อ ›</span></Link>
     )}
     <H t="จะลงขายอะไรดี?" s="เลือกประเภท แล้ว LUMI จะถามเฉพาะสิ่งที่จำเป็น" />
     <div className={s.tyg}>
@@ -181,7 +206,12 @@ function Covers({ d, patch }: { d: ListingDraft; patch: (p: Partial<ListingDraft
   const add = async (fs: FileList | null) => {
     if (!fs) return
     const out: string[] = []
-    for (const f of Array.from(fs).slice(0, 6 - d.covers.length)) if (f.type.startsWith('image/')) out.push(await fileToDataUrl(f, 900))
+    for (const f of Array.from(fs).slice(0, 6 - d.covers.length)) {
+      if (!f.type.startsWith('image/')) { toast(`“${f.name}” ไม่ใช่รูปภาพ · ใช้ JPG PNG หรือ WEBP`); continue }
+      if (f.size > 10e6) { toast(`“${f.name}” ใหญ่เกิน 10 MB`); continue }
+      out.push(await fileToDataUrl(f, 900))
+    }
+    if (fs.length > 6 - d.covers.length) toast('รูปปกได้สูงสุด 6 รูป')
     patch({ covers: [...d.covers, ...out] })
   }
   const samples = SAMPLE_COVERS[d.type ?? 'img'].filter((x) => !d.covers.includes(x))
@@ -246,11 +276,11 @@ function StepPrice({ d, patch, set }: { d: ListingDraft; patch: (p: Partial<List
 
 type SetSpec = (id: string, v: SpecValue | ((old: SpecValue | undefined) => SpecValue)) => void
 
-function Fields({ fs, step, spec, set }: { fs: Field[]; step: Step; spec: Spec; set: SetSpec }) {
-  return <>{fs.filter((f) => f.step === step && visible(f, spec)).map((f) => <FieldView key={f.id} f={f} v={spec[f.id]} spec={spec} set={set} />)}</>
+function Fields({ fs, step, spec, set, type = null }: { fs: Field[]; step: Step; spec: Spec; set: SetSpec; type?: SellType | null }) {
+  return <>{fs.filter((f) => f.step === step && visible(f, spec)).map((f) => <FieldView key={f.id} f={f} v={spec[f.id]} spec={spec} set={set} type={type} />)}</>
 }
 
-function FieldView({ f, v, spec, set }: { f: Field; v: SpecValue | undefined; spec: Spec; set: SetSpec }) {
+function FieldView({ f, v, spec, set, type }: { f: Field; v: SpecValue | undefined; spec: Spec; set: SetSpec; type: SellType | null }) {
   const req = typeof f.required === 'function' ? f.required(spec) : !!f.required
   const label = <label className="flabel">{f.label}{(req || f.mustBeOn) && <span className="req">*</span>}</label>
   if (f.kind === 'toggle') return (
@@ -267,7 +297,8 @@ function FieldView({ f, v, spec, set }: { f: Field; v: SpecValue | undefined; sp
       {f.kind === 'chips' && <div className="chips" style={{ flexWrap: 'wrap' }}>{f.options!.map((x) => <button key={x} className={`chip ${str(v) === x ? 'on' : ''}`} onClick={() => set(f.id, x)}>{x}</button>)}</div>}
       {f.kind === 'multi' && <div className="chips" style={{ flexWrap: 'wrap' }}>{f.options!.map((x) => { const sel = arr(v).includes(x); return <button key={x} className={`chip ${sel ? 'on' : ''}`} onClick={() => set(f.id, (old) => (sel ? arr(old).filter((y) => y !== x) : [...arr(old), x]))}>{sel && '✓ '}{x}</button> })}</div>}
       {f.kind === 'list' && <ListEdit f={f} v={v} set={set} />}
-      {f.kind === 'files' && <FilesEdit f={f} v={v} set={set} />}
+      {f.kind === 'files' && <FilesEdit f={f} v={v} set={set} type={type} />}
+      {f.pattern && str(v) && !f.pattern.test(str(v)) && <span className="hint" style={{ color: '#DC2626' }}>{f.patternNote}</span>}
       {f.hint && f.kind !== 'files' && <span className="hint">{f.hint}</span>}
     </div>
   )
@@ -292,14 +323,21 @@ function ListEdit({ f, v, set }: { f: Field; v: SpecValue | undefined; set: SetS
   )
 }
 
-function FilesEdit({ f, v, set }: { f: Field; v: SpecValue | undefined; set: SetSpec }) {
+function FilesEdit({ f, v, set, type }: { f: Field; v: SpecValue | undefined; set: SetSpec; type: SellType | null }) {
   const ref = useRef<HTMLInputElement>(null)
   const files = filesOf(v)
+  const rule = uploadRule(type)
   const write = (fn: (xs: UploadedFile[]) => UploadedFile[]) => set(f.id, (old) => fn(filesOf(old)).map((x) => JSON.stringify(x)))
   const add = (fl: FileList | null) => {
     if (!fl) return
+    let room = MAX_FILES - files.length
     for (const file of Array.from(fl)) {
       const name = file.name
+      const ext = (name.split('.').pop() ?? '').toLowerCase()
+      if (rule.exts.length && !rule.exts.includes(ext)) { toast(`“${name}” ไม่ใช่ไฟล์ที่รองรับ · ใช้ได้: ${rule.exts.map((x) => '.' + x).join(' ')}`); continue }
+      if (file.size > rule.maxMB * 1e6) { toast(`“${name}” ใหญ่เกิน ${rule.maxMB >= 1024 ? `${rule.maxMB / 1024} GB` : `${rule.maxMB} MB`} ต่อไฟล์`); continue }
+      if (file.size === 0) { toast(`“${name}” เป็นไฟล์ว่าง`); continue }
+      if (room-- <= 0) { toast(`อัปโหลดได้สูงสุด ${MAX_FILES} ไฟล์ · รวมเป็น ZIP ได้`); break }
       write((xs) => [...xs.filter((x) => x.name !== name), { name, size: sizeOf(file.size), scan: 'scan', pct: 0 }])
       let p = 0
       const h = setInterval(() => {
@@ -323,7 +361,8 @@ function FilesEdit({ f, v, set }: { f: Field; v: SpecValue | undefined; set: Set
         </div>
       ))}
       <button className={`${s.drop} press`} onClick={() => ref.current?.click()}><Icon name="upload" size={22} color="var(--p)" /><b>เลือกไฟล์จากเครื่อง</b><small>{f.hint}</small></button>
-      <input ref={ref} type="file" multiple hidden onChange={(e) => { add(e.target.files); e.target.value = '' }} />
+      <input ref={ref} type="file" multiple hidden accept={rule.exts.map((x) => '.' + x).join(',') || undefined} onChange={(e) => { add(e.target.files); e.target.value = '' }} />
+      <span className="hint">รองรับ {rule.exts.map((x) => '.' + x).join(' ')} · ไม่เกิน {rule.maxMB >= 1024 ? `${rule.maxMB / 1024} GB` : `${rule.maxMB} MB`} ต่อไฟล์ · สูงสุด {MAX_FILES} ไฟล์</span>
       <span className="hint"><Icon name="shield" size={12} /> ทดลอง: ไฟล์ไม่ถูกส่งขึ้นเซิร์ฟเวอร์ ระบบจำลองการสแกน (ชื่อไฟล์มีคำว่า virus จะไม่ผ่าน)</span>
     </div>
   )
@@ -351,7 +390,7 @@ function CheckList({ checks, go, compact }: { checks: ReturnType<typeof checkLis
   )
 }
 
-function Success({ id, d, share, notify }: { id: string; d: ListingDraft; share: boolean; notify: boolean }) {
+function Success({ id, d, share, notify, onNext }: { id: string; d: ListingDraft; share: boolean; notify: boolean; onNext: () => void }) {
   const nav = useNavigate()
   const p = draftToProduct(d, id)
   const opts = p.options ?? []
@@ -371,7 +410,7 @@ function Success({ id, d, share, notify }: { id: string; d: ListingDraft; share:
       </div>
       <div className="bottom-bar">
         <button className="btn btn-o" onClick={() => nav(`/product/${id}`, { replace: true })}>ดูหน้าสินค้า</button>
-        <button className="btn btn-p" style={{ flex: 1 }} onClick={() => nav('/sell', { replace: true })}>ลงขายชิ้นต่อไป</button>
+        <button className="btn btn-p" style={{ flex: 1 }} onClick={onNext}>ลงขายชิ้นต่อไป</button>
       </div>
     </div>
   )
@@ -385,7 +424,7 @@ export function Drafts() {
     <div className="page has-bar">
       <TopBar title="ร่างของฉัน" sub="บันทึกอัตโนมัติทุกครั้งที่แก้" />
       <div className="narrow" style={{ padding: '8px 16px' }}>
-        {db.drafts.length === 0 && <Empty icon="edit" title="ยังไม่มีร่าง" text="เริ่มลงขายชิ้นแรก ระบบจะบันทึกให้อัตโนมัติ" />}
+        {db.drafts.length === 0 && <Empty icon="edit" title="ยังไม่มีร่าง" text="เริ่มลงขายชิ้นแรก ระบบจะบันทึกให้อัตโนมัติ" action={<Link to="/sell" className="btn btn-p btn-sm">เริ่มลงขาย</Link>} />}
         {db.drafts.map((x, i) => { const p = completion(x); const t = x.type ? SPECS[x.type] : undefined; return (
           <div key={x.id} className={`${s.dr} rise`} style={{ '--i': i } as React.CSSProperties}>
             <button className={s.drL} onClick={() => nav(`/sell?draft=${x.id}`)}>

@@ -1,7 +1,8 @@
 /** Type-specific blocks of the product page (approved product-b modules). */
 import { useState } from 'react'
 import { Icon } from '../../components/Icon'
-import { Img } from '../../components/ui'
+import { copyText, Img } from '../../components/ui'
+import { toast } from '../../services/toast'
 import { arr, filesOf, on, str, type Spec } from '../../data/listingSpec'
 import { galleryOf } from '../../data/productExtras'
 import { baht } from '../../data/sampleData'
@@ -11,11 +12,10 @@ import s from './Product.module.css'
 const PAL = ['#2B1B4F', '#5B3FA8', '#E9A86B', '#F4D9B0', '#C2416B']
 const Ok = ({ children }: { children: React.ReactNode }) => <div className={s.ok}><span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>{children}</div>
 
-export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onLesson }: {
-  p: Product; L: DetailKind; spec: Spec; opts: ProductOption[]; optId?: string; setOptId: (v: string) => void; onTip: () => void; onTrial: () => void; onLesson: () => void
+export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onLesson, unlocked = false }: {
+  unlocked?: boolean; p: Product; L: DetailKind; spec: Spec; opts: ProductOption[]; optId?: string; setOptId: (v: string) => void; onTip: (amount?: number) => void; onTrial: () => void; onLesson: () => void
 }) {
   const [fontText, setFontText] = useState('')
-  const [tip, setTip] = useState(50)
   const g = galleryOf(p)
   switch (L) {
     case 'img':
@@ -25,8 +25,10 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
           <div className={s.sw}>{PAL.map((c) => <div key={c} style={{ background: c }} />)}</div>
           {on(spec.sellPrompt) && <>
             <div className={s.st}>สูตรพรอมต์</div>
-            <div className={s.blur}><span className={s.lk}><Icon name="lock" size={11} color="#fff" stroke={2.4} />ปลดล็อกหลังซื้อ</span>
-              {str(spec.prompt).slice(0, 48)}<em>{str(spec.prompt).slice(48)}</em></div>
+            {unlocked
+              ? <div className={s.blur}><button className={s.lk} onClick={() => { copyText(str(spec.prompt)); toast('คัดลอกพรอมต์แล้ว') }}><Icon name="copy" size={11} color="#fff" stroke={2.4} />คัดลอก</button>{str(spec.prompt)}</div>
+              : <div className={s.blur}><span className={s.lk}><Icon name="lock" size={11} color="#fff" stroke={2.4} />ปลดล็อกหลังซื้อ</span>
+                {str(spec.prompt).slice(0, 48)}<em aria-hidden>{str(spec.prompt).slice(48).replace(/[^\s]/g, '•')}</em></div>}
           </>}
         </>
       )
@@ -35,8 +37,8 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
         <>
           <div className={s.st}>ตัวอย่างในชุด</div>
           <div className={`hscroll ${s.canva}`}>{[...g, ...g].slice(0, 4).map((x, i) => <Img key={i} src={x} className={s.canvaI} />)}</div>
-          <div className={s.st}>แก้อะไรได้บ้าง</div>
-          {arr(spec.editable).map((t) => <Ok key={t}>{t}</Ok>)}
+          {arr(spec.editable).length > 0 && <><div className={s.st}>{arr(spec.formats).includes('PDF') && arr(spec.formats).length === 1 ? 'ใช้งานยังไง' : 'แก้อะไรได้บ้าง'}</div>
+          {arr(spec.editable).map((t) => <Ok key={t}>{t}</Ok>)}</>}
           {arr(spec.apps).includes('Canva') && <div className={s.scan} style={{ background: '#EAF1FF', color: '#1E40AF' }}><Icon name="link" size={20} color="#2563EB" /><div><b>ได้ลิงก์ Canva ทันทีหลังซื้อ</b>ใช้ Canva ฟรีได้ ไม่ต้องสมัคร Pro</div></div>}
         </>
       )
@@ -57,9 +59,9 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
         <>
           {on(spec.trial) && <>
             <div className={s.st}>ลองก่อน ไม่ต้องจ่าย</div>
-            <button className={`${s.trial} press`} onClick={onTrial}><span className={s.q}><Icon name="qr" size={60} stroke={1.6} /></span><span><b>ทดลองฟรี {str(spec.trialDays)}</b><small>สแกนแล้วลองคุยกับบอทได้เลย</small><span className={s.g}>เปิดลิงก์ทดลอง</span></span></button>
+            <button className={`${s.trial} press`} onClick={onTrial}><span className={s.q}><Icon name="qr" size={60} stroke={1.6} /></span><span><b>ทดลองฟรี {str(spec.trialDays)}</b><small>{/line\.me/.test(str(spec.trialLink)) ? 'สแกนแล้วลองคุยกับบอทได้เลย' : 'เปิดลิงก์แล้วลองใช้ได้เลย'}</small><span className={s.g}>เปิดลิงก์ทดลอง</span></span></button>
           </>}
-          <div className={s.demo}><div className={s.dq}>มีเมนูแนะนำไหมคะ</div><div className={s.da}>วันนี้แนะนำข้าวเหนียวมะม่วง ฿89 สั่งเลยไหมคะ 🥭</div><div className={s.dq}>เอา 2 ที่ค่ะ</div><div className={s.da}>รับออเดอร์แล้วค่ะ ยอดรวม ฿178 ชำระผ่าน QR ได้เลย</div></div>
+          {arr(spec.demo).length > 0 && <div className={s.demo}>{arr(spec.demo).map((x, i) => <div key={i} className={i % 2 ? s.da : s.dq}>{x}</div>)}</div>}
           <div className={s.st}>ทำอะไรได้บ้าง</div>
           {arr(spec.features).map((f) => <Ok key={f}>{f}</Ok>)}
         </>
@@ -68,7 +70,7 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
       const free = parseInt(str(spec.freeLessons)) || 0
       return (
         <>
-          <div className={s.st}>บทเรียน {arr(spec.lessons).length} ตอน</div>
+          <div className={s.st}>{/อีบุ๊ก/.test(p.label ?? '') ? `เนื้อหา ${arr(spec.lessons).length} บท` : `บทเรียน ${arr(spec.lessons).length} ตอน`}</div>
           <div className={s.les}>{arr(spec.lessons).map((l, i) => {
             const [a, b, c] = l.split(' · ')
             const fr = i < free
@@ -112,7 +114,7 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
           <div className={s.st}>ผลงานที่เคยทำ</div>
           <div className={s.port}>{['mascot.jpg', 'g_tuktuk.jpg', 'toys.jpg'].map((x) => <Img key={x} src={x} />)}</div>
           <div className={s.st}>ขั้นตอนการจ้าง</div>
-          <div className={s.stps}>{['ส่งบรีฟ', 'ได้ใบเสนอ', 'ชำระ', 'รับงาน'].map((x, i) => <div key={x}><i>{i + 1}</i><span>{x}</span></div>)}</div>
+          <div className={s.stps}>{['ส่งบรีฟ', 'ได้ใบเสนอราคา', 'ชำระ', 'รับงาน'].map((x, i) => <div key={x}><i>{i + 1}</i><span>{x}</span></div>)}</div>
         </>
       )
     }
@@ -121,7 +123,7 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
         <>
           <div className={s.scan} style={{ marginTop: 14 }}><Icon name="gift" size={24} color="#16A34A" /><div><b>ดาวน์โหลดฟรี ไม่ต้องจ่าย</b>ครีเอเตอร์แจกให้ใช้ · สแกนไวรัสแล้ว</div></div>
           <div className={s.st}>ชอบไหม? ให้ทิปเป็นกำลังใจ</div>
-          <div className={s.tipr}>{[20, 50, 100].map((a) => <button key={a} className={a === tip ? s.tipOn : ''} onClick={() => setTip(a)}>฿{a}</button>)}<button onClick={onTip}>อื่น ๆ</button></div>
+          <div className={s.tipr}>{[20, 50, 100].map((a) => <button key={a} className="press" onClick={() => onTip(a)}>฿{a}</button>)}<button className="press" onClick={() => onTip(0)}>อื่น ๆ</button></div>
           <p className="hint">ไม่บังคับ ทิปส่งถึงครีเอเตอร์เต็มจำนวน</p>
         </>
       )

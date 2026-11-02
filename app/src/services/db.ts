@@ -9,7 +9,7 @@ import type { DB } from '../data/appTypes'
 import { registerProducts } from '../data/sampleData'
 
 const KEY = 'lumi_app_db'
-const VERSION = 3
+const VERSION = 4
 type Listener = () => void
 const listeners = new Set<Listener>()
 

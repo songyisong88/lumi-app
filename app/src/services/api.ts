@@ -9,6 +9,7 @@ import { HIRE_STEPS } from '../data/appTypes'
 import type { ListingDraft } from '../data/listingSpec'
 import { SPECS, checkListing, on, sellTypeOf, specOf } from '../data/listingSpec'
 import { ME, creatorById, productById, unregisterProduct } from '../data/sampleData'
+import { creatorStats } from '../data/productExtras'
 import type { Product } from '../data/types'
 import { getDb, resetDb, uid, update } from './db'
 
@@ -31,6 +32,7 @@ export interface ChatService {
 export interface CommunityService {
   like(postId: string): Promise<void>
   save(postId: string): Promise<void>
+  share(postId: string): Promise<void>
   comment(postId: string, text: string, replyTo?: string): Promise<void>
   likeComment(id: string): Promise<void>
   create(p: Omit<Post, 'id' | 'at' | 'likes' | 'comments' | 'shares' | 'authorId' | 'mine'>): Promise<string>
@@ -113,7 +115,9 @@ class LocalCart implements CartService {
     const key = uid('ci')
     update((d) => {
       // same product + same option replaces (digital goods: qty is always 1)
-      d.cart = d.cart.filter((c) => !(c.productId === item.productId && c.optionId === item.optionId && !item.offerThreadId && item.productId !== 'tip'))
+      // a new direct checkout replaces any abandoned one
+      if (item.direct) d.cart = d.cart.filter((c) => !c.direct)
+      else d.cart = d.cart.filter((c) => c.direct || !(c.productId === item.productId && c.optionId === item.optionId))
       d.cart.push({ ...item, key })
     })
     return key
@@ -171,7 +175,7 @@ class LocalCheckout implements CheckoutService {
         if (typeof sp.canvaLink === 'string') push(d, t.id, { from: 'them', kind: 'file', fileName: sp.canvaLink, size: 'ลิงก์ Canva' })
         d.purchases.unshift({ id: uid('b'), productId: p.id, orderNo: order.no, optionLabel: it.optionLabel, at: now(), title: p.title, image: p.image?.src ?? p.covers?.[0], creatorId: p.creatorId, price: it.price, key, threadId: t.id } satisfies Purchase)
       }
-      notify(d, { kind: 'order', text: `ชำระเงินสำเร็จ (ทดลอง) ออเดอร์ #${order.no} · ไฟล์และคีย์อยู่ในแชตแล้ว`, link: '/profile', image: undefined })
+      notify(d, { kind: 'order', text: `ชำระเงินสำเร็จ (ทดลอง) ออเดอร์ #${order.no} · ไฟล์และคีย์อยู่ในแชตแล้ว`, link: '/profile?tab=bought', image: undefined })
     })
     for (const id of sims) simulateHireProgress(id)
     return order
@@ -188,6 +192,7 @@ function simulateHireProgress(threadId: string) {
   later(12000, () => update((d) => {
     const t = thr(d, threadId)
     t.step = 4; t.status = 'ส่งงานแล้ว รอคุณตรวจ'; t.tone = 'warn'
+    t.quick = ['สวยมากครับ ขอตรวจแป๊บนึง', 'ขอไฟล์ต้นฉบับด้วยนะครับ']
     push(d, threadId, { from: 'them', kind: 'delivery', title: 'ส่งงานแล้ว · รอบที่ 1', image: t.image ?? 'mascot.jpg', round: 1, left: 3, status: 'pending', text: 'ลงสีเสร็จแล้วครับ ลองดูได้เลยครับ 🙏 (ภาพมีลายน้ำจนกว่าจะกดรับงาน)' })
     notify(d, { kind: 'order', text: `${creatorById(t.partnerId).name} ส่งงานแล้ว · ตรวจและกดรับงาน`, link: `/chat/${threadId}`, avatar: creatorById(t.partnerId).avatar })
   }))
@@ -246,6 +251,7 @@ class LocalChat implements ChatService {
       const t = thr(d, threadId)
       t.step = 2; t.status = 'รับข้อเสนอแล้ว · รอชำระเงิน'; t.tone = 'info'; t.amount = m.amount
       t.orderNo ??= orderNo()
+      t.quick = ['ส่งงานได้วันไหนครับ', 'ขอดูภาพร่างก่อนได้ไหมครับ']
       push(d, threadId, { from: 'system', kind: 'system', text: `คุณรับข้อเสนอ ฿${m.amount?.toLocaleString('th-TH')} แล้ว · ชำระเงินเพื่อเริ่มงาน` })
     })
   }
@@ -255,7 +261,7 @@ class LocalChat implements ChatService {
     const m = d.messages[threadId].find((x) => x.id === msgId)!
     const ex = d.cart.find((c) => c.offerMsgId === msgId)
     if (ex) return ex.key
-    return cart.add({ productId: t.productId ?? 'offer', price: m.amount ?? 0, title: `${t.title} (งานจ้าง)`, optionLabel: m.title, image: t.image, creatorId: t.partnerId, offerThreadId: threadId, offerMsgId: msgId })
+    return cart.add({ productId: t.productId ?? 'offer', price: m.amount ?? 0, title: `${t.title} (งานจ้าง)`, optionLabel: m.title, image: t.image, creatorId: t.partnerId, offerThreadId: threadId, offerMsgId: msgId, direct: true })
   }
   async acceptDelivery(threadId: string, msgId: string, stars: number, review: string) {
     update((d) => {
@@ -263,6 +269,7 @@ class LocalChat implements ChatService {
       m.status = 'accepted'
       const t = thr(d, threadId)
       t.step = 5; t.status = 'เสร็จสมบูรณ์'; t.tone = 'done'
+      t.quick = ['ขอบคุณมากครับ', 'ไว้มีงานใหม่จะจ้างอีกนะครับ']
       push(d, threadId, { from: 'system', kind: 'system', text: `คุณรับงานแล้ว · รีวิว ${'★'.repeat(stars)}${review ? ` “${review}”` : ''} · LUMI โอนเงินให้ครีเอเตอร์ (ทดลอง)` })
       push(d, threadId, { from: 'them', kind: 'file', fileName: `${t.title.slice(0, 18)}-final.zip`, size: '24 MB' })
       d.purchases.unshift({ id: uid('b'), productId: t.productId ?? 'offer', orderNo: t.orderNo ?? '-', optionLabel: 'งานจ้าง', at: now(), title: t.title, image: t.image, creatorId: t.partnerId, price: t.amount ?? 0, threadId })
@@ -274,9 +281,22 @@ class LocalChat implements ChatService {
       const m = d.messages[threadId].find((x) => x.id === msgId)!
       m.status = 'revise'
       const t = thr(d, threadId); t.step = 3; t.status = 'ขอแก้ไขแล้ว · กำลังแก้'; t.tone = 'info'
+      t.quick = ['ส่งรอบใหม่ได้วันไหนครับ', 'ขอบคุณครับ']
       push(d, threadId, { from: 'me', kind: 'text', text: `ขอแก้ไข: ${note}` })
     })
-    simulateReply(threadId, 'รับทราบครับ จะส่งรอบใหม่ให้ภายในพรุ่งนี้ครับ')
+    simulateReply(threadId, 'รับทราบครับ กำลังแก้ให้เลยครับ')
+    // sample: the creator sends the revised round a little later
+    later(9000, () => update((d) => {
+      const prev = d.messages[threadId]?.find((x) => x.id === msgId)
+      const t = thr(d, threadId)
+      if (!prev || (t.step ?? 0) >= 5) return
+      const round = (prev.round ?? 1) + 1
+      const left = Math.max(0, (prev.left ?? 1) - 1)
+      t.step = 4; t.status = `ส่งงานแล้ว (รอบที่ ${round}) รอคุณตรวจ`; t.tone = 'warn'
+      t.quick = ['สวยมากครับ ขอตรวจแป๊บนึง', 'ขอไฟล์ต้นฉบับด้วยนะครับ']
+      push(d, threadId, { from: 'them', kind: 'delivery', title: `ส่งงานแล้ว · รอบที่ ${round}`, image: prev.image ?? t.image ?? 'mascot.jpg', round, left, status: 'pending', text: `แก้ตามที่ขอแล้วครับ (${note.slice(0, 40)}) ลองดูอีกครั้งนะครับ 🙏` })
+      notify(d, { kind: 'order', text: `${creatorById(t.partnerId).name} ส่งงานรอบที่ ${round} แล้ว · ตรวจและกดรับงาน`, link: `/chat/${threadId}`, avatar: creatorById(t.partnerId).avatar })
+    }))
   }
   async deliverToCustomer(threadId: string) {
     update((d) => {
@@ -303,6 +323,7 @@ class LocalCommunity implements CommunityService {
       p.likes += was ? -1 : 1
     })
   }
+  async share(id: string) { update((d) => { const x = d.posts.find((y) => y.id === id); if (x) x.shares += 1 }) }
   async save(id: string) { update((d) => { d.saved = d.saved.includes(id) ? d.saved.filter((x) => x !== id) : [id, ...d.saved] }) }
   async comment(postId: string, text: string, replyTo?: string) {
     update((d) => {
@@ -397,7 +418,7 @@ class LocalSell implements SellService {
       d.published = [p, ...d.published.filter((x) => x.id !== p.id)]
       d.drafts = d.drafts.filter((x) => x.id !== dr.id)
       if (share) d.posts.unshift({ id: uid('u'), authorId: ME, at: now(), tag: p.price === 0 ? 'แจกฟรี' : 'โชว์ผลงาน', text: `ลงผลงานใหม่ “${p.title}” 🎉 ${p.use}`, images: dr.covers.slice(0, 3), productIds: [p.id], likes: 0, comments: 0, shares: 0, mine: true })
-      notify(d, { kind: 'system', text: `ลงขาย “${p.title}” แล้ว${notifyFollowers ? ' · แจ้งผู้ติดตาม 1.2K คน (ทดลอง)' : ''}`, link: `/product/${p.id}`, image: dr.covers[0] })
+      notify(d, { kind: 'system', text: `ลงขาย “${p.title}” แล้ว${notifyFollowers ? ` · แจ้งผู้ติดตาม ${creatorStats(ME).followersLabel} คน (ทดลอง)` : ''}`, link: `/product/${p.id}`, image: dr.covers[0] })
     })
     return p.id
   }

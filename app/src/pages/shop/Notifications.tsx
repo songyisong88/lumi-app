@@ -28,7 +28,7 @@ export function Notifications() {
         <div className="chips hscroll" style={{ padding: '10px 16px 4px' }}>
           {([['all', 'ทั้งหมด'], ['order', 'ออเดอร์และแชต'], ['social', 'ชุมชน']] as const).map(([v, l]) => <button key={v} className={`chip ${f === v ? 'on' : ''}`} onClick={() => setF(v)}>{l}</button>)}
         </div>
-        {list.length === 0 ? <Empty icon="bell" title="ยังไม่มีแจ้งเตือน" /> : list.map((n, i) => {
+        {list.length === 0 ? <Empty icon="bell" title="ยังไม่มีแจ้งเตือน" text="ออเดอร์ ข้อความ และกิจกรรมจะแจ้งที่นี่" action={<button className="btn btn-o btn-sm" onClick={() => nav('/')}>ไปดูผลงาน</button>} /> : list.map((n, i) => {
           const d = dayLabel(n.at)
           const head = d !== last ? (last = d) : ''
           const [ic, c, bg] = KIND[n.kind]

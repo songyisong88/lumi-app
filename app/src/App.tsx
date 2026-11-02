@@ -53,7 +53,6 @@ export default function App() {
         )} />
         <BottomNav />
         <Toaster />
-        <div className="sample-badge">ข้อมูลตัวอย่าง</div>
       </HashRouter>
     </FavoritesProvider>
   )

@@ -51,25 +51,26 @@ function Lines({ items, removable }: { items: CartItem[]; removable?: boolean })
 export function Cart() {
   const db = useDb()
   const nav = useNavigate()
-  const total = db.cart.reduce((a, c) => a + c.price, 0)
+  const lines = db.cart.filter((c) => !c.direct)
+  const total = lines.reduce((a, c) => a + c.price, 0)
   return (
     <div className="has-bar">
-      <TopBar title="ตะกร้า" sub={db.cart.length ? `${db.cart.length} ชิ้น` : undefined} />
+      <TopBar title="ตะกร้า" sub={lines.length ? `${lines.length} ชิ้น` : undefined} />
       <div className="narrow">
-        {db.cart.length === 0 ? (
+        {lines.length === 0 ? (
           <Empty icon="cart" title="ตะกร้ายังว่าง" text="ผลงานที่กดใส่ตะกร้าจะอยู่ตรงนี้ ชำระทีเดียวได้หลายร้าน" action={<Link to="/" className="btn btn-p btn-sm" style={{ marginTop: 8 }}>เลือกดูผลงาน</Link>} />
         ) : (
           <>
             <div style={{ padding: '10px 16px 0' }}><SampleNote>โหมดทดลอง · ยังไม่มีการตัดเงินจริง</SampleNote></div>
-            <Lines items={db.cart} removable />
+            <Lines items={lines} removable />
             <div className={s.demo}><Icon name="tag" size={18} color="#B45309" /><div><b>มีโค้ดส่วนลด?</b>ใส่ได้ในขั้นตอนชำระเงิน เช่น LUMI10</div></div>
           </>
         )}
       </div>
-      {db.cart.length > 0 && (
+      {lines.length > 0 && (
         <div className="bottom-bar">
-          <div className={s.tot}><small>รวม {db.cart.length} ชิ้น</small><b>{baht(total)}</b></div>
-          <button className="btn btn-p" onClick={() => nav(`/checkout?keys=${db.cart.map((c) => c.key).join(',')}`)}>ชำระเงิน</button>
+          <div className={s.tot}><small>รวม {lines.length} ชิ้น</small><b>{baht(total)}</b></div>
+          <button className="btn btn-p" onClick={() => nav(`/checkout?keys=${lines.map((c) => c.key).join(',')}`)}>ชำระเงิน</button>
         </div>
       )}
     </div>

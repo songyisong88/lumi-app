@@ -12,6 +12,7 @@ import { useDb } from '../../services/db'
 import { toast } from '../../services/toast'
 import { PostCard } from './PostCard'
 import { Countdown, LEADERS } from './More'
+import { MY_RANK } from '../../data/searchData'
 import s from './Community.module.css'
 
 type Tab = 'foryou' | 'following' | 'learn' | 'rooms'
@@ -21,6 +22,7 @@ const fmtK = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n)
 export function Community() {
   const db = useDb()
   const nav = useNavigate()
+  const [remind, setRemind] = useState(() => !!localStorage.getItem('lumi_remind_live'))
   const [sp, setSp] = useSearchParams()
   const tab = (sp.get('tab') as Tab) || 'foryou'
   const setTab = (t: Tab) => setSp(t === 'foryou' ? {} : { tab: t }, { replace: true })
@@ -42,7 +44,7 @@ export function Community() {
         {tab === 'foryou' && <>
           <div className="chips hscroll" style={{ padding: '12px 16px 2px' }}>{TAGS.map((t) => <button key={t} className={`chip ${tag === t ? 'on' : ''}`} onClick={() => setTag(t)}>{t === 'all' ? 'ทั้งหมด' : t}</button>)}</div>
           {composer}
-          {posts.length === 0 && <Empty icon="comment" title="ยังไม่มีโพสต์ในหมวดนี้" />}
+          {posts.length === 0 && <Empty icon="comment" title="ยังไม่มีโพสต์ในหมวดนี้" action={<Link to="/community/new" className="btn btn-p btn-sm">เขียนโพสต์</Link>} />}
           {posts.map((p, i) => (
             <div key={p.id}>
               <PostCard p={p} i={i} />
@@ -56,7 +58,7 @@ export function Community() {
           <div className={`hscroll ${s.fw}`}>{db.follows.map((id) => <Link key={id} to={`/creator/${id}`}><Av src={creatorById(id).avatar} size={54} ring /><span className="ell">{creatorById(id).name}</span></Link>)}</div>
           {(() => {
             const list = db.posts.filter((p) => db.follows.includes(p.authorId) || p.authorId === ME)
-            return list.length ? list.map((p, i) => <PostCard key={p.id} p={p} i={i} />) : <Empty icon="users" title="ยังไม่ได้ติดตามใคร" text="กดติดตามครีเอเตอร์ที่ชอบ โพสต์ของเขาจะขึ้นที่นี่" />
+            return list.length ? list.map((p, i) => <PostCard key={p.id} p={p} i={i} />) : <Empty icon="users" title="ยังไม่ได้ติดตามใคร" text="กด “+ ติดตาม” ครีเอเตอร์ที่ชอบ โพสต์ของเขาจะขึ้นที่นี่" action={<button className="btn btn-o btn-sm" onClick={() => setTab('foryou')}>ดูโพสต์สำหรับคุณ</button>} />
           })()}
         </>}
         {tab === 'learn' && <>
@@ -64,7 +66,7 @@ export function Community() {
             <span className={s.liveTag}><i />สอนฟรีวันนี้ · 20:00 น.</span>
             <b>เริ่มขายผลงานบน LUMI ใน 30 นาที</b>
             <small>โดย มิ้นท์ สตูดิโอ · ลงทะเบียนแล้ว 312 คน</small>
-            <button className="btn btn-sm" style={{ background: '#fff', color: 'var(--p)', alignSelf: 'flex-start', marginTop: 8 }} onClick={() => toast('บันทึกเตือนความจำในเครื่องแล้ว (ตัวอย่าง)')}>เตือนฉัน</button>
+            <button className="btn btn-sm" style={{ background: '#fff', color: 'var(--p)', alignSelf: 'flex-start', marginTop: 8 }} onClick={() => { const v = !remind; setRemind(v); localStorage.setItem('lumi_remind_live', v ? '1' : ''); toast(v ? 'ตั้งเตือนแล้ว จะแจ้งก่อนเริ่ม 15 นาที' : 'ยกเลิกการเตือนแล้ว') }}>{remind ? 'ตั้งเตือนแล้ว ✓' : 'เตือนฉัน'}</button>
           </div>
           {composer}
           {db.posts.filter((p) => p.tag === 'ความรู้' || p.tag === 'เบื้องหลัง' || p.tag === 'ถาม-ตอบ').map((p, i) => <PostCard key={p.id} p={p} i={i} />)}
@@ -114,7 +116,7 @@ function LeaderCard() {
       <div className={s.leadH}><b>ดาวเด่นชุมชนสัปดาห์นี้</b><span>ดูอันดับ ›</span></div>
       <small className="muted">ได้แต้มจากการโพสต์ ช่วยตอบ และแชร์ความรู้</small>
       <div className={s.pod}>{[1, 0, 2].map((k) => { const l = LEADERS[k]; return <div key={l.id} className={k === 0 ? s.p1 : ''}><span>{['🥇', '🥈', '🥉'][k]}</span><Av src={creatorById(l.id).avatar} size={k === 0 ? 52 : 42} /><b className="ell">{creatorById(l.id).name}</b><small>{l.pts.toLocaleString('th-TH')} แต้ม</small></div> })}</div>
-      <div className={s.myRank}>คุณอันดับ 14 · อีก 120 แต้ม ติดท็อป 10</div>
+      <div className={s.myRank}>คุณอันดับ {MY_RANK.rank} · อีก {MY_RANK.toTop10} แต้ม ติดท็อป 10</div>
     </Link>
   )
 }

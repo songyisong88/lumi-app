@@ -74,10 +74,10 @@
 .wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.8);font-weight:700;font-size:13px;text-shadow:0 1px 4px rgba(0,0,0,.4);transform:rotate(-18deg);pointer-events:none}
 .key code{font-family:ui-monospace,monospace;font-size:14px;background:#F6F1FF;color:#4C1D95;border-radius:9px;padding:8px 10px;letter-spacing:.5px;overflow-wrap:anywhere}
 .key :global(.btn){align-self:flex-start}
-.file{flex-direction:row;align-items:center;gap:10px}
+.file{flex-direction:row;align-items:center;gap:10px;min-width:240px}
 .file .grow{flex:1;min-width:0;display:flex;flex-direction:column}
 .file b{font-size:13.5px}
-.file small{font-size:11.5px;color:var(--mut)}
+.file small{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dl{width:36px;height:36px;border-radius:10px;background:var(--soft);display:flex;align-items:center;justify-content:center;flex:none}
 .asi{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex:none}
 .pc{flex-direction:row;padding:8px;gap:10px;align-items:center}

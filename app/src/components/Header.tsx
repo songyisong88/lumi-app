@@ -31,7 +31,7 @@ export function useBadges() {
   return {
     chat: db.threads.reduce((a, t) => a + (t.muted ? 0 : t.unread), 0),
     notif: db.notifs.filter((n) => !n.read).length,
-    cart: db.cart.length,
+    cart: db.cart.filter((c) => !c.direct).length,
   }
 }
 
@@ -97,6 +97,7 @@ export function BottomNav() {
   const show = TABBED.includes(pathname)
   return (
     <>
+      {show && <div className="sample-badge" aria-hidden>ข้อมูลตัวอย่าง</div>}
       <nav className={`${s.tabbar} ${show ? '' : s.hide}`} aria-label="เมนูหลัก" aria-hidden={!show}>
         {NAV.map((n) => 'mid' in n ? (
           <button key={n.to} className={s.tab} onClick={() => setCreate(true)} aria-label="สร้าง: ลงขายหรือโพสต์" tabIndex={show ? 0 : -1}>

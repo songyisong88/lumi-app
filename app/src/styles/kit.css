@@ -58,7 +58,7 @@
 .field{display:block;margin-bottom:16px}
 .field>label,.flabel{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;margin-bottom:7px;color:var(--ink)}
 .req{color:#E11D48;font-weight:700}
-.hint{font-size:12px;color:var(--mut);margin-top:5px;line-height:1.4}
+.hint{display:block;font-size:12px;color:var(--mut);margin-top:5px;line-height:1.4}
 .inp,.ta,.sel{width:100%;border:1.5px solid var(--line);border-radius:12px;background:#fff;font:inherit;font-size:15px;color:var(--ink);padding:0 13px;height:46px;outline:none;transition:border-color .2s,box-shadow .2s}
 .ta{padding:11px 13px;height:auto;min-height:92px;resize:vertical;line-height:1.5}
 .inp:focus,.ta:focus{border-color:#A779F5;box-shadow:0 0 0 3px rgba(123,47,242,.12)}

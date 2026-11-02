@@ -14,6 +14,8 @@ export interface CartItem {
   creatorId?: string
   offerThreadId?: string
   offerMsgId?: string
+  /** Buy-now / tip / accepted offer: goes straight to checkout, never shown in the cart. */
+  direct?: boolean
 }
 
 export interface Order { id: string; no: string; items: CartItem[]; total: number; discount: number; at: number; method: string }

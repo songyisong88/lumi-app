@@ -34,11 +34,11 @@ const has = (p: Product, ...words: string[]) => words.some((w) => (p.label ?? ''
 export const CATEGORIES: Record<CatKey, Category> = {
   img: { key: 'img', name: 'ภาพและกราฟิก', desc: 'ภาพ AI พร้อมพรอมต์', sub: 'ภาพ AI · พรอมต์ · 3D', image: 'g_lotus.jpg', count: '12,400', accent: '#7C3AED', span: 3, match: (p) => p.type === 'img' && !has(p, 'สติกเกอร์') },
   sticker: { key: 'sticker', name: 'สติกเกอร์ LINE', desc: 'ส่งแชต LINE ได้ทันที', sub: 'ส่งแชตได้ทันที', image: 'shiba.jpg', count: '3,180', accent: '#F59E0B', match: (p) => has(p, 'สติกเกอร์') },
-  tpl: { key: 'tpl', name: 'เทมเพลต', desc: 'แก้ข้อความแล้วใช้ได้เลย', sub: 'Canva · Sheets · เว็บ', image: 'c_template.jpg', count: '5,240', accent: '#2563EB', match: (p) => p.type === 'tpl' && !has(p, 'ฟอนต์') },
-  creator: { key: 'creator', name: 'ฟอนต์ พรีเซ็ต ไอคอน', desc: 'ฟอนต์ไทย พรีเซ็ตแต่งภาพ', sub: 'เครื่องมือครีเอเตอร์', image: 'c_creator.jpg', count: '2,060', accent: '#DB2777', match: (p) => has(p, 'ฟอนต์', 'พรีเซ็ต', 'ไอคอน') },
-  sw: { key: 'sw', name: 'ซอฟต์แวร์และโปรแกรม', desc: 'โปรแกรมบนคอมและเว็บ', sub: 'Windows · Mac · เว็บแอป', image: 'c_software.jpg', count: '1,320', accent: '#6D28D9', span: 2, match: (p) => has(p, 'โปรแกรม') },
-  app: { key: 'app', name: 'แอปมือถือ', desc: 'แอปมือถือและซอร์สโค้ด', sub: 'iOS · Android', image: 'c_app.jpg', count: '740', accent: '#C026D3', match: (p) => has(p, 'แอป') },
-  game: { key: 'game', name: 'เกม', desc: 'เกมพร้อมเล่น ซอร์สเกม', sub: 'เกมมือถือ · PC · ซอร์สเกม', image: 'c_game.jpg', count: '520', accent: '#4F46E5', match: (p) => has(p, 'เกม') },
+  tpl: { key: 'tpl', name: 'เทมเพลต', desc: 'แก้ข้อความแล้วใช้ได้เลย', sub: 'Canva · Sheets · เว็บ', image: 'c_template.jpg', count: '5,240', accent: '#2563EB', match: (p) => p.type === 'tpl' && p.st !== 'font' && !has(p, 'ฟอนต์', 'สติกเกอร์', 'ไอคอน', 'พรีเซ็ต', 'แปรง') },
+  creator: { key: 'creator', name: 'ฟอนต์ พรีเซ็ต ไอคอน', desc: 'ฟอนต์ไทย พรีเซ็ตแต่งภาพ', sub: 'เครื่องมือครีเอเตอร์', image: 'c_creator.jpg', count: '2,060', accent: '#DB2777', match: (p) => has(p, 'ฟอนต์', 'พรีเซ็ต', 'ไอคอน', 'แปรง') },
+  sw: { key: 'sw', name: 'ซอฟต์แวร์และโปรแกรม', desc: 'โปรแกรมบนคอมและเว็บ', sub: 'Windows · Mac · เว็บแอป', image: 'c_software.jpg', count: '1,320', accent: '#6D28D9', span: 2, match: (p) => has(p, 'โปรแกรม', 'เว็บแอป') },
+  app: { key: 'app', name: 'แอปมือถือ', desc: 'แอปมือถือและซอร์สโค้ด', sub: 'iOS · Android', image: 'c_app.jpg', count: '740', accent: '#C026D3', match: (p) => has(p, 'แอป') && !has(p, 'เว็บแอป') },
+  game: { key: 'game', name: 'เกม', desc: 'เกมพร้อมเล่น ซอร์สเกม', sub: 'เกมมือถือ · PC · ซอร์สเกม', image: 'c_game.jpg', count: '520', accent: '#4F46E5', match: (p) => has(p, 'เกม', 'ม็อด') },
   plugin: { key: 'plugin', name: 'ปลั๊กอิน', desc: 'เพิ่มฟีเจอร์ให้เว็บและร้านออนไลน์', sub: 'WordPress · Shopify', image: 'c_plugin.jpg', count: '690', accent: '#0891B2', match: (p) => has(p, 'ปลั๊กอิน') },
   ext: { key: 'ext', name: 'ส่วนขยาย Chrome', desc: 'ตัวช่วยที่ติดตั้งในเบราว์เซอร์', sub: 'ติดตั้งในเบราว์เซอร์', image: 'c_plugin.jpg', count: '380', accent: '#0D9488', flip: true, match: (p) => has(p, 'ส่วนขยาย') },
   bot: { key: 'bot', name: 'บอท LINE OA', desc: 'ตอบแชตลูกค้าให้อัตโนมัติ', sub: 'สแกนลองคุยได้', image: 'c_bot.jpg', count: '310', accent: '#16A34A', match: (p) => p.type === 'bot' },
@@ -47,7 +47,7 @@ export const CATEGORIES: Record<CatKey, Category> = {
   sme: { key: 'sme', name: 'เครื่องมือ SME', desc: 'POS สต็อก บัญชีร้านค้า', sub: 'POS · สต็อก · บัญชี', image: 'c_sme.jpg', count: '610', accent: '#EA580C', span: 3, match: (p) => p.type === 'tool' && /POS|สต็อก|ออเดอร์|ร้าน/.test(p.title + p.use + (p.label ?? '')) },
   course: { key: 'course', name: 'คอร์สและอีบุ๊ก', desc: 'เรียนจากครีเอเตอร์ตัวจริง', sub: 'เรียนจากครีเอเตอร์', image: 'c_course.jpg', count: '410', accent: '#E0620B', match: (p) => p.type === 'course' },
   svc: { key: 'svc', name: 'จ้างครีเอเตอร์', desc: 'จ้างทำโลโก้ มาสคอต เว็บ', sub: 'มาสคอต โลโก้ เว็บ', image: 'mascot.jpg', count: '640', accent: '#DB2777', match: (p) => p.type === 'svc' },
-  media: { key: 'media', name: 'วิดีโอ เสียง และเพลง', desc: 'คลิป เสียง เพลง พร้อมสิทธิ์ใช้', isNew: true, sub: 'วิดีโอ AI · เสียงพากย์ · เพลง · เทมเพลตตัดต่อ', image: 'c_media.jpg', count: '1,140', accent: '#9333EA', span: 3, match: (p) => p.type === 'media' },
+  media: { key: 'media', name: 'วิดีโอ เสียง เพลง', desc: 'คลิป เสียง เพลง พร้อมสิทธิ์ใช้', isNew: true, sub: 'วิดีโอ AI · เสียงพากย์ · เพลง · เทมเพลตตัดต่อ', image: 'c_media.jpg', count: '1,140', accent: '#9333EA', span: 3, match: (p) => p.type === 'media' },
   skill: { key: 'skill', name: 'Agent Skills', desc: 'ชุดทักษะเสริมให้ผู้ช่วย AI', isNew: true, sub: 'สกิลและชุดความรู้ให้ AI agent', image: 'c_skill.jpg', count: '260', accent: '#0F766E', match: (p) => p.type === 'skill' },
   data: { key: 'data', name: 'ชุดข้อมูล', desc: 'ข้อมูลพร้อมใช้ ได้รับอนุญาตถูกต้อง', isNew: true, sub: 'CSV · JSON · พร้อมใช้งาน', image: 'c_data.jpg', count: '330', accent: '#1D4ED8', span: 2, match: (p) => p.type === 'data' },
   free: { key: 'free', name: 'ของฟรี', desc: 'ของฟรีทุกประเภท โหลดได้เลย', sub: 'ทุกประเภท โหลดได้เลย', image: 'g_frogs.jpg', count: '1,920', accent: '#16A34A', match: (p) => p.price === 0 },
@@ -101,7 +101,7 @@ export function searchWorks(q: string, cat: CatKey | 'new' | null): Product[] {
 }
 
 export const TRENDS = [
-  { image: 'g_anime.jpg', title: 'ลอยกระทง 2026', sub: 'ภาพ โพสต์ สติกเกอร์ริมกระทง', count: '1,240', rise: '+182%', q: 'ลอยกระทง', dots: ['#7C3AED', '#F59E0B', '#2563EB'] },
+  { image: 'g_anime.jpg', title: 'ลอยกระทง 2569', sub: 'ภาพ โพสต์ สติกเกอร์ริมกระทง', count: '1,240', rise: '+182%', q: 'ลอยกระทง', dots: ['#7C3AED', '#F59E0B', '#2563EB'] },
   { image: 't_xmas.jpg', title: 'คริสต์มาส & ปีใหม่', sub: 'การ์ด ปกเพจ แพ็กสติกเกอร์', count: '860', rise: '+96%', q: 'ปีใหม่', dots: ['#7C3AED', '#F59E0B', '#DB2777'] },
   { image: 't_y2k.jpg', title: 'สไตล์ Y2K', sub: 'โครเมียม ผีเสื้อ ฟองโฮโลแกรม', count: '540', rise: '+71%', q: 'y2k', dots: ['#7C3AED', '#DB2777'] },
   { image: 't_color.jpg', title: 'โทนสีแห่งปี พีชมอคค่า', sub: 'ภาพสินค้า เทมเพลต ฟอนต์', count: '420', rise: '+58%', q: 'พีชมอคค่า', dots: ['#7C3AED', '#2563EB', '#DB2777'] },
@@ -121,13 +121,25 @@ export const NEW_TODAY = [
 ]
 export const NEW_TODAY_COUNT = 128
 
+/** One weekly ranking used everywhere (ค้นหา + ชุมชน › กิจกรรม). The signed-in user (ME) is #14. */
 export const LEADERBOARD = [
-  { creatorId: 'fasai', what: 'สีน้ำ · ภาพ', hearts: '12.4k' },
-  { creatorId: 'pim', what: 'สติกเกอร์', hearts: '10.9k' },
-  { creatorId: 'nova', what: 'ภาพสินค้า', hearts: '9.2k' },
-  { creatorId: 'kenji', what: 'เว็บ · บอท', hearts: '7.8k' },
-  { creatorId: 'toy', what: 'มาสคอต 3D', hearts: '6.5k' },
+  { creatorId: 'nova', what: 'ภาพสินค้า', pts: 2460 },
+  { creatorId: 'ton', what: 'ข้อมูล · ระบบอัตโนมัติ', pts: 1820 },
+  { creatorId: 'mint', what: 'เทมเพลต', pts: 1505 },
+  { creatorId: 'pim', what: 'สติกเกอร์', pts: 1310 },
+  { creatorId: 'kenji', what: 'เว็บ · บอท', pts: 1190 },
+  { creatorId: 'toy', what: 'มาสคอต 3D', pts: 980 },
 ]
+export const MY_RANK = { rank: 14, toTop10: 120 }
+
+/** The weekly challenge ends Monday 00:00 Bangkok time (UTC+7). */
+export function challengeEnd(now = Date.now()) {
+  const bkk = now + 7 * 3600_000
+  const day = new Date(bkk).getUTCDay() // 0 = Sunday
+  const startOfDay = bkk - (bkk % 86_400_000)
+  const daysLeft = ((8 - day) % 7) || 7
+  return startOfDay + daysLeft * 86_400_000 - 7 * 3600_000
+}
 
 export const CHALLENGE = {
   prompt: 'แมวไทยในชุดนักบินอวกาศ',

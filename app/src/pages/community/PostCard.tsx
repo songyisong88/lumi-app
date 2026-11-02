@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { FollowButton } from '../../components/FollowButton'
 import { Link, useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Av, Img, copyText } from '../../components/ui'
 import type { Post } from '../../data/appTypes'
 import { heroOf } from '../../data/productExtras'
 import { ME, baht, creatorById, productById } from '../../data/sampleData'
-import { community, follows } from '../../services/api'
+import { community } from '../../services/api'
 import { useDb } from '../../services/db'
 import { toast } from '../../services/toast'
 import { ago } from '../../utils/time'
@@ -18,6 +19,7 @@ const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace('.0', '
 
 export function sharePost(id: string) {
   copyText(`${location.origin}${location.pathname}#/community/post/${id}`)
+  community.share(id)
   toast('คัดลอกลิงก์โพสต์แล้ว')
 }
 
@@ -27,7 +29,6 @@ export function PostCard({ p, full, i = 0 }: { p: Post; full?: boolean; i?: numb
   const a = creatorById(p.authorId)
   const liked = db.liked.includes(p.id)
   const saved = db.saved.includes(p.id)
-  const following = db.follows.includes(p.authorId)
   const [pop, setPop] = useState(0)
   const [more, setMore] = useState(full || p.text.length < 140)
   const [tc, tb] = TAG_COLOR[p.tag] ?? ['#6C2BD9', '#F3ECFF']
@@ -41,7 +42,7 @@ export function PostCard({ p, full, i = 0 }: { p: Post; full?: boolean; i?: numb
           <Link to={`/creator/${a.id}`}><b>{a.name}</b></Link>
           <small>{ago(p.at)} · <span className={s.tag} style={{ color: tc, background: tb }}>{p.tag}</span></small>
         </div>
-        {p.authorId !== ME && <button className={`btn-follow ${following ? 'on' : ''}`} onClick={() => follows.toggle(p.authorId)}>{following ? 'ติดตามแล้ว' : '+ ติดตาม'}</button>}
+        {p.authorId !== ME && <FollowButton id={p.authorId} />}
       </div>
       <div className={s.tx} onClick={open}>
         {more ? p.text : <>{p.text.slice(0, 130)}… <button className={s.more} onClick={(e) => { e.stopPropagation(); setMore(true) }}>ดูเพิ่มเติม</button></>}
@@ -76,10 +77,10 @@ export function PostCard({ p, full, i = 0 }: { p: Post; full?: boolean; i?: numb
       {best && (
         <div className={s.best}><Av src={creatorById(best.authorId).avatar} size={26} /><div><b>{creatorById(best.authorId).name} <span className="pill pill-g">คำตอบที่ดีที่สุด</span></b><p>{best.text}</p></div></div>
       )}
-      <div className={s.cnt}><span><Icon name="heart" size={13} color="#F0508A" fill="#F0508A" stroke={0} />{fmt(p.likes)}</span><span>{p.comments} ความคิดเห็น · {p.shares} แชร์</span></div>
+      <div className={s.cnt}><span><Icon name="heart" size={13} color="#F0508A" fill="#F0508A" stroke={0} />{fmt(p.likes)}</span><span>{db.comments.filter((x) => x.postId === p.id).length} ความคิดเห็น · {p.shares} แชร์</span></div>
       <div className={s.acts}>
         <button className={liked ? s.on : ''} onClick={() => { community.like(p.id); if (!liked) setPop((x) => x + 1) }}><span key={pop} className={pop && liked ? 'heart-pop' : ''}><Icon name="heart" size={19} color={liked ? '#F0508A' : 'currentColor'} fill={liked ? '#F0508A' : 'none'} /></span>ถูกใจ</button>
-        <button onClick={() => nav(`/community/post/${p.id}${full ? '' : '#c'}`)}><Icon name="comment" size={19} />คอมเมนต์</button>
+        <button onClick={() => { if (full) { const el = document.querySelector<HTMLElement>('.layer[data-active="1"] #cmt-in'); el?.scrollIntoView({ block: 'center', behavior: 'smooth' }); el?.focus({ preventScroll: true }) } else nav(`/community/post/${p.id}#c`) }}><Icon name="comment" size={19} />คอมเมนต์</button>
         <button onClick={() => sharePost(p.id)}><Icon name="share" size={19} />แชร์</button>
         <button className={saved ? s.on : ''} onClick={() => { community.save(p.id); toast(saved ? 'เอาออกจากที่บันทึกแล้ว' : 'บันทึกโพสต์แล้ว') }}><Icon name="bookmark" size={19} fill={saved ? 'currentColor' : 'none'} />บันทึก</button>
       </div>

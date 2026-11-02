@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { FollowButton } from '../components/FollowButton'
 import { Header } from '../components/Header'
 import { Icon } from '../components/Icon'
 import { scrollPageTop } from '../components/Stage'
@@ -9,7 +10,7 @@ import { ProductCard } from '../components/ProductCard'
 import { PRODUCTS, creatorById, imgUrl } from '../data/sampleData'
 import {
   CATEGORIES, CAT_TOTAL, CHALLENGE, GROUPS, HOT_KEYWORDS, LEADERBOARD, NEW_TODAY, NEW_TODAY_COUNT, POPULAR, SHORT, TRENDS,
-  isCatKey, searchWorks, type CatKey,
+  challengeEnd, isCatKey, searchWorks, type CatKey,
 } from '../data/searchData'
 import s from './Search.module.css'
 
@@ -132,12 +133,11 @@ function NewToday({ onAll }: { onAll: () => void }) {
 }
 
 function CreatorsOfWeek({ onPick }: { onPick: (name: string) => void }) {
-  const [following, setFollowing] = useState<string[]>([])
-  const toggle = (id: string) => setFollowing((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id]))
+  const nav = useNavigate()
   const podium = [1, 0, 2].map((i) => ({ ...LEADERBOARD[i], rank: i + 1 }))
   return (
     <section>
-      <SectionHead title="🏆 ครีเอเตอร์แห่งสัปดาห์" />
+      <SectionHead title="🏆 ดาวเด่นสัปดาห์นี้" right="ดูอันดับ ›" onRight={() => nav('/community/activities#rank')} />
       <div className={s.lb}>
         <div className={s.pod}>
           {podium.map((r) => {
@@ -146,14 +146,13 @@ function CreatorsOfWeek({ onPick }: { onPick: (name: string) => void }) {
               <button key={r.creatorId} className={`${s.pd} ${s[`p${r.rank}`]}`} onClick={() => onPick(c.name)}>
                 <span className={s.pa} style={{ backgroundImage: `url(${imgUrl(c.avatar)})` }}><span>{r.rank}</span></span>
                 <b>{c.name}</b>
-                <small><Icon name="heart" size={10} color="#EC4899" fill="#EC4899" stroke={0} /> {r.hearts}</small>
+                <small>{r.pts.toLocaleString('th-TH')} แต้ม</small>
               </button>
             )
           })}
         </div>
         {LEADERBOARD.slice(3).map((r, i) => {
           const c = creatorById(r.creatorId)
-          const on = following.includes(r.creatorId)
           return (
             <div key={r.creatorId} className={s.lr}>
               <b>{i + 4}</b>
@@ -161,10 +160,8 @@ function CreatorsOfWeek({ onPick }: { onPick: (name: string) => void }) {
                 <span className={s.la} style={{ backgroundImage: `url(${imgUrl(c.avatar)})` }} />
                 <span><span>{c.name}</span><small>{r.what}</small></span>
               </button>
-              <em><Icon name="heart" size={10} color="#EC4899" fill="#EC4899" stroke={0} /> {r.hearts}</em>
-              <button className={`${s.fol} ${on ? s.folOn : ''}`} onClick={() => toggle(r.creatorId)} aria-pressed={on}>
-                {on ? 'ติดตามแล้ว' : 'ติดตาม'}
-              </button>
+              <em>{r.pts.toLocaleString('th-TH')} แต้ม</em>
+              <FollowButton id={r.creatorId} className={s.fol} onClass={s.folOn} />
             </div>
           )
         })}
@@ -173,34 +170,32 @@ function CreatorsOfWeek({ onPick }: { onPick: (name: string) => void }) {
   )
 }
 
-/** Time left until midnight in Bangkok (UTC+7), when the daily challenge rolls over. */
+/** Time left until the weekly challenge closes (Monday 00:00 Bangkok, same as ชุมชน › กิจกรรม). */
 function useChallengeCountdown() {
-  const calc = () => {
-    const bkk = (Date.now() + 7 * 3600_000) % 86_400_000
-    return Math.floor((86_400_000 - bkk) / 1000)
-  }
+  const calc = () => Math.max(0, Math.floor((challengeEnd() - Date.now()) / 1000))
   const [left, setLeft] = useState(calc)
   useEffect(() => {
     const t = setInterval(() => setLeft(calc()), 1000)
     return () => clearInterval(t)
   }, [])
   const p2 = (n: number) => String(n).padStart(2, '0')
-  return `${p2(Math.floor(left / 3600))}:${p2(Math.floor((left % 3600) / 60))}:${p2(left % 60)}`
+  const d = Math.floor(left / 86400)
+  return `${d ? `${d} วัน ` : ''}${p2(Math.floor((left % 86400) / 3600))}:${p2(Math.floor((left % 3600) / 60))}:${p2(left % 60)}`
 }
 
 function DailyChallenge() {
   const left = useChallengeCountdown()
   return (
     <section>
-      <SectionHead title="✏️ โจทย์ประจำวัน" right="ส่งผลงานรับดาว" />
+      <SectionHead title="🚀 ชาเลนจ์ประจำสัปดาห์" right="ส่งผลงานรับแต้ม" />
       <div className={s.ch}>
-        <div className={s.cht}><span>วันนี้วาดอะไรดี?</span><em>เหลือ {left}</em></div>
+        <div className={s.cht}><span>สัปดาห์นี้วาดอะไรดี?</span><em>เหลือ {left}</em></div>
         <b>“{CHALLENGE.prompt}”</b>
         <small>{CHALLENGE.note}</small>
         <div className={s.chf}>
           <span className={s.avs}>{CHALLENGE.avatars.map((a) => <i key={a} style={{ backgroundImage: `url(${imgUrl(creatorById(a).avatar)})` }} />)}</span>
           <small>ส่งแล้ว {CHALLENGE.joined} คน</small>
-          <Link to="/sell" className={s.chb}>ร่วมสนุก</Link>
+          <Link to="/community/activities" className={s.chb}>ร่วมส่งผลงาน</Link>
         </div>
       </div>
     </section>
@@ -210,13 +205,11 @@ function DailyChallenge() {
 /* ---------- page ---------- */
 
 export function Search() {
-  const nav = useNavigate()
   const [params, setParams] = useSearchParams()
   const q = params.get('q') ?? ''
   const catParam = params.get('cat')
   const cat: CatKey | 'new' | null = catParam === 'new' ? 'new' : isCatKey(catParam) ? catParam : null
   const [focused, setFocused] = useState(false)
-  const [toast, setToast] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   const results = useMemo(() => searchWorks(q, cat), [q, cat])
@@ -235,11 +228,6 @@ export function Search() {
   const [allCats, setAllCats] = useState(false)
   const pickFromSheet = (k: CatKey) => { setAllCats(false); setTimeout(() => pickCat(k), 180) }
 
-  useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(''), 2200)
-    return () => clearTimeout(t)
-  }, [toast])
 
   const chipsRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -253,9 +241,9 @@ export function Search() {
       <div className={s.deskHeader}><Header /></div>
       <header className={s.hdr}>
         <div className={`wrap ${s.row}`}>
-          <button className={s.back} aria-label="กลับ" onClick={() => (searching ? update({ q: '', cat: null }) : nav('/'))}>
+          {searching && <button className={s.back} aria-label="กลับ" onClick={() => update({ q: '', cat: null })}>
             <Icon name="back" size={22} stroke={2.4} />
-          </button>
+          </button>}
           <form className={`${s.sin} ${focused ? s.act : ''}`} role="search" onSubmit={(e) => { e.preventDefault(); inputRef.current?.blur() }}>
             <Icon name="search" size={18} color="#8A86A0" />
             <input
@@ -270,9 +258,6 @@ export function Search() {
               onBlur={() => setTimeout(() => setFocused(false), 150)}
             />
             {q && <button type="button" className={s.clr} aria-label="ล้างคำค้น" onClick={() => update({ q: '' }, true)}><Icon name="x" size={14} stroke={2.6} /></button>}
-            <button type="button" className={s.cam} aria-label="ค้นหาด้วยรูปภาพ" onClick={() => setToast('ค้นหาด้วยรูปภาพ กำลังพัฒนา จะเปิดใช้เร็ว ๆ นี้')}>
-              <Icon name="camera" size={17} color="#6C2BD9" stroke={2.1} />
-            </button>
           </form>
         </div>
         {focused && !q && (
@@ -324,7 +309,6 @@ export function Search() {
           </>
         )}
       </main>
-      {toast && <div className={s.toast} role="status">{toast}</div>}
       <AllCatsSheet open={allCats} onClose={() => setAllCats(false)} onPick={pickFromSheet} />
     </>
   )

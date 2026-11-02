@@ -4,7 +4,7 @@ import { Icon } from '../../components/Icon'
 import { Av, Empty, Img, SampleNote, TopBar } from '../../components/ui'
 import { ROOMS } from '../../data/appSeed'
 import { ME, creatorById } from '../../data/sampleData'
-import { CHALLENGE } from '../../data/searchData'
+import { CHALLENGE, LEADERBOARD, MY_RANK, challengeEnd } from '../../data/searchData'
 import { community } from '../../services/api'
 import { update, useDb } from '../../services/db'
 import { toast } from '../../services/toast'
@@ -12,15 +12,12 @@ import { ago } from '../../utils/time'
 import { PostCard, sharePost } from './PostCard'
 import s from './Community.module.css'
 
-export const LEADERS = [
-  { id: 'nova', pts: 2460 }, { id: 'ton', pts: 1820 }, { id: 'mint', pts: 1505 }, { id: 'pim', pts: 1310 }, { id: 'kenji', pts: 1190 }, { id: 'toy', pts: 980 },
-]
-const END = Date.now() + (20 * 24 + 8) * 3600_000 + 41 * 60_000
+export const LEADERS = LEADERBOARD.map((l) => ({ id: l.creatorId, pts: l.pts }))
 
 export function Countdown({ dark }: { dark?: boolean }) {
   const [n, setN] = useState(() => Date.now())
   useEffect(() => { const h = setInterval(() => setN(Date.now()), 30_000); return () => clearInterval(h) }, [])
-  const d = Math.max(0, END - n)
+  const d = Math.max(0, challengeEnd(n) - n)
   const parts: [number, string][] = [[Math.floor(d / 86400_000), 'วัน'], [Math.floor(d / 3600_000) % 24, 'ชม.'], [Math.floor(d / 60_000) % 60, 'นาที']]
   return <div className={`${s.cd} ${dark ? s.cdDark : ''}`}>{parts.map(([v, l]) => <span key={l}><b>{String(v).padStart(2, '0')}</b>{l}</span>)}</div>
 }
@@ -84,7 +81,7 @@ export function Room() {
   const db = useDb()
   const nav = useNavigate()
   const r = ROOMS.find((x) => x.id === id)
-  if (!r) return <><TopBar title="ห้อง" /><Empty icon="users" title="ไม่พบห้องนี้" /></>
+  if (!r) return <><TopBar title="ห้อง" /><Empty icon="users" title="ไม่พบห้องนี้" action={<Link to="/community" className="btn btn-o btn-sm">กลับไปที่ชุมชน</Link>} /></>
   const joined = db.joined.includes(id)
   const posts = db.posts.filter((p) => p.roomId === id)
   return (
@@ -102,7 +99,7 @@ export function Room() {
           <div className={s.rules}><b>กติกาห้อง</b>{r.rules.map((x, i) => <span key={x}><i>{i + 1}</i>{x}</span>)}</div>
         </div>
         <div className="sec"><div className="sec-h">โพสต์ในห้อง ({posts.length})</div></div>
-        {posts.length ? posts.map((p, i) => <PostCard key={p.id} p={p} i={i} />) : <Empty icon="comment" title="ยังไม่มีโพสต์ในห้องนี้" text="เริ่มโพสต์แรกได้เลย" />}
+        {posts.length ? posts.map((p, i) => <PostCard key={p.id} p={p} i={i} />) : <Empty icon="comment" title="ยังไม่มีโพสต์ในห้องนี้" text="เริ่มโพสต์แรกได้เลย" action={<Link to="/community/new" className="btn btn-p btn-sm">เขียนโพสต์</Link>} />}
       </div>
     </div>
   )
@@ -153,7 +150,7 @@ export function Activities() {
             {LEADERS.map((l, i) => (
               <Link key={l.id} to={`/creator/${l.id}`} className="list-row"><b style={{ width: 22, textAlign: 'center' }}>{i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</b><Av src={creatorById(l.id).avatar} size={36} /><span className="grow">{creatorById(l.id).name}</span><b>{l.pts.toLocaleString('th-TH')}</b><small style={{ marginLeft: 4 }}>แต้ม</small></Link>
             ))}
-            <div className="list-row" style={{ background: '#FBF8FF' }}><b style={{ width: 22, textAlign: 'center' }}>14</b><Av src={creatorById(ME).avatar} size={36} /><span className="grow">คุณ<small>อีก 120 แต้ม ติดท็อป 10</small></span><b>{(640 + db.missions.length * 50).toLocaleString('th-TH')}</b></div>
+            <div className="list-row" style={{ background: '#FBF8FF' }}><b style={{ width: 22, textAlign: 'center' }}>{MY_RANK.rank}</b><Av src={creatorById(ME).avatar} size={36} /><span className="grow">คุณ<small>อีก {MY_RANK.toTop10} แต้ม ติดท็อป 10</small></span><b>{(640 + db.missions.length * 50).toLocaleString('th-TH')}</b></div>
           </div>
         </div>
         <div className="sec"><div className="sec-h">ภารกิจรับแต้ม</div>

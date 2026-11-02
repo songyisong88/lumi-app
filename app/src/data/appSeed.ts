@@ -22,7 +22,7 @@ export function seed(): DB {
   const threads: Thread[] = [
     { id: 't-toy', partnerId: 'toy', role: 'creator', title: 'ออกแบบมาสคอตร้าน 1 ตัว', image: 'mascot.jpg', productId: 'p14', orderNo: 'LM-20517', amount: 1200, hire: true, step: 1, status: 'รอคุณตอบรับข้อเสนอ', tone: 'warn', unread: 1, online: true, quick: ['รับข้อเสนอเลยครับ', 'ขอลดเหลือ ฿1,000 ได้ไหม', 'ส่งงานได้วันไหนครับ'], updatedAt: t(4 * M) },
     { id: 't-shop', partnerId: 'shop', role: 'customer', title: 'ภาพบัวชมพูสีน้ำ โทนพาสเทล', image: 'g_lotus.jpg', productId: 'p01', status: 'ถามเรื่องสินค้า', tone: 'info', unread: 1, online: true, quick: ['มีค่ะ เดี๋ยวส่งตัวอย่างให้ดูนะคะ', 'รับทำโทนเขียวให้ ฿150 ค่ะ', 'ขอบคุณที่สนใจค่ะ'], updatedAt: t(18 * M) },
-    { id: 't-kenji', partnerId: 'kenji', role: 'creator', title: 'ปรับเว็บไซต์ร้านเบเกอรี่เป็นของร้าน', image: 'bakery.jpg', productId: 'p22', orderNo: 'LM-20488', amount: 1900, hire: true, step: 4, status: 'ส่งงานแล้ว รอคุณตรวจ', tone: 'warn', unread: 2, online: false, quick: ['รับงานเลยครับ', 'ขอแก้สีปุ่มเป็นสีชมพูครับ', 'ขอบคุณมากครับ'], updatedAt: t(2 * H) },
+    { id: 't-kenji', partnerId: 'kenji', role: 'creator', title: 'ปรับเว็บไซต์ร้านเบเกอรี่เป็นของร้าน', image: 'bakery.jpg', productId: 'p22', orderNo: 'LM-20488', amount: 1900, hire: true, step: 4, status: 'ส่งงานแล้ว รอคุณตรวจ', tone: 'warn', unread: 2, online: false, quick: ['ขอไฟล์ต้นฉบับด้วยนะครับ', 'ขอแก้สีปุ่มเป็นสีชมพูครับ', 'ขอบคุณมากครับ'], updatedAt: t(2 * H) },
     { id: 't-somjai', partnerId: 'somjai', role: 'customer', title: 'ภาพเทพธิดาชุดไทยแฟนตาซี', image: 'fantasy.jpg', productId: 'p21', orderNo: 'LM-20502', amount: 190, status: 'ชำระแล้ว รอคุณส่งไฟล์', tone: 'warn', unread: 1, online: false, quick: ['ส่งไฟล์ให้แล้วนะคะ', 'ขอบคุณที่อุดหนุนค่ะ 🙏'], updatedAt: t(5 * H) },
     { id: 't-nova', partnerId: 'nova', role: 'creator', title: 'โปรแกรม POS ร้านค้าเล็ก', image: 'c_sme.jpg', productId: 'n05', orderNo: 'LM-20391', amount: 990, status: 'ซื้อแล้ว · ดาวน์โหลดได้', tone: 'ok', unread: 0, online: true, quick: ['ติดตั้งแล้วใช้ได้ครับ ขอบคุณครับ', 'ย้ายคีย์ไปเครื่องใหม่ยังไงครับ'], updatedAt: t(1 * D) },
     { id: 't-pim', partnerId: 'pim', role: 'creator', title: 'สติกเกอร์ชิบะทักทาย 24 ตัว', image: 'shiba.jpg', productId: 'p02', orderNo: 'LM-20366', amount: 59, status: 'เสร็จสมบูรณ์', tone: 'done', unread: 0, online: false, quick: ['น่ารักมากค่ะ', 'มีชุดแมวไหมคะ'], updatedAt: t(3 * D) },
@@ -83,8 +83,8 @@ export function seed(): DB {
     v: 3,
     follows: ['nova', 'pim', 'toy'],
     cart: [
-      { key: 'ci1', productId: 'p07', price: 199, optionLabel: 'เทมเพลต 30 แบบ' },
-      { key: 'ci2', productId: 'p12', optionId: 'set', optionLabel: 'ภาพ + พรอมต์', price: 183 },
+      { key: 'ci1', productId: 'p07', optionId: 'full', price: 199, optionLabel: 'ชุดเต็ม' },
+      { key: 'ci2', productId: 'p12', optionId: 'both', optionLabel: 'ภาพ + พรอมต์', price: 159 },
     ],
     orders: [
       { id: 'o1', no: 'LM-20391', items: [{ key: 'x1', productId: 'n05', price: 990, optionLabel: '1 เครื่อง' }], total: 990, discount: 0, at: t(1 * D + 20 * M), method: 'พร้อมเพย์ (ทดลอง)' },

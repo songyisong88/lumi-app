@@ -1,13 +1,15 @@
 const M = 60_000, H = 60 * M, D = 24 * H
 const TH_MON = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
-/** “เมื่อสักครู่ / 5 นาที / 3 ชม. / เมื่อวาน / 12 พ.ย.” */
-export function ago(at: number, now = Date.now()) {
+/** One relative-time style everywhere: “เมื่อสักครู่ / 5 นาทีที่แล้ว / 3 ชม.ที่แล้ว / เมื่อวาน / 3 วันที่แล้ว / 12 พ.ย.”
+ *  `short` drops “ที่แล้ว” for tight list rows (แชต). Dates use พ.ศ. when a year is shown. */
+export function ago(at: number, now = Date.now(), short = false) {
   const d = now - at
+  const s = short ? '' : 'ที่แล้ว'
   if (d < M) return 'เมื่อสักครู่'
-  if (d < H) return `${Math.floor(d / M)} นาที`
-  if (d < D) return `${Math.floor(d / H)} ชม.`
+  if (d < H) return `${Math.floor(d / M)} นาที${s}`
+  if (d < D) return `${Math.floor(d / H)} ชม.${s}`
   if (d < 2 * D) return 'เมื่อวาน'
-  if (d < 7 * D) return `${Math.floor(d / D)} วัน`
+  if (d < 7 * D) return `${Math.floor(d / D)} วัน${s}`
   const t = new Date(at)
   return `${t.getDate()} ${TH_MON[t.getMonth()]}`
 }

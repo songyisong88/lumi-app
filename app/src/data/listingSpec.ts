@@ -30,6 +30,9 @@ export interface Field {
   min?: number
   /** Toggle that must be switched ON to publish (a confirmation, e.g. “no personal data”). */
   mustBeOn?: boolean
+  /** Text must match (e.g. a real Canva / LINE link). */
+  pattern?: RegExp
+  patternNote?: string
 }
 
 export interface TypeSpec {
@@ -90,12 +93,12 @@ export const SPECS: Record<SellType, TypeSpec> = {
     fields: [
       { id: 'apps', label: 'ต้องเปิดด้วยแอปอะไร', kind: 'multi', step: 'files', options: ['Canva', 'Photoshop', 'Illustrator', 'Figma', 'PowerPoint', 'Google Slides', 'Keynote', 'Excel / Sheets', 'เว็บ (HTML)'], required: true },
       { id: 'appVersion', label: 'เวอร์ชันแอปที่ต้องใช้', kind: 'text', step: 'files', required: true, placeholder: 'เช่น Canva ฟรี · Photoshop 2023 ขึ้นไป' },
-      { id: 'canvaLink', label: 'ลิงก์ Canva แบบ “ใช้เป็นเทมเพลต”', kind: 'text', step: 'files', when: (s) => arr(s.apps).includes('Canva'), required: (s) => arr(s.apps).includes('Canva'), placeholder: 'canva.com/design/…/remix', hint: 'ส่งให้ผู้ซื้อหลังจ่ายเท่านั้น' },
-      FILES('ไฟล์เทมเพลต', 'PSD AI FIG PPTX ฯลฯ', (s) => arr(s.apps).some((a) => a !== 'Canva')),
+      { id: 'canvaLink', label: 'ลิงก์ Canva แบบ “ใช้เป็นเทมเพลต”', kind: 'text', step: 'files', when: (s) => arr(s.apps).includes('Canva'), required: (s) => arr(s.apps).includes('Canva'), placeholder: 'canva.com/design/…/remix', pattern: /canva\.com\/design\//i, patternNote: 'ต้องเป็นลิงก์ canva.com/design/…', hint: 'ส่งให้ผู้ซื้อหลังจ่ายเท่านั้น' },
+      FILES('ไฟล์เทมเพลต', 'PSD AI FIG PPTX PDF ฯลฯ · ต้องอัปทุกนามสกุลที่บอกว่าผู้ซื้อได้รับ', (s) => arr(s.apps).some((a) => a !== 'Canva') || arr(s.formats).some((f) => f !== 'ลิงก์ Canva')),
       { id: 'formats', label: 'ไฟล์ที่ผู้ซื้อได้รับ', kind: 'multi', step: 'files', options: ['ลิงก์ Canva', 'PSD', 'AI', 'FIG', 'PPTX', 'KEY', 'XLSX', 'HTML', 'PDF'], required: true },
       { id: 'count', label: 'จำนวนแบบ / หน้า', kind: 'text', step: 'files', required: true, placeholder: 'เช่น 30 แบบ' },
       { id: 'size', label: 'ขนาดชิ้นงาน', kind: 'text', step: 'files', required: true, placeholder: 'เช่น 1080×1350 px (IG 4:5)' },
-      { id: 'fonts', label: 'ฟอนต์ที่ใช้ + ลิงก์โหลดฟรี', kind: 'list', step: 'details', required: true, placeholder: 'เช่น Prompt — fonts.google.com/specimen/Prompt', hint: 'ถ้าไม่ใส่ ผู้ซื้อเปิดแล้วฟอนต์เพี้ยน' },
+      { id: 'fonts', label: 'ฟอนต์ที่ใช้ + ลิงก์โหลดฟรี', kind: 'list', step: 'details', required: (s) => arr(s.apps).some((a) => ['Photoshop', 'Illustrator', 'Figma', 'PowerPoint', 'Keynote', 'เว็บ (HTML)'].includes(a)), placeholder: 'เช่น Prompt — fonts.google.com/specimen/Prompt', hint: 'ถ้าไม่ใส่ ผู้ซื้อเปิดแล้วฟอนต์เพี้ยน' },
       { id: 'editable', label: 'แก้อะไรได้บ้าง', kind: 'multi', step: 'details', options: ['ข้อความ', 'สี', 'รูปภาพ', 'โลโก้', 'ฟอนต์', 'ขนาด / เลย์เอาต์'], required: true },
       { id: 'howOpen', label: 'วิธีเปิดและแก้ไข (ทีละขั้น)', kind: 'list', step: 'details', required: true },
       ...LICENSE,
@@ -137,13 +140,13 @@ export const SPECS: Record<SellType, TypeSpec> = {
       { id: 'limits', label: 'ข้อจำกัด / โควตา', kind: 'text', step: 'details', required: true, placeholder: 'เช่น ตอบได้ 1,000 ข้อความ/เดือน ตามโควตา LINE ฟรี' },
       { id: 'trial', label: 'เปิดทดลองฟรี', kind: 'toggle', step: 'price' },
       { id: 'trialDays', label: 'ทดลองได้กี่วัน', kind: 'chips', step: 'price', options: ['3 วัน', '7 วัน', '14 วัน'], when: (s) => on(s.trial), required: (s) => on(s.trial) },
-      { id: 'trialLink', label: 'ลิงก์ทดลองคุย', kind: 'text', step: 'price', when: (s) => on(s.trial), required: (s) => on(s.trial), placeholder: 'line.me/R/ti/p/@…' },
+      { id: 'trialLink', label: 'ลิงก์ทดลองคุย', kind: 'text', step: 'price', when: (s) => on(s.trial), required: (s) => on(s.trial), placeholder: 'line.me/R/ti/p/@…', pattern: /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i, patternNote: 'ต้องเป็นลิงก์ เช่น line.me/R/ti/p/@ร้าน' },
       SUPPORT, REFUND, ...LICENSE,
     ],
     defaults: { platform: ['LINE OA'], buyerNeeds: ['บัญชี LINE OA (สมัครฟรี)'], setupMode: 'ติดตั้งให้ฟรี 1 ครั้ง', setup: ['ส่งบรีฟร้านและเมนูในแชต', 'ครีเอเตอร์นัดเวลาติดตั้ง (ประมาณ 30 นาที)', 'ทดสอบคุยกับบอทแล้วเปิดใช้งานจริง'], trial: true, trialDays: '7 วัน', support: 'ดูแลฟรี 30 วัน · แก้คำตอบได้ไม่จำกัด', refund: 'ยกเลิกรายเดือนได้ทุกเมื่อ · ค่าติดตั้งคืนได้ถ้ายังไม่ได้ติดตั้ง', licPreset: 'ส่วนตัว + เชิงพาณิชย์', licAllowed: LIC_ROWS.slice(0, 2) },
   },
   course: {
-    key: 'course', name: 'คอร์สออนไลน์', sub: 'บทเรียนวิดีโอ ไฟล์ประกอบ', icon: 'cap', color: '#C2410C', bg: '#FFF0E3', layout: 'course',
+    key: 'course', name: 'คอร์สและอีบุ๊ก', sub: 'บทเรียนวิดีโอ ไฟล์ประกอบ', icon: 'cap', color: '#C2410C', bg: '#FFF0E3', layout: 'course',
     fields: [
       { id: 'lessons', label: 'บทเรียน (ชื่อตอน · ความยาว)', kind: 'list', step: 'files', required: true, min: 2, placeholder: 'เช่น ตอนที่ 1 · ปูพื้น AI ทำภาพสินค้า · 09:30' },
       { id: 'freeLessons', label: 'ดูฟรีได้กี่ตอน', kind: 'chips', step: 'files', options: ['ไม่มี', '1 ตอน', '2 ตอน', '3 ตอน'], required: true },
@@ -250,12 +253,27 @@ SPECS.data = {
 }
 
 export const SELL_TYPES = Object.values(SPECS)
+
+/** What the “files” upload accepts per type: extensions, max size per file, max file count. */
+const UP: Partial<Record<SellType, { exts: string[]; maxMB: number }>> = {
+  img: { exts: ['png', 'jpg', 'jpeg', 'webp', 'psd', 'svg', 'tif', 'tiff', 'zip'], maxMB: 200 },
+  tpl: { exts: ['psd', 'ai', 'fig', 'pptx', 'key', 'xlsx', 'html', 'pdf', 'indd', 'zip'], maxMB: 500 },
+  sw: { exts: ['exe', 'msi', 'dmg', 'pkg', 'apk', 'aab', 'ipa', 'appimage', 'deb', 'zip'], maxMB: 2048 },
+  game: { exts: ['exe', 'msi', 'dmg', 'pkg', 'apk', 'aab', 'ipa', 'zip', 'unitypackage', 'crx', 'jar', 'html'], maxMB: 2048 },
+  media: { exts: ['mp4', 'mov', 'webm', 'wav', 'mp3', 'm4a', 'flac', 'srt', 'prproj', 'aep', 'zip'], maxMB: 2048 },
+  font: { exts: ['otf', 'ttf', 'woff', 'woff2', 'png', 'svg', 'cube', 'xmp', 'abr', 'zip'], maxMB: 500 },
+  skill: { exts: ['zip', 'md', 'txt', 'json', 'yaml', 'yml', 'py', 'js', 'ts', 'pdf'], maxMB: 100 },
+  data: { exts: ['csv', 'json', 'jsonl', 'parquet', 'xlsx', 'sql', 'zip', 'gz'], maxMB: 1024 },
+}
+export const MAX_FILES = 20
+export const uploadRule = (t: SellType | null) => (t && UP[t]) || { exts: [] as string[], maxMB: 500 }
 export const visible = (f: Field, s: Spec) => !f.when || f.when(s)
 const isReq = (f: Field, s: Spec) => visible(f, s) && (typeof f.required === 'function' ? f.required(s) : !!f.required)
 function filled(f: Field, v: SpecValue | undefined) {
   if (f.kind === 'toggle') return f.mustBeOn ? v === true : true
   if (f.kind === 'files') { const fs = filesOf(v); return fs.length >= (f.min ?? 1) && fs.every((x) => x.scan === 'ok') }
   if (f.kind === 'multi' || f.kind === 'list') return arr(v).length >= (f.min ?? 1)
+  if (f.pattern && str(v) && !f.pattern.test(str(v))) return false
   return !!str(v)
 }
 
@@ -303,6 +321,7 @@ function chk(f: Field, d: ListingDraft): CheckItem {
   let note: string | undefined
   if (f.kind === 'files') { const fs = filesOf(d.spec[f.id]); note = fs.some((x) => x.scan === 'scan') ? 'กำลังสแกนไวรัส' : fs.some((x) => x.scan === 'fail') ? 'มีไฟล์ไม่ผ่านการสแกน' : undefined }
   if ((f.kind === 'list') && (f.min ?? 1) > 1) note = `อย่างน้อย ${f.min} รายการ`
+  if (f.pattern && str(d.spec[f.id]) && !ok) note = f.patternNote
   return { id: f.id, label: f.label, ok, step: STEP_NO[f.step], note }
 }
 export const completion = (d: ListingDraft) => { const c = checkListing(d); return d.type ? Math.round((c.filter((x) => x.ok).length / c.length) * 100) : 0 }
@@ -340,15 +359,26 @@ export function specOf(p: Product): Spec {
   if (t === 'tpl') {
     const web = /เว็บ/.test(l), print = /พิมพ์/.test(l)
     Object.assign(d, web ? { apps: ['เว็บ (HTML)', 'Figma'], appVersion: 'เบราว์เซอร์ใดก็ได้ · Figma ฟรี', formats: ['HTML', 'FIG'], count: '1 หน้า · 6 ส่วน', size: 'รองรับมือถือและคอม', files: [JSON.stringify({ name: 'bakery-site.zip', size: '6.1 MB', scan: 'ok' })], howOpen: ['แตกไฟล์ ZIP', 'เปิด index.html ด้วยเบราว์เซอร์เพื่อดู', 'แก้ข้อความใน Figma หรือไฟล์ HTML แล้วอัปโหลดขึ้นโฮสต์ (เช่น GitHub Pages ฟรี)'] }
-      : print ? { apps: ['เว็บ (HTML)'], appVersion: 'โปรแกรมอ่าน PDF ทั่วไป', formats: ['PDF'], count: '40 หน้า', size: 'A4 300 dpi', files: [JSON.stringify({ name: 'coloring-40p.pdf', size: '22 MB', scan: 'ok' })], editable: ['ขนาด / เลย์เอาต์'], howOpen: ['ดาวน์โหลด PDF จากแชต', 'สั่งพิมพ์ขนาด A4 แบบ “พอดีหน้า”'] }
+      : print ? { apps: ['โปรแกรมอ่าน PDF'], appVersion: 'Adobe Acrobat Reader หรือแอปดู PDF ในมือถือ (ฟรี)', formats: ['PDF'], count: '40 หน้า', size: 'A4 300 dpi', files: [JSON.stringify({ name: 'coloring-40p.pdf', size: '22 MB', scan: 'ok' })], editable: ['ไม่ต้องแก้ พิมพ์ได้ทันที'], howOpen: ['ดาวน์โหลด PDF จากแชต', 'สั่งพิมพ์ขนาด A4 แบบ “พอดีหน้า”'] }
         : { count: '30 แบบ', size: '1080×1350 px (IG 4:5)', canvaLink: 'canva.com/design/DAF-sample/remix', files: [JSON.stringify({ name: 'cafe-30.psd', size: '86 MB', scan: 'ok' })], formats: ['ลิงก์ Canva', 'PSD', 'PDF'], apps: ['Canva', 'Photoshop'], appVersion: 'Canva ฟรี · Photoshop 2023 ขึ้นไป' })
-    d.fonts = ['Prompt — fonts.google.com/specimen/Prompt', 'Mali — fonts.google.com/specimen/Mali']
+    d.fonts = print ? [] : ['Prompt — fonts.google.com/specimen/Prompt', 'Mali — fonts.google.com/specimen/Mali']
   }
   if (t === 'sw' || t === 'game') Object.assign(d, { sub: /แอป/.test(l) ? 'แอปมือถือ' : /เกม/.test(l) ? 'ซอร์สโค้ดเกม' : /ปลั๊กอิน/.test(l) ? 'ปลั๊กอิน' : /ส่วนขยาย/.test(l) ? 'ส่วนขยาย Chrome' : 'โปรแกรม', platforms: p.platforms ?? ['Windows'], version: 'v1.3', changelog: ['v1.3 · เร็วขึ้น 2 เท่า แก้บั๊กภาษาไทย', 'v1.2 · เพิ่มรายงานรายวัน', 'v1.0 · เปิดตัว'], minSpec: /iOS|Android/.test((p.platforms ?? []).join()) ? 'iOS 15 / Android 10 ขึ้นไป' : 'RAM 4 GB · พื้นที่ว่าง 200 MB', files: [JSON.stringify({ name: `${slug}-v1.3.zip`, size: '48 MB', scan: 'ok' })] })
   if (t === 'game' && /เกม/.test(l)) Object.assign(d, { platforms: ['เว็บ', 'Android'], deps: 'Godot 4.2 (ฟรี) ถ้าจะแก้ซอร์ส', install: ['แตกไฟล์ ZIP', 'เปิดโปรเจกต์ด้วย Godot 4.2', 'กด Run เพื่อเล่น หรือ Export เป็น APK'] })
   if (t === 'sw' && p.kind === 'tool' && !/โปรแกรม|แอป/.test(l)) Object.assign(d, { sub: 'เว็บแอป', platforms: ['เว็บ'], keyType: 'สมาชิกรายเดือน', minSpec: 'เบราว์เซอร์ Chrome / Safari รุ่นล่าสุด', install: ['ไม่ต้องติดตั้ง เปิดลิงก์ที่ได้ในแชต', 'ล็อกอินด้วยอีเมลที่ใช้ซื้อ'], deps: `บัญชี ${(p.platforms ?? []).join(' / ')}` })
-  if (t === 'bot') Object.assign(d, { platform: p.platforms ?? ['LINE OA'], features: p.kind === 'bot' ? [p.use, 'ตอบลูกค้าอัตโนมัติ 24 ชม.', 'ส่งออเดอร์เข้า Google Sheets', 'แจ้งเตือนเจ้าของร้านใน LINE'] : [p.use, 'ตั้งเวลาทำงานเองทุกวัน', 'ดูรายงานย้อนหลังได้'], buyerNeeds: p.kind === 'bot' ? ['บัญชี LINE OA (สมัครฟรี)', 'เมนูและราคา (ไฟล์หรือรูปก็ได้)'] : [`บัญชี ${(p.platforms ?? ['Google']).join(' · ')}`, 'บัญชี n8n Cloud หรือเครื่องที่ติดตั้ง n8n (ฟรี)'], limits: p.kind === 'bot' ? 'ตอบได้ตามโควตาข้อความของ LINE OA (แพ็กเกจฟรี 300 ข้อความ/เดือน)' : 'ทำงานได้ 2,500 ครั้ง/เดือน ตามแพ็กเกจ n8n Starter', trialLink: 'line.me/R/ti/p/@lumi-demo' })
-  if (t === 'course') Object.assign(d, { lessons: ['ตอนที่ 1 · ปูพื้นและเครื่องมือที่ต้องใช้ · 09:30', 'ตอนที่ 2 · เขียนพรอมต์ให้ได้ภาพตรงใจ · 14:20', 'ตอนที่ 3 · จัดแสงแบบสตูดิโอ · 18:05', 'ตอนที่ 4 · แต่งพื้นหลังโทนพาสเทล · 12:40', 'ตอนที่ 5 · ทำภาพชุดลง Shopee · 16:10', 'ตอนที่ 6 · เวิร์กช็อปปิดคอร์ส · 22:00'], duration: p.meta ?? '6 ตอน · 1.5 ชม.', prereq: 'มีมือถือหรือคอม ไม่ต้องมีพื้นฐาน', outcomes: ['ทำภาพสินค้าสวยได้เองในวันเดียว', 'มีพรอมต์สำเร็จรูปไว้ใช้ต่อ', 'รู้วิธีทำภาพชุดลงร้านออนไลน์'], materials: ['สรุป PDF', 'พรอมต์สำเร็จรูป'] })
+  if (t === 'bot') {
+    const demo = p.id === 'p05' ? ['มีเมนูแนะนำไหมคะ', 'วันนี้แนะนำข้าวเหนียวมะม่วง ฿89 สั่งเลยไหมคะ 🥭', 'เอา 2 ที่ค่ะ', 'รับออเดอร์แล้วค่ะ ยอดรวม ฿178 ชำระผ่าน QR ได้เลย']
+      : p.chat ? [p.chat.q, p.chat.a]
+      : /แอดมิน/.test(p.title) ? ['ลูกค้าถาม: ส่งต่างจังหวัดกี่วันคะ', 'ร่างคำตอบ: ส่งขนส่งเอกชน 1–2 วันทำการค่ะ สั่งก่อนบ่าย 2 ส่งวันนี้เลย 🙏']
+      : /สต็อก/.test(p.title) ? ['สต็อก: ชาไทยผง เหลือ 3 ถุง', '⚠️ ของใกล้หมด ชาไทยผงเหลือ 3 ถุง (ต่ำกว่า 5) · แจ้งในกลุ่ม LINE ร้านแล้ว']
+      : /ออเดอร์/.test(p.title) ? ['ขอสั่งชาไทย 2 แก้ว ส่งบ้านค่ะ', 'บันทึกออเดอร์ #1024 ลง Google Sheets แล้ว ✓ แจ้งร้านใน LINE แล้ว']
+      : []
+    const line = (p.platforms ?? ['LINE OA']).some((x) => /LINE/.test(x))
+    Object.assign(d, { demo, trialLink: line ? 'line.me/R/ti/p/@lumi-demo' : 'chatgpt.com/g/lumi-demo' })
+  }
+  if (t === 'bot' && /แอดมิน/.test(p.title)) Object.assign(d, { features: [p.use, 'ร่างคำตอบลูกค้าด้วยโทนสุภาพแบบไทย', 'สรุปแชตทั้งวันเป็นข้อ ๆ ให้แอดมิน'], buyerNeeds: ['ChatGPT Plus (ใช้ GPTs ได้)', 'เพจ Facebook ที่คุณเป็นแอดมิน'], limits: 'ใช้ได้ตามโควตาข้อความของ ChatGPT Plus' })
+  if (t === 'bot') Object.assign(d, { platform: p.platforms ?? ['LINE OA'], features: p.kind === 'bot' ? [p.use, 'ตอบลูกค้าอัตโนมัติ 24 ชม.', 'ส่งออเดอร์เข้า Google Sheets', 'แจ้งเตือนเจ้าของร้านใน LINE'] : [p.use, 'ตั้งเวลาทำงานเองทุกวัน', 'ดูรายงานย้อนหลังได้'], buyerNeeds: p.kind === 'bot' ? ['บัญชี LINE OA (สมัครฟรี)', 'เมนูและราคา (ไฟล์หรือรูปก็ได้)'] : [`บัญชี ${(p.platforms ?? ['Google']).join(' · ')}`, 'บัญชี n8n Cloud หรือเครื่องที่ติดตั้ง n8n (ฟรี)'], limits: p.kind === 'bot' ? 'ตอบได้ตามโควตาข้อความของ LINE OA (แพ็กเกจฟรี 300 ข้อความ/เดือน)' : 'ทำงานได้ 2,500 ครั้ง/เดือน ตามแพ็กเกจ n8n Starter', trialLink: d.trialLink })
+  if (t === 'course') Object.assign(d, { lessons: ['ตอนที่ 1 · ปูพื้นและเครื่องมือที่ต้องใช้ · 09:30', 'ตอนที่ 2 · เขียนพรอมต์ให้ได้ภาพตรงใจ · 14:20', 'ตอนที่ 3 · จัดแสงแบบสตูดิโอ · 18:05', 'ตอนที่ 4 · แต่งพื้นหลังโทนพาสเทล · 12:40', 'ตอนที่ 5 · ทำภาพชุดลง Shopee · 16:10', 'ตอนที่ 6 · เวิร์กช็อปปิดคอร์ส · 22:00'], duration: '1 ชม. 33 นาที', prereq: 'มีมือถือหรือคอม ไม่ต้องมีพื้นฐาน', outcomes: ['ทำภาพสินค้าสวยได้เองในวันเดียว', 'มีพรอมต์สำเร็จรูปไว้ใช้ต่อ', 'รู้วิธีทำภาพชุดลงร้านออนไลน์'], materials: ['สรุป PDF', 'พรอมต์สำเร็จรูป'] })
   if (t === 'course' && /อีบุ๊ก/.test(l)) Object.assign(d, { lessons: ['บทที่ 1 · พรอมต์เขียนแคปชันขาย', 'บทที่ 2 · พรอมต์ตอบแชตลูกค้า', 'บทที่ 3 · พรอมต์ทำโปรโมชัน'], duration: p.meta ?? '24 หน้า', materials: ['สรุป PDF', 'พรอมต์สำเร็จรูป'], certificate: false })
   if (t === 'font') {
     const sticker = /สติกเกอร์/.test(l)
@@ -401,8 +431,10 @@ export function pageContent(p: Product): PageContent {
       break
     case 'tpl':
       deliver.push(`${str(s.count)} · ขนาด ${str(s.size)}`, `ไฟล์ ${list(fm)}`)
+      if (files.length) deliver.push(`ไฟล์: ${files.join(', ')}`)
       if (arr(s.apps).includes('Canva')) deliver.push('ลิงก์ Canva แบบ “ใช้เป็นเทมเพลต” (ส่งในแชตหลังจ่าย)')
-      deliver.push('รายชื่อฟอนต์พร้อมลิงก์โหลดฟรี', 'คู่มือแก้ไขทีละขั้น')
+      if (arr(s.fonts).length) deliver.push('รายชื่อฟอนต์พร้อมลิงก์โหลดฟรี', 'คู่มือแก้ไขทีละขั้น')
+      else deliver.push(fm.length === 1 && fm[0] === 'PDF' ? 'คู่มือสั่งพิมพ์ให้สีตรง' : 'คู่มือแก้ไขทีละขั้น')
       howto.push(...arr(s.howOpen))
       needs.push(`แอป: ${arr(s.apps).join(' / ')} (${str(s.appVersion)})`, ...arr(s.fonts).map((f) => `ฟอนต์ ${f}`))
       facts.push(['แก้ได้', list(arr(s.editable))], ['ขนาด', str(s.size)], ['ไฟล์', list(fm)])
@@ -423,7 +455,7 @@ export function pageContent(p: Product): PageContent {
       facts.push(['แพลตฟอร์ม', list(arr(s.platform))], ['ติดตั้ง', str(s.setupMode)], ['ทดลอง', on(s.trial) ? str(s.trialDays) : 'ไม่มี'])
       break
     case 'course':
-      deliver.push(`${arr(s.lessons).length} บทเรียน · ${str(s.duration)}`, ...arr(s.materials).map((m) => `ไฟล์ประกอบ: ${m}`), `ดูได้ ${str(s.access)}`)
+      deliver.push(/อีบุ๊ก/.test(p.label ?? '') ? `${arr(s.lessons).length} บท · ${str(s.duration)}` : `${arr(s.lessons).length} ตอน · รวม ${str(s.duration)}`, ...arr(s.materials).map((m) => `ไฟล์ประกอบ: ${m}`), `ดูได้ ${str(s.access)}`)
       if (on(s.certificate)) deliver.push('ใบรับรองเมื่อเรียนจบ')
       howto.push('ซื้อแล้วไปที่ โปรไฟล์ › ซื้อแล้ว › เริ่มเรียน', 'ดูต่อจากตอนล่าสุดได้ทุกเครื่อง', 'ติดตรงไหนถามผู้สอนในแชต แนบเลขตอนและนาทีได้')
       needs.push(str(s.prereq), 'เรียนผ่านแอป LUMI หรือเว็บเบราว์เซอร์')

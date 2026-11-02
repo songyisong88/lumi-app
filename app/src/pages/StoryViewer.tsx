@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { FollowButton } from '../components/FollowButton'
 import { HeartButton } from '../components/HeartButton'
+import { copyText } from '../components/ui'
+import { toast } from '../services/toast'
 import { Icon } from '../components/Icon'
 import { STORIES, TYPES, creatorById, formatPrice, imgUrl, productById } from '../data/sampleData'
 import { markStorySeen } from '../services/seenStories'
@@ -23,8 +26,9 @@ export function StoryViewer() {
     if (!story) return
     if (slide < story.slides.length - 1) setSlide(slide + 1)
     else if (idx < STORIES.length - 1) nav(`/story/${STORIES[idx + 1].creatorId}`, { replace: true })
-    else nav('/')
+    else close()
   }
+  const close = () => { if (window.history.state?.idx > 0) nav(-1); else nav('/', { replace: true }) }
   const prev = () => {
     if (slide > 0) setSlide(slide - 1)
     else if (idx > 0) nav(`/story/${STORIES[idx - 1].creatorId}`, { replace: true })
@@ -55,8 +59,8 @@ export function StoryViewer() {
         <div className={s.head}>
           <span className="av" style={{ width: 36, height: 36, border: '2px solid #fff', backgroundImage: `url(${imgUrl(c.avatar)})` }} />
           <div><div className={s.name}>{c.name}</div><div className={s.ago}>ผลงานใหม่ · {sl.postedAgo}</div></div>
-          <button className={s.follow}>ติดตาม</button>
-          <Link to="/" className={s.x} aria-label="ปิด"><Icon name="x" size={22} color="#fff" stroke={2.2} /></Link>
+          <FollowButton id={c.id} className={s.follow} onClass={s.followOn} />
+          <button className={s.x} aria-label="ปิด" onClick={close}><Icon name="x" size={22} color="#fff" stroke={2.2} /></button>
         </div>
         <button className={`${s.tap} ${s.left}`} onClick={prev} aria-label="ก่อนหน้า" />
         <button className={`${s.tap} ${s.right}`} onClick={next} aria-label="ถัดไป" />
@@ -72,7 +76,7 @@ export function StoryViewer() {
         <div className={s.cta}>
           <HeartButton productId={p.id} variant="glass" />
           <Link className={s.go} to={`/product/${p.id}`}>ดูสินค้า <Icon name="arrow" size={18} color="#fff" stroke={2.2} /></Link>
-          <button className={s.rb} aria-label="แชร์"><Icon name="send" size={20} color="#fff" /></button>
+          <button className={s.rb} aria-label="แชร์" onClick={() => { copyText(`${location.origin}${location.pathname}#/product/${p.id}`); toast('คัดลอกลิงก์ผลงานแล้ว') }}><Icon name="send" size={20} color="#fff" /></button>
         </div>
       </div>
     </div>

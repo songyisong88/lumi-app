@@ -196,7 +196,7 @@ function Asset({ m }: { m: Message }) {
   return (
     <div className={s.as}><span className={s.asi} style={{ background: '#EAF1FF' }}><Icon name={m.kind === 'delivery' ? 'image' : 'file'} size={18} color="#2563EB" /></span>
       <span className="grow"><b className="ell">{m.fileName ?? m.title}</b><small>{m.size ?? 'ไฟล์งานฉบับเต็ม'} · <span style={{ color: '#15803D' }}>สแกนแล้ว</span></small></span>
-      <button className="btn btn-xs btn-s" onClick={() => toast('ดาวน์โหลดไฟล์ตัวอย่าง (ยังไม่มีไฟล์จริง)')}><Icon name="download" size={14} />โหลด</button></div>
+      <button className="btn btn-xs btn-s" onClick={() => toast('ไฟล์ตัวอย่าง · ดาวน์โหลดไฟล์จริงได้เมื่อเปิดระบบเก็บไฟล์')}><Icon name="download" size={14} />โหลด</button></div>
   )
 }
 
@@ -246,7 +246,7 @@ function Bubble({ m, t, fresh, onPay, onReview, onRevise }: { m: Message; t: T; 
       </div>{time}</div>
     )
     case 'key': return <div className={cls}><div className={`${s.card} ${s.key}`}><div className={s.ch}><Icon name="key" size={16} color="#6C2BD9" />{m.title}</div><code>{m.code}</code><button className="btn btn-xs btn-s" onClick={() => { copyText(m.code ?? ''); toast('คัดลอกแล้ว') }}><Icon name="copy" size={14} />คัดลอก</button></div>{time}</div>
-    case 'file': return <div className={cls}><div className={`${s.card} ${s.file}`}><span className={s.asi} style={{ background: '#EAF1FF' }}><Icon name="file" size={18} color="#2563EB" /></span><span className="grow"><b className="ell">{m.fileName}</b><small>{m.size} · สแกนไวรัสแล้ว</small></span><button className={s.dl} onClick={() => toast('ดาวน์โหลดไฟล์ตัวอย่าง (ยังไม่มีไฟล์จริง)')} aria-label="ดาวน์โหลด"><Icon name="download" size={18} /></button></div>{time}</div>
+    case 'file': return <div className={cls}><div className={`${s.card} ${s.file}`}><span className={s.asi} style={{ background: '#EAF1FF' }}><Icon name="file" size={18} color="#2563EB" /></span><span className="grow"><b className="ell">{m.fileName}</b><small>{m.size} · สแกนไวรัสแล้ว</small></span><button className={s.dl} onClick={() => toast('ไฟล์ตัวอย่าง · ดาวน์โหลดไฟล์จริงได้เมื่อเปิดระบบเก็บไฟล์')} aria-label="ดาวน์โหลด"><Icon name="download" size={18} /></button></div>{time}</div>
     case 'tip': return <div className={cls}><div className={`${s.card} ${s.tip}`}><Icon name="coin" size={22} color="#B45309" /><span><b>ให้ทิป {baht(m.amount ?? 0)}</b><small>{m.text}</small></span></div>{time}</div>
     case 'coupon': return <div className={cls}><div className={`${s.card} ${s.cpn}`}><Icon name="gift" size={22} color="#DB2777" /><span className="grow"><b>{m.title}</b><code>{m.code}</code></span><button className="btn btn-xs btn-p" onClick={() => { copyText(m.code ?? ''); toast(`คัดลอกโค้ด ${m.code} แล้ว ใช้ตอนชำระเงิน`) }}>เก็บโค้ด</button></div>{time}</div>
   }
