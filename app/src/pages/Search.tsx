@@ -85,7 +85,7 @@ function CategoryGroup({ g, onPick }: { g: (typeof SEARCH_GROUPS)[number]; onPic
           const c = CATEGORIES[k]
           return (
             <button key={k} data-cat={k} className={`${s.tile} ${c.span ? s[`s${c.span}`] : ''}`} style={c.span ? { borderTopColor: g.color } : undefined} onClick={() => onPick(k)}>
-              <span className={`${s.ti} ${c.flip ? s.flip : ''}`} style={{ backgroundImage: `url(${imgUrl(c.image, true)})` }} />
+              <span className={`${s.ti} ${c.flip ? s.flip : ''}`} style={{ backgroundImage: `url(${imgUrl(c.tileImage ?? c.image, true)})` }} />
               <span className={s.tx}>
                 <b><i style={{ background: c.accent }} />{c.name}</b>
                 <small>{c.count} ชิ้น · {c.sub}</small>

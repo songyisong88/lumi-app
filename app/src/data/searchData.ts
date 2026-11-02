@@ -23,6 +23,8 @@ export interface Category {
   /** Tile size inside its group grid (3 columns on mobile). */
   span?: 2 | 3
   flip?: boolean
+  /** Wider image for a full-width search tile (avoids cropping a square image). */
+  tileImage?: string
   /** One-line description for the popular-category chips and the ทุกหมวด sheet (variant B). */
   desc: string
   /** Category added in the 19-category update; shown with a ใหม่ badge. */
@@ -57,10 +59,10 @@ export const CATEGORIES: Record<CatKey, Category> = {
   bot: { key: 'bot', name: 'บอทแชต', desc: 'ตอบแชตลูกค้าให้อัตโนมัติ', sub: 'สแกน QR ลองคุยได้', image: 'c_bot.jpg', count: '310', accent: '#16A34A', parent: 'bot', rule: (p) => !['ผู้ช่วย AI', 'ระบบอัตโนมัติ'].includes(sub(p)), match: (p) => inCat('bot', p) },
   ai: { key: 'ai', name: 'ผู้ช่วย AI', desc: 'ช่วยแอดมิน เขียนแคปชัน', sub: 'แอดมิน · เขียนแคปชัน', image: 'robot.jpg', count: '860', accent: '#0E9384', parent: 'bot', rule: (p) => sub(p) === 'ผู้ช่วย AI', match: (p) => inCat('ai', p) },
   auto: { key: 'auto', name: 'ระบบอัตโนมัติ', desc: 'งานซ้ำ ๆ ให้ทำเองอัตโนมัติ', sub: 'n8n · Make · Zapier', image: 'c_auto.jpg', count: '450', accent: '#7C3AED', parent: 'bot', rule: (p) => sub(p) === 'ระบบอัตโนมัติ', match: (p) => inCat('auto', p) },
-  sme: { key: 'sme', name: 'เครื่องมือ SME', desc: 'POS สต็อก บัญชีร้านค้า', sub: 'POS · สต็อก · บัญชี', image: 'c_sme.jpg', count: '610', accent: '#EA580C', span: 3, parent: 'sw', rule: (p) => sub(p) === 'เครื่องมือร้านค้า' || has(p, 'เครื่องมือร้านค้า') || /POS|สต็อก|ออเดอร์|ร้านค้า/.test(p.title + p.use), match: (p) => inCat('sme', p) },
+  sme: { key: 'sme', name: 'เครื่องมือ SME', desc: 'POS สต็อก บัญชีร้านค้า', sub: 'POS · สต็อก · บัญชี', image: 'c_sme.jpg', count: '610', accent: '#EA580C', span: 2, parent: 'sw', rule: (p) => sub(p) === 'เครื่องมือร้านค้า' || has(p, 'เครื่องมือร้านค้า') || /POS|สต็อก|ออเดอร์|ร้านค้า/.test(p.title + p.use), match: (p) => inCat('sme', p) },
   course: { key: 'course', name: 'คอร์สและอีบุ๊ก', desc: 'เรียนจากครีเอเตอร์ตัวจริง', sub: 'เรียนจากครีเอเตอร์', image: 'c_course.jpg', count: '410', accent: '#E0620B', parent: 'course', rule: () => true, match: (p) => inCat('course', p) },
   svc: { key: 'svc', name: 'งานจ้าง', desc: 'จ้างทำโลโก้ มาสคอต เว็บ', sub: 'มาสคอต โลโก้ เว็บ', image: 'mascot.jpg', count: '640', accent: '#DB2777', parent: 'hire', rule: () => true, match: (p) => inCat('svc', p) },
-  media: { key: 'media', name: 'วิดีโอ เสียง เพลง', desc: 'คลิป เสียง เพลง พร้อมสิทธิ์ใช้', isNew: true, sub: 'วิดีโอ AI · เสียงพากย์ · เพลง · เทมเพลตตัดต่อ', image: 'c_media.jpg', count: '1,140', accent: '#9333EA', span: 3, parent: 'media', rule: () => true, match: (p) => inCat('media', p) },
+  media: { key: 'media', name: 'วิดีโอ เสียง เพลง', desc: 'คลิป เสียง เพลง พร้อมสิทธิ์ใช้', isNew: true, sub: 'วิดีโอ AI · เสียงพากย์ · เพลง · เทมเพลตตัดต่อ', image: 'c_media.jpg', tileImage: 'c_media_wide.jpg', count: '1,140', accent: '#9333EA', span: 3, parent: 'media', rule: () => true, match: (p) => inCat('media', p) },
   skill: { key: 'skill', name: 'Agent Skills', desc: 'ชุดทักษะเสริมให้ผู้ช่วย AI', isNew: true, sub: 'สกิลและชุดความรู้ให้ AI agent', image: 'c_skill.jpg', count: '260', accent: '#0F766E', parent: 'skill', rule: () => true, match: (p) => inCat('skill', p) },
   data: { key: 'data', name: 'ชุดข้อมูล', desc: 'ข้อมูลพร้อมใช้ ได้รับอนุญาตถูกต้อง', isNew: true, sub: 'CSV · JSON · พร้อมใช้งาน', image: 'c_data.jpg', count: '330', accent: '#1D4ED8', span: 2, parent: 'data', rule: () => true, match: (p) => inCat('data', p) },
   free: { key: 'free', name: 'ของฟรี', desc: 'ของฟรีทุกประเภท โหลดได้เลย', sub: 'ทุกประเภท โหลดได้เลย', image: 'g_frogs.jpg', count: '1,920', accent: '#16A34A', parent: null, rule: (p) => p.price === 0, match: (p) => inCat('free', p) },
@@ -73,9 +75,9 @@ export const GROUPS: { name: string; color: string; type: SellType | null; keys:
 ]
 /** Search-page category groups of the approved v5-a layout (same 4 groups, tiles and order). */
 export const SEARCH_GROUPS: { name: string; color: string; keys: CatKey[] }[] = [
-  { name: 'ภาพและดีไซน์', color: '#7C3AED', keys: ['img', 'sticker', 'tpl', 'creator'] },
+  { name: 'ภาพและดีไซน์', color: '#7C3AED', keys: ['img', 'sticker', 'tpl', 'creator', 'media'] },
   { name: 'ซอฟต์แวร์ แอป และเกม', color: '#4F46E5', keys: ['sw', 'app', 'game', 'plugin', 'ext'] },
-  { name: 'ธุรกิจและ AI', color: '#0E9384', keys: ['bot', 'ai', 'auto', 'sme'] },
+  { name: 'ธุรกิจและ AI', color: '#0E9384', keys: ['bot', 'ai', 'auto', 'skill', 'sme'] },
   { name: 'เรียนรู้ บริการ และของฟรี', color: '#E0620B', keys: ['course', 'svc', 'free'] },
 ]
 /** Sub-categories of a sell type (shown on the sell wizard's type step). */
