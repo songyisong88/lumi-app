@@ -32,6 +32,7 @@ const Room = lz(() => import('./pages/community/More'), 'Room')
 const Compose = lz(() => import('./pages/community/Compose'), 'Compose')
 const Sell = lz(() => import('./pages/sell/Sell'), 'Sell')
 const Drafts = lz(() => import('./pages/sell/Sell'), 'Drafts')
+const SellStatus = lz(() => import('./pages/sell/Sell'), 'SellStatus')
 const Library = lz(() => import('./pages/library/Library'), 'Library')
 const LibraryItem = lz(() => import('./pages/library/Library'), 'LibraryItem')
 // real-account screens: only routed when FEATURES.accounts is on (off in the live build until approved)
@@ -86,6 +87,7 @@ export default function App() {
             </>}
             <Route path="/sell" element={<Sell />} />
             <Route path="/sell/drafts" element={<Drafts />} />
+            <Route path="/sell/status" element={<SellStatus />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>

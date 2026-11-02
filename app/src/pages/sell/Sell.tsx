@@ -2,9 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Empty, Img, SampleNote, Sheet, Toggle, TopBar, blockTap } from '../../components/ui'
-import { newSpec, licRows, presetRows, MAX_FILES, SPECS, uploadRule, fmtMB, arr, checkListing, completion, filesOf, on, str, visible, sellTypeOf, specOf, SELL_TYPE_ORDER } from '../../data/listingSpec'
+import { newSpec, licRows, presetRows, MAX_FILES, SPECS, uploadRule, fmtMB, arr, checkListing, completion, filesOf, on, str, visible, sellTypeOf, specOf, SELL_TYPE_ORDER, isReq, filled } from '../../data/listingSpec'
 import type { Field, ListingDraft, SellType, Spec, SpecValue, Step, UploadedFile } from '../../data/listingSpec'
-import { CATEGORIES, childrenOf } from '../../data/searchData'
 import { baht, ME, productById } from '../../data/sampleData'
 import { creatorStats, heroOf, optionsOf } from '../../data/productExtras'
 import { contentSig, draftToProduct, sell } from '../../services/api'
@@ -20,7 +19,18 @@ import { useModStatus } from '../../components/ModStatus'
 import { cloudOn, removeDeliverable, uploadDeliverable } from '../../services/cloud'
 import s from './Sell.module.css'
 
-const STEPS = ['ประเภท', 'ไฟล์', 'รายละเอียด', 'ราคา', 'สิทธิ์', 'ตัวอย่าง']
+/** d.step keeps the old 0–5 meaning (0 type · 1 files · 2 details · 3 price · 4 license · 5 preview) so drafts, edit links
+ *  (?edit=…&step=n) and the server row stay compatible. The screen shows it as 2 stages (study 4): 1 ข้อมูลหลัก (steps 0–4 on one
+ *  page) and 2 ดูตัวอย่าง (step 5). */
+
+const STAGES = ['ข้อมูลหลัก', 'ดูตัวอย่าง']
+const stageOf = (step: number) => (step >= 5 ? 1 : 0)
+/** Fields shown on the main form: required ones the type's defaults leave empty. Everything else (optional, or required but
+ *  pre-filled by a sensible default) sits under “เพิ่มรายละเอียด (ไม่บังคับ)”, which opens by itself if one of them goes missing. */
+function mainIdsOf(t: SellType): Set<string> {
+  const def = newSpec(t)
+  return new Set(SPECS[t].fields.filter((f) => isReq(f, def) && !filled(f, def[f.id])).map((f) => f.id))
+}
 /** launch: the “data” type is closed (server: TYPE_CLOSED) */
 const ORDER = FEATURES.launch ? SELL_TYPE_ORDER.filter((t) => t !== 'data') : SELL_TYPE_ORDER
 const FEE = 0.1
@@ -99,6 +109,15 @@ export function Sell() {
   const pct = completion(d)
   const missing = checks.filter((c) => !c.ok)
   const t = d.type ? SPECS[d.type] : undefined
+  const stage = stageOf(d.step)
+  const editing = !!d.publishedId && !!productById(d.publishedId)
+  const mainIds = useMemo(() => (d.type ? mainIdsOf(d.type) : new Set<string>()), [d.type])
+  const inMain = (f: Field) => mainIds.has(f.id)
+  const inMore = (f: Field) => !mainIds.has(f.id)
+  const moreMissing = t ? checks.filter((c) => !c.ok && t.fields.some((f) => f.id === c.id && !mainIds.has(f.id))).length : 0
+  const [more, setMore] = useState(false)
+  const moreOpen = more || moreMissing > 0
+  const lastForm = useRef(1)
 
   // autosave (debounced) — only once the seller has actually entered something, so just
   // opening /sell or tapping a type never leaves empty drafts behind
@@ -116,16 +135,41 @@ export function Sell() {
   const patch = useCallback((p: Partial<ListingDraft>) => setD((x) => ({ ...x, ...p })), [])
   const setSpec = useCallback((id: string, v: SpecValue | ((old: SpecValue | undefined) => SpecValue)) =>
     setD((x) => ({ ...x, spec: { ...x.spec, [id]: typeof v === 'function' ? v(x.spec[id]) : v } })), [])
+  const scroller = () => topRef.current?.closest('.lsc') as HTMLElement | null
+  /** Scroll the form to a section ([data-sec]) or a field (#f-<id>), below the sticky header. */
+  const scrollTo = (sel: string) => requestAnimationFrame(() => requestAnimationFrame(() => {
+    const el = scroller(); const tg = el?.querySelector(sel) as HTMLElement | null
+    if (el && tg) el.scrollTo({ top: Math.max(0, tg.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop - (topRef.current?.offsetHeight ?? 0) - 8), behavior: 'smooth' })
+  }))
   const go = (n: number) => {
-    setDir(n > d.step ? 1 : -1)
+    const from = stageOf(d.step), to = stageOf(n)
+    setDir(to >= from ? 1 : -1)
+    if (to === 1 && from === 0) lastForm.current = d.step
     patch({ step: n })
-    const el = topRef.current?.closest('.lsc') as HTMLElement | null
-    el?.scrollTo({ top: 0 })
+    if (to !== from || n === 5) scroller()?.scrollTo({ top: 0 })
+    else if (n >= 1) scrollTo(`[data-sec="${n}"]`)
   }
+  /** A missing item in the auto-check: open the form at it (and the optional box if it lives there). */
+  const fix = (c: { id: string; step: number }) => {
+    const inBox = !!t?.fields.some((f) => f.id === c.id && !mainIds.has(f.id))
+    if (inBox) setMore(true)
+    setDir(-1); patch({ step: Math.min(Math.max(c.step, d.type ? 1 : 0), 4) })
+    scrollTo(c.id === 'covers' || c.id === 'title' || c.id === 'price' ? `[data-sec="${c.step}"]` : inBox ? `[data-more] #f-${c.id}, [data-sec="more"]` : `#f-${c.id}, [data-sec="${c.step}"]`)
+  }
+  // images: “ขายพรอมต์ด้วย” and the “ภาพ + พรอมต์” option are the same choice
+  const setPrice: SetSpec = (id, v) => {
+    setSpec(id, v)
+    if (d.type === 'img' && id === 'sellPrompt' && typeof v === 'boolean' && !d.free) patch({ options: d.options.map((x) => (isPromptOpt(x) ? { ...x, on: v } : x)) })
+  }
+  const setLic: SetSpec = (id, v) => {
+    setSpec(id, v)
+    if (id === 'licPreset' && typeof v === 'string' && presetRows(d.type, v).length) setSpec('licAllowed', presetRows(d.type, v))
+  }
+  // opened at a section (edit links like ?edit=…&step=3 for the price): scroll there once
+  useEffect(() => { if (d.step >= 2 && d.step <= 4) scrollTo(`[data-sec="${d.step}"]`) }, [d.id]) // eslint-disable-line react-hooks/exhaustive-deps
   const pickType = (k: SellType) => {
-    if (d.type === k) return go(1)
-    setD((x) => ({ ...x, type: k, spec: newSpec(k), options: PRICE_OPTS[k].map((y) => ({ ...y })), step: 1 }))
-    setDir(1)
+    if (d.type === k) return
+    setD((x) => ({ ...x, type: k, spec: newSpec(k), options: PRICE_OPTS[k].map((y) => ({ ...y })), step: Math.max(1, Math.min(x.step, 4)) }))
   }
   const [payout, setPayout] = useState(false)
   const publish = async (ack = false) => {
@@ -137,8 +181,11 @@ export function Sell() {
     setBusy(true)
     try {
       published.current = true
+      const isNew = !editing
       const id = await sell.publish({ ...d, publishedId: d.publishedId ?? `u-${d.id}` }, share, notify)
-      setDone(id)
+      // a new listing goes to “ผลงานของฉัน · สถานะการตรวจ” (study 4); edits keep the result screen
+      if (isNew) nav(`/sell/status?sent=${encodeURIComponent(id)}`, { replace: true })
+      else setDone(id)
     } catch (e) { published.current = false; if (cloudOn()) toast((e as Error).message); setCheckOpen(true) } finally { setBusy(false) }
   }
 
@@ -151,7 +198,6 @@ export function Sell() {
   }
   if (done) return <Success edited={!!d.publishedId && d.publishedId !== `u-${d.id}`} id={done} d={d} share={share} notify={notify} onNext={startNext} />
 
-  const stepMissing = (n: number) => checks.filter((c) => !c.ok && c.step === n).length
   const close = () => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/profile?mode=creator'))
   const head = (
     <div className={s.head} ref={topRef}>
@@ -160,43 +206,56 @@ export function Sell() {
         <div className={s.ht}><b>{d.publishedId && productById(d.publishedId) ? `แก้ไข · ${t?.name ?? ''}` : t ? `ลงขาย · ${t.name}` : 'ลงขายผลงาน'}</b><small className={saved === 'saved' ? s.ok : ''}>{saved === 'saving' ? 'กำลังบันทึก…' : saved === 'saved' ? 'บันทึกร่างแล้ว ✓' : 'บันทึกอัตโนมัติ'}</small></div>
         <Link to="/sell/drafts" className="btn btn-xs btn-s">ร่าง</Link>
       </div>
-      <div className={s.prog}>{STEPS.map((x, i) => <button key={x} className={`${i <= d.step ? s.pd : ''}`} {...blockTap(!d.type && i > 0, 'เลือกประเภทผลงานก่อน')} onClick={() => d.type && go(i)} aria-label={`ขั้น ${x}`} />)}</div>
-      <div className={s.stl}><span>ขั้นที่ <b>{d.step + 1}</b> จาก 6 · {STEPS[d.step]}</span>{d.type && <button className={s.pctB} onClick={() => setCheckOpen(true)}><span className={s.pbar}><i style={{ transform: `scaleX(${pct / 100})` }} /></span>{pct}% พร้อมลงขาย</button>}</div>
+      <div className={s.prog}>{STAGES.map((x, i) => <button key={x} className={`${i <= stage ? s.pd : ''}`} {...blockTap(!d.type && i > 0, 'เลือกประเภทผลงานก่อน')} onClick={() => d.type && go(i === 0 ? Math.min(Math.max(d.step, 1), 4) : 5)} aria-label={`ขั้น ${x}`} />)}</div>
+      <div className={s.stl}><span>ขั้นที่ <b>{stage + 1}</b> จาก 2 · {STAGES[stage]}</span>{d.type && <button className={s.pctB} onClick={() => setCheckOpen(true)}><span className={s.pbar}><i style={{ transform: `scaleX(${pct / 100})` }} /></span>{pct}% พร้อมลงขาย</button>}</div>
     </div>
   )
 
   return (
     <div className={`page has-bar ${s.page}`}>
       {head}
-      <div key={d.step} className={`narrow ${s.body} ${dir > 0 ? s.inR : s.inL}`}>
-        {d.step === 0 && <StepType d={d} pick={pickType} />}
-        {d.step === 1 && t && <>
-          <H t={d.type === 'hire' ? 'ผลงานตัวอย่างและสิ่งที่ส่ง' : 'อัปโหลดผลงาน'} s="รูปหน้าปก ไฟล์ที่ผู้ซื้อได้รับ และข้อมูลไฟล์" />
-          <Covers d={d} patch={patch} />
-          <Fields fs={t.fields} step="files" spec={d.spec} set={setSpec} type={d.type} draftId={d.id} />
-        </>}
-        {d.step === 2 && t && <>
-          <H t="บอกผู้ซื้อให้ชัด" s="ชื่อ ประโยคบอกว่าเหมาะกับใคร และรายละเอียด" />
-          <div className="field"><label className="flabel">ชื่อผลงาน<span className="req">*</span></label><input className="inp" value={d.title} maxLength={70} onChange={(e) => patch({ title: e.target.value })} placeholder="เช่น ภาพตลาดกลางคืนแห่งแสงโคม" /><span className="hint">{d.title.length}/70</span></div>
-          <div className="field"><label className="flabel">เหมาะกับใคร / ใช้ทำอะไร<span className="req">*</span></label><input className="inp" value={d.use} onChange={(e) => patch({ use: e.target.value })} placeholder="เช่น ทำปกเพจ โปสเตอร์ หรือวอลเปเปอร์" /></div>
-          <div className="field"><label className="flabel">รายละเอียด<span className="req">*</span></label><textarea className="ta" rows={5} value={d.desc} onChange={(e) => patch({ desc: e.target.value })} placeholder="เล่าให้ผู้ซื้อเห็นภาพ ได้อะไร ใช้ยังไง" /></div>
-          <Tags d={d} patch={patch} />
-          <Fields fs={t.fields} step="details" spec={d.spec} set={setSpec} />
-        </>}
-        {d.step === 3 && t && <StepPrice d={d} patch={patch} set={setSpec} />}
-        {d.step === 4 && t && <>
-          <H t="สิทธิ์การใช้งาน" s="ผู้ซื้อทำอะไรได้บ้าง ตารางนี้จะโชว์บนหน้าผลงาน" />
-          <Fields fs={t.fields} step="license" spec={d.spec} set={(id, v) => {
-            setSpec(id, v)
-            if (id === 'licPreset' && typeof v === 'string' && presetRows(d.type, v).length) setSpec('licAllowed', presetRows(d.type, v))
-          }} />
-          {arr(d.spec.licAllowed).length > 0 && (
-            <div className={s.lict}>{licRows(d.type).map((r) => { const ok = arr(d.spec.licAllowed).includes(r); return <div key={r}><span>{r}</span>{ok ? <b className={s.y}>ได้ ✓</b> : <b className={s.n}>ไม่ได้</b>}</div> })}</div>
-          )}
+      <div key={stage} className={`narrow ${s.body} ${dir > 0 ? s.inR : s.inL}`}>
+        {stage === 0 && <>
+          <H t="ลงขายใน 1 นาที" s="ใส่ข้อมูลหลักก็ส่งตรวจได้ ที่เหลือตั้งค่าเริ่มต้นไว้ให้ แก้ทีหลังได้" />
+          {!d.type && <OtherDrafts d={d} />}
+          <div className="field" data-sec="0"><label className="flabel">ประเภท<span className="req">*</span></label>
+            <div className={`chips hscroll ${s.typeRow}`} role="radiogroup" aria-label="ประเภทผลงาน">{ORDER.map((k) => <button key={k} role="radio" aria-checked={d.type === k} className={`chip ${s.typeChip} ${d.type === k ? 'on-p' : ''}`} onClick={() => pickType(k)}><Icon name={SPECS[k].icon} size={15} color={d.type === k ? 'currentColor' : SPECS[k].color} />{SPECS[k].name}</button>)}</div>
+            {t && <span className="hint">{t.sub}</span>}
+          </div>
+          {t && <>
+            <div data-sec="1">
+              <Covers d={d} patch={patch} />
+              <Fields fs={t.fields} step="files" spec={d.spec} set={setSpec} type={d.type} draftId={d.id} only={inMain} />
+            </div>
+            <div data-sec="2">
+              <div className="field"><label className="flabel">ชื่อผลงาน<span className="req">*</span></label><input className="inp" value={d.title} maxLength={70} onChange={(e) => patch({ title: e.target.value })} placeholder="เช่น ภาพตลาดกลางคืนแห่งแสงโคม" /><span className="hint">{d.title.length}/70</span></div>
+              <div className="field"><label className="flabel">เหมาะกับใคร / ใช้ทำอะไร<span className="req">*</span></label><input className="inp" value={d.use} onChange={(e) => patch({ use: e.target.value })} placeholder="เช่น ทำปกเพจ โปสเตอร์ หรือวอลเปเปอร์" /></div>
+              <div className="field"><label className="flabel">รายละเอียด<span className="req">*</span></label><textarea className="ta" rows={4} value={d.desc} onChange={(e) => patch({ desc: e.target.value })} placeholder="เล่าให้ผู้ซื้อเห็นภาพ ได้อะไร ใช้ยังไง" /></div>
+              <Fields fs={t.fields} step="details" spec={d.spec} set={setSpec} type={d.type} draftId={d.id} only={inMain} />
+            </div>
+            <div data-sec="3">
+              <PriceBlock d={d} patch={patch} set={setSpec} />
+              <Fields fs={t.fields} step="price" spec={d.spec} set={setPrice} type={d.type} draftId={d.id} only={inMain} />
+            </div>
+            <div data-sec="4"><Fields fs={t.fields} step="license" spec={d.spec} set={setLic} type={d.type} draftId={d.id} only={inMain} /></div>
+            <button className={`${s.bx} ${s.moreBtn}`} data-sec="more" aria-expanded={moreOpen} onClick={() => setMore(!moreOpen)}>
+              <div className={s.row}><span className={s.ri} style={{ background: '#EEF2FF' }}><Icon name="edit" size={18} color="#4F46E5" /></span><span className="grow"><b>เพิ่มรายละเอียด (ไม่บังคับ)</b><small>{moreMissing ? `มี ${moreMissing} อย่างที่ต้องแก้ในส่วนนี้` : 'แท็ก ข้อมูลไฟล์ วิธีใช้ สิทธิ์การใช้งาน · ตั้งค่าเริ่มต้นไว้ให้แล้ว'}</small></span>{moreMissing > 0 && <span className={s.miss}>ขาด {moreMissing}</span>}<Icon name={moreOpen ? 'down' : 'chev'} size={18} color="var(--mut)" /></div>
+            </button>
+            {moreOpen && <div className={`${s.moreBox} rise`} data-more>
+              <Tags d={d} patch={patch} />
+              <Fields fs={t.fields} step="files" spec={d.spec} set={setSpec} type={d.type} draftId={d.id} only={inMore} />
+              <Fields fs={t.fields} step="details" spec={d.spec} set={setSpec} type={d.type} draftId={d.id} only={inMore} />
+              <Fields fs={t.fields} step="price" spec={d.spec} set={setPrice} type={d.type} draftId={d.id} only={inMore} />
+              <Fields fs={t.fields} step="license" spec={d.spec} set={setLic} type={d.type} draftId={d.id} only={inMore} />
+              {arr(d.spec.licAllowed).length > 0 && (
+                <div className={s.lict}>{licRows(d.type).map((r) => { const ok = arr(d.spec.licAllowed).includes(r); return <div key={r}><span>{r}</span>{ok ? <b className={s.y}>ได้ ✓</b> : <b className={s.n}>ไม่ได้</b>}</div> })}</div>
+              )}
+            </div>}
+          </>}
         </>}
         {d.step === 5 && t && <>
           <div className={s.prvb}><Icon name="eye" size={15} color="#fff" stroke={2} />ผู้ซื้อจะเห็นหน้านี้<span>กด “แก้ไข” เพื่อกลับไปแก้</span></div>
-          <CheckList checks={checks} go={go} compact />
+          <CheckList checks={checks} go={fix} compact />
           <div className={s.prvWrap}><ProductView p={previewOf(d)} preview /></div>
           <div className={s.bx}>
             <Row icon="share" c="#6C2BD9" bg="#F3ECFF" t="แชร์ลงชุมชน LUMI" sub="โพสต์พร้อมลิงก์ผลงาน" on={share} set={setShare} />
@@ -206,10 +265,10 @@ export function Sell() {
         </>}
       </div>
       <div className="bottom-bar">
-        {d.step > 0 ? <button className="btn btn-o" onClick={() => go(d.step - 1)}>{d.step === 5 ? 'แก้ไข' : 'ย้อนกลับ'}</button> : <span />}
-        {d.step < 5
-          ? <button className="btn btn-p" style={{ flex: 1 }} {...blockTap(!d.type, 'เลือกประเภทผลงานก่อน')} onClick={() => go(d.step + 1)}>ถัดไป · {STEPS[d.step + 1]}{d.step > 0 && stepMissing(d.step) > 0 && <span className={s.miss}>ขาด {stepMissing(d.step)}</span>}</button>
-          : <button className="btn btn-p" style={{ flex: 1 }} disabled={busy} onClick={() => publish()}>{busy ? 'กำลังลงขาย…' : missing.length ? `ยังขาด ${missing.length} อย่าง` : d.publishedId && productById(d.publishedId) ? productById(d.publishedId)?.mod?.status === 'rejected' ? 'ส่งตรวจใหม่' : 'บันทึกการแก้ไข' : d.free && d.type !== 'hire' ? 'แจกฟรีเลย' : 'ลงขายเลย'}</button>}
+        {stage === 1 && <button className="btn btn-o" onClick={() => go(Math.min(Math.max(lastForm.current, 1), 4))}>แก้ไข</button>}
+        {stage === 0
+          ? <button className="btn btn-p" style={{ flex: 1 }} {...blockTap(!d.type, 'เลือกประเภทผลงานก่อน')} onClick={() => go(5)}><Icon name="eye" size={17} color="#fff" />ดูตัวอย่างก่อนส่ง{d.type && missing.length > 0 && <span className={s.miss}>ขาด {missing.length}</span>}</button>
+          : <button className="btn btn-p" style={{ flex: 1 }} disabled={busy} onClick={() => publish()}>{busy ? 'กำลังส่ง…' : missing.length ? `ยังขาด ${missing.length} อย่าง` : editing ? productById(d.publishedId!)?.mod?.status === 'rejected' ? 'ส่งตรวจใหม่' : 'บันทึกการแก้ไข' : <><Icon name="send" size={17} color="#fff" />ส่งตรวจ</>}</button>}
       </div>
       <Sheet open={payout} onClose={() => setPayout(false)} title="ก่อนรับเงินจากการขายจริง" sub="ยืนยันตัวตนและผูกบัญชีรับเงิน · เร็ว ๆ นี้"
         footer={<button className="btn btn-p btn-block" onClick={() => { localStorage.setItem(PAYOUT_ACK, '1'); setPayout(false); publish(true) }}>รับทราบ ลงขายต่อ</button>}>
@@ -218,7 +277,7 @@ export function Sell() {
         <p className="hint" style={{ marginTop: 10 }}>{REAL ? 'ช่วงเปิดตัวลงได้เฉพาะของแจกฟรี ยังไม่มีการรับเงิน · ของแจกฟรีไม่ต้องยืนยัน' : 'ตอนนี้ลงขายในโหมดทดลองได้เลย ยังไม่มีการซื้อขายจริง · ของแจกฟรีไม่ต้องยืนยัน'}</p>
       </Sheet>
       <Sheet open={checkOpen} onClose={() => setCheckOpen(false)} title={missing.length ? `ตรวจอัตโนมัติ · ยังขาด ${missing.length} อย่าง` : 'ตรวจอัตโนมัติ · พร้อมลงขาย ✓'} sub={t ? `สิ่งที่ “${t.name}” ต้องมีก่อนลงขาย` : undefined} tall>
-        <CheckList checks={checks} go={(n) => { setCheckOpen(false); setTimeout(() => go(n), 200) }} />
+        <CheckList checks={checks} go={(c) => { setCheckOpen(false); setTimeout(() => fix(c), 200) }} />
       </Sheet>
     </div>
   )
@@ -228,26 +287,23 @@ function H({ t, s: sub }: { t: string; s: string }) {
   return <div className={s.h}><h1>{t}</h1><p>{sub}</p></div>
 }
 
-function StepType({ d, pick }: { d: ListingDraft; pick: (k: SellType) => void }) {
-  const db = useDb()
-  const other = db.drafts.filter((x) => x.id !== d.id)
-  return <>
-    {other.length > 0 && (
-      <Link to="/sell/drafts" className={`${s.drb} press`}><Img src={other[0].covers[0] ?? 'g_lotus.jpg'} className={s.drbI} /><span className="grow"><b>ร่างค้างไว้ {other.length} ชิ้น</b><small className="ell">{other[0].title || 'ยังไม่ตั้งชื่อ'} · แก้ล่าสุด {ago(other[0].updatedAt)}</small></span><span className={s.go}>ทำต่อ ›</span></Link>
-    )}
-    <H t="จะลงขายอะไรดี?" s="เลือกประเภท แล้ว LUMI จะถามเฉพาะสิ่งที่จำเป็น" />
-    <div className={s.tyg}>
-      {ORDER.map((k, i) => { const x = SPECS[k]; return (
-        <button key={k} className={`${s.ty} ${d.type === k ? s.on : ''} press rise`} style={{ '--i': i } as React.CSSProperties} onClick={() => pick(k)}>
-          <span className={s.tyi} style={{ background: x.bg }}><Icon name={x.icon} size={22} color={x.color} /></span>
-          <b>{x.name}</b><small>{x.sub}</small>
-          {['media', 'skill', 'data'].includes(k) && <em className={s.nw}>ใหม่</em>}
-        </button>
-      ) })}
+/** “ร่างค้างไว้” shortcut on a fresh form. */
+function OtherDrafts({ d }: { d: ListingDraft }) {
+  const other = useDb().drafts.filter((x) => x.id !== d.id)
+  if (!other.length) return null
+  return <Link to="/sell/drafts" className={`${s.drb} press`}><Img src={other[0].covers[0] ?? 'g_lotus.jpg'} className={s.drbI} /><span className="grow"><b>ร่างค้างไว้ {other.length} ชิ้น</b><small className="ell">{other[0].title || 'ยังไม่ตั้งชื่อ'} · แก้ล่าสุด {ago(other[0].updatedAt)}</small></span><span className={s.go}>ทำต่อ ›</span></Link>
+}
+
+/** Price on the one-page form. Launch (free only, not hire): a แจกฟรี / ตั้งราคา·เร็ว ๆ นี้ pair; otherwise the full price editor. */
+function PriceBlock({ d, patch, set }: { d: ListingDraft; patch: (p: Partial<ListingDraft>) => void; set: SetSpec }) {
+  useEffect(() => { if (FEATURES.launch && d.type !== 'hire' && !d.free) patch({ free: true }) }, [d.type, d.free]) // eslint-disable-line react-hooks/exhaustive-deps
+  if (FEATURES.launch && d.type !== 'hire') return (
+    <div className="field"><label className="flabel">ราคา</label>
+      <div className={s.priceRow}><button className="chip on-p" aria-pressed="true">แจกฟรี</button><button className={`chip ${s.soon}`} aria-disabled="true" onClick={() => toast('ช่วงเปิดตัวลงได้เฉพาะผลงานฟรี · การขายแบบชำระเงินจะเปิดภายหลัง')}>ตั้งราคา · เร็ว ๆ นี้</button></div>
+      {FEATURES.tips && <div className={s.bx} style={{ marginTop: 10 }}><Row icon="coin" c="#B45309" bg="#FFF4DB" t="เปิดรับทิป" sub="ผู้ใช้ให้ทิปได้ตามใจ" on={d.tips} set={(v) => patch({ tips: v })} /></div>}
     </div>
-    {d.type && SPECS[d.type] && <div className={s.bx} style={{ marginTop: 12 }} data-type-cats><div className={s.row}><span className={s.ri} style={{ background: SPECS[d.type].bg }}><Icon name="grid" size={18} color={SPECS[d.type].color} /></span><span className="grow"><b>หมวดบนหน้าค้นหา</b><small>{childrenOf(d.type).map((k) => CATEGORIES[k].name).join(' · ')}</small></span></div></div>}
-    <div className={s.bx} style={{ marginTop: 12 }}><div className={s.row}><span className={s.ri} style={{ background: '#E5F8EC' }}><Icon name="gift" size={18} color="#16A34A" /></span><span className="grow"><b>อยากแจกฟรี?</b><small>เปิดได้ในขั้นราคา ทุกประเภท</small></span></div></div>
-  </>
+  )
+  return <StepPrice d={d} patch={patch} set={set} />
 }
 
 function Covers({ d, patch }: { d: ListingDraft; patch: (p: Partial<ListingDraft>) => void }) {
@@ -300,7 +356,6 @@ function Tags({ d, patch }: { d: ListingDraft; patch: (p: Partial<ListingDraft>)
 const isPromptOpt = (x?: { id: string; label: string }) => !!x && (x.id === 'both' || /พรอมต์/.test(x.label))
 
 function StepPrice({ d, patch, set }: { d: ListingDraft; patch: (p: Partial<ListingDraft>) => void; set: SetSpec }) {
-  const t = SPECS[d.type!]
   const opts = d.options
   const live = opts.filter((x) => x.on && x.price > 0)
   const top = live.length ? Math.max(...live.map((x) => x.price)) : 0
@@ -311,12 +366,8 @@ function StepPrice({ d, patch, set }: { d: ListingDraft; patch: (p: Partial<List
   }
   // launch: free items only for now (server: PAID_SALES_LATER)
   useEffect(() => { if (FEATURES.launch && d.type !== 'hire' && !d.free) patch({ free: true }) }, [d.type, d.free]) // eslint-disable-line react-hooks/exhaustive-deps
-  const setP: SetSpec = (id, v) => {
-    set(id, v)
-    if (d.type === 'img' && id === 'sellPrompt' && typeof v === 'boolean' && !d.free) patch({ options: opts.map((x) => (isPromptOpt(x) ? { ...x, on: v } : x)) })
-  }
   return <>
-    <H t="ตั้งราคาและแบบที่ขาย" s="เปิดเฉพาะแบบที่อยากขาย ผู้ซื้อเลือกเองบนหน้าผลงาน" />
+    <label className="flabel">ราคาและแบบที่ขาย<small className={s.fsub}>เปิดเฉพาะแบบที่อยากขาย ผู้ซื้อเลือกเองบนหน้าผลงาน</small></label>
     {d.type === 'hire' ? <p className="hint" style={{ marginTop: 0 }}>{FEATURES.launch ? 'ช่วงเปิดตัว: ผู้จ้างทักแชตและตกลงงานกันก่อน · การชำระเงินผ่าน LUMI จะเปิดภายหลัง · ราคาแพ็กเกจใช้แสดงเป็นราคาเริ่มต้น' : 'งานจ้างต้องตั้งราคาอย่างน้อย 1 แพ็กเกจ · ผู้จ้างจ่ายเมื่อรับข้อเสนอ · เงินโอนให้คุณเมื่อผู้จ้างกดรับงาน หรือครบ 3 วันหลังส่งงาน'}</p> : <div className={`${s.bx} ${d.free ? s.freeOn : ''}`}>
       <Row icon="gift" c="#16A34A" bg="#E5F8EC" t="แจกฟรี" sub={FEATURES.launch ? 'ช่วงเปิดตัวลงได้เฉพาะผลงานฟรี · การขายแบบชำระเงินจะเปิดภายหลัง' : 'ผู้ใช้กดรับได้เลย ยังต้องกรอกข้อมูลให้ครบเหมือนของขาย · สลับกลับเป็นขายได้ทุกเมื่อ'} on={d.free} set={(v) => (FEATURES.launch ? undefined : patch({ free: v }))} />
       {d.free && FEATURES.tips && <Row icon="coin" c="#B45309" bg="#FFF4DB" t="เปิดรับทิป" sub="ผู้ใช้ให้ทิปได้ตามใจ" on={d.tips} set={(v) => patch({ tips: v })} />}
@@ -331,14 +382,13 @@ function StepPrice({ d, patch, set }: { d: ListingDraft; patch: (p: Partial<List
       ))}
       {top > 0 && <><div className={s.earn}><div><small>ราคาสูงสุด</small><b>{baht(top)}</b></div><div><small>ค่าธรรมเนียม LUMI 10%</small><b>−{baht(Math.round(top * FEE))}</b></div><div><small>คุณได้รับ</small><b className={s.y}>{baht(top - Math.round(top * FEE))}</b></div></div><p className="hint" style={{ marginTop: 6, marginBottom: 14 }}>ตัวอย่าง · ยังไม่รวม VAT และค่าธรรมเนียมการชำระเงิน</p></>}
     </>}
-    <Fields fs={t.fields} step="price" spec={d.spec} set={setP} />
   </>
 }
 
 type SetSpec = (id: string, v: SpecValue | ((old: SpecValue | undefined) => SpecValue)) => void
 
-function Fields({ fs, step, spec, set, type = null, draftId }: { fs: Field[]; step: Step; spec: Spec; set: SetSpec; type?: SellType | null; draftId?: string }) {
-  return <>{fs.filter((f) => f.step === step && visible(f, spec)).map((f) => <FieldView key={f.id} f={f} v={spec[f.id]} spec={spec} set={set} type={type} draftId={draftId} />)}</>
+function Fields({ fs, step, spec, set, type = null, draftId, only }: { fs: Field[]; step: Step; spec: Spec; set: SetSpec; type?: SellType | null; draftId?: string; only?: (f: Field) => boolean }) {
+  return <>{fs.filter((f) => f.step === step && visible(f, spec) && (!only || only(f))).map((f) => <div key={f.id} id={`f-${f.id}`}><FieldView f={f} v={spec[f.id]} spec={spec} set={set} type={type} draftId={draftId} /></div>)}</>
 }
 
 function FieldView({ f, v, spec, set, type, draftId }: { f: Field; v: SpecValue | undefined; spec: Spec; set: SetSpec; type: SellType | null; draftId?: string }) {
@@ -442,7 +492,7 @@ function Row({ icon, c, bg, t, sub, on: v, set }: { icon: string; c: string; bg:
   return <div className={s.row}><span className={s.ri} style={{ background: bg }}><Icon name={icon} size={18} color={c} /></span><span className="grow"><b>{t}</b><small>{sub}</small></span><Toggle on={v} onChange={set} label={t} /></div>
 }
 
-function CheckList({ checks, go, compact }: { checks: ReturnType<typeof checkListing>; go: (n: number) => void; compact?: boolean }) {
+function CheckList({ checks, go, compact }: { checks: ReturnType<typeof checkListing>; go: (c: ReturnType<typeof checkListing>[number]) => void; compact?: boolean }) {
   const miss = checks.filter((c) => !c.ok)
   const list = compact ? miss : checks
   if (compact && !miss.length) return <div className={s.allOk}><span className="ok-ic"><Icon name="check" size={14} stroke={3} /></span>ตรวจอัตโนมัติผ่านครบ {checks.length} ข้อ พร้อมส่งให้ทีม LUMI ตรวจก่อนขึ้นขาย</div>
@@ -450,10 +500,10 @@ function CheckList({ checks, go, compact }: { checks: ReturnType<typeof checkLis
     <div className={compact ? s.ckC : s.ck}>
       {compact && <b className={s.ckH}>ยังขาด {miss.length} อย่างก่อนลงขาย</b>}
       {list.map((c) => (
-        <button key={c.id} className={`${s.ci} ${c.ok ? s.ciOk : ''}`} onClick={() => go(c.step)}>
+        <button key={c.id} className={`${s.ci} ${c.ok ? s.ciOk : ''}`} onClick={() => go(c)}>
           <span className={c.ok ? 'ok-ic' : s.xic}>{c.ok ? <Icon name="check" size={13} stroke={3} /> : '!'}</span>
           <span className="grow">{c.label}{c.note && !c.ok && <small>{c.note}</small>}</span>
-          {!c.ok && <span className={s.fix}>ขั้น {STEPS[c.step]} ›</span>}
+          {!c.ok && <span className={s.fix}>แก้ ›</span>}
         </button>
       ))}
     </div>
@@ -475,8 +525,8 @@ function Success({ id, d, share, notify, onNext, edited }: { id: string; d: List
       <TopBar title="" back={false} right={<button className="tb-btn" onClick={() => nav('/profile?mode=creator', { replace: true })} aria-label="ปิด"><Icon name="x" size={22} /></button>} />
       <div className={`narrow ${s.okp}`}>
         <div className={`${s.okBg} pop-in`} style={pending || revPending ? { background: 'linear-gradient(135deg,#F59E0B,#B45309)' } : undefined}><Icon name={pending || revPending ? 'clock' : 'check'} size={48} color="#fff" stroke={3} /></div>
-        <h2 className="rise" data-success={pending || revPending ? 'pending' : passed || !edited ? 'live' : 'edited'}>{pending ? 'ส่งตรวจแล้ว!' : revPending ? 'ส่งการแก้ไขตรวจแล้ว' : revPassed ? 'อัปเดตผลงานแล้ว · ผ่านการตรวจ' : passed ? d.free && d.type !== 'hire' ? 'แจกฟรีแล้ว · ผ่านการตรวจ' : 'ลงขายแล้ว · ผ่านการตรวจ' : 'อัปเดตผลงานแล้ว!'}</h2>
-        <p className="rise" style={{ '--i': 1 } as React.CSSProperties}>{pending ? `ทีม LUMI ตรวจทุกชิ้นก่อนขึ้นขาย ปกติไม่เกิน 24 ชม.${REAL ? '' : ' (ตัวอย่างนี้ใช้เวลาราว 20 วินาที)'} · ระหว่างรอ ผลงานยังไม่ขึ้นหน้าแรก หน้าค้นหา และหน้าร้าน · ผลตรวจจะแจ้งในการแจ้งเตือน` : revPending ? `ส่งการแก้ไขให้ทีม LUMI ตรวจแล้ว ปกติไม่เกิน 24 ชม.${REAL ? '' : ' (ตัวอย่างนี้ราว 20 วินาที)'} · ระหว่างรอ ผู้ซื้อยังเห็นฉบับเดิม` : revPassed ? 'การแก้ไขผ่านการตรวจแล้ว · ผู้ซื้อเห็นฉบับใหม่แล้ว' : passed ? 'ขึ้นหน้าแรก หน้าค้นหา และหน้าร้านแล้ว · ถ้าพบว่าผิดกฎภายหลัง LUMI ลบได้' : 'แก้ราคาและเงื่อนไขแล้ว มีผลทันที · การแก้รูป ไฟล์ ชื่อ หรือรายละเอียด จะส่งให้ทีม LUMI ตรวจก่อน'}</p>
+        <h2 className="rise" data-success={pending || revPending ? 'pending' : passed || !edited ? 'live' : 'edited'}>{pending ? 'ส่งตรวจแล้ว' : revPending ? 'ส่งการแก้ไขตรวจแล้ว' : revPassed ? 'อัปเดตผลงานแล้ว · ผ่านการตรวจ' : passed ? d.free && d.type !== 'hire' ? 'แจกฟรีแล้ว · ผ่านการตรวจ' : 'ลงขายแล้ว · ผ่านการตรวจ' : 'อัปเดตผลงานแล้ว!'}</h2>
+        <p className="rise" style={{ '--i': 1 } as React.CSSProperties}>{pending ? `ทีม LUMI จะตรวจภายใน 24 ชม. เราจะแจ้งเตือนเมื่อผลงานขึ้นร้าน${REAL ? '' : ' (ตัวอย่างนี้ใช้เวลาราว 20 วินาที)'}` : revPending ? `ส่งการแก้ไขให้ทีม LUMI ตรวจแล้ว ปกติไม่เกิน 24 ชม.${REAL ? '' : ' (ตัวอย่างนี้ราว 20 วินาที)'} · ระหว่างรอ ผู้ซื้อยังเห็นฉบับเดิม` : revPassed ? 'การแก้ไขผ่านการตรวจแล้ว · ผู้ซื้อเห็นฉบับใหม่แล้ว' : passed ? 'ขึ้นหน้าแรก หน้าค้นหา และหน้าร้านแล้ว · ถ้าพบว่าผิดกฎภายหลัง LUMI ลบได้' : 'แก้ราคาและเงื่อนไขแล้ว มีผลทันที · การแก้รูป ไฟล์ ชื่อ หรือรายละเอียด จะส่งให้ทีม LUMI ตรวจก่อน'}</p>
         {reviewed && <div className="rise" data-mod-steps style={{ '--i': 1, display: 'flex', justifyContent: 'center', gap: 6, fontSize: 12, margin: '4px 0 10px' } as React.CSSProperties}>
           {['ส่งตรวจ', 'รอตรวจ', 'ขึ้นขาย'].map((x, i) => { const done = i === 0 || (i === 1 && !pending) || (i === 2 && passed); const cur = (i === 1 && pending) || (i === 2 && passed); return <span key={x} className={`pill ${done ? 'pill-g' : cur ? 'pill-w' : ''}`}>{done && <Icon name="check" size={11} stroke={3} />}{x}</span> })}
         </div>}
@@ -508,7 +558,7 @@ export function Drafts() {
           <div key={x.id} className={`${s.dr} rise`} style={{ '--i': i } as React.CSSProperties}>
             <button className={s.drL} onClick={() => nav(`/sell?draft=${x.id}`)}>
               <Img src={x.covers[0] ?? 'g_lotus.jpg'} className={s.drbI} />
-              <span className="grow"><b className="ell">{x.title || 'ยังไม่ตั้งชื่อ'}</b><small>{t?.name ?? '—'} · ค้างที่ขั้น{STEPS[x.step]} · {ago(x.updatedAt)}</small><span className={s.pbar}><i style={{ transform: `scaleX(${p / 100})` }} /></span></span>
+              <span className="grow"><b className="ell">{x.title || 'ยังไม่ตั้งชื่อ'}</b><small>{t?.name ?? '—'} · ค้างที่{x.step >= 5 ? 'ดูตัวอย่าง' : 'ข้อมูลหลัก'} · {ago(x.updatedAt)}</small><span className={s.pbar}><i style={{ transform: `scaleX(${p / 100})` }} /></span></span>
               <b className={s.pctN}>{p}%</b>
             </button>
             <button className={s.drX} onClick={() => setDel(x.id)} aria-label="ลบร่าง"><Icon name="trash" size={16} /></button>
@@ -521,6 +571,58 @@ export function Drafts() {
         <button className="btn btn-d btn-block" onClick={() => { sell.deleteDraft(del!); setDel(undefined); toast('ลบร่างแล้ว') }}>ลบร่าง</button>
         <button className="btn btn-s btn-block" style={{ marginTop: 8 }} onClick={() => setDel(undefined)}>ยกเลิก</button>
       </Sheet>
+    </div>
+  )
+}
+
+/* ===== ผลงานของฉัน · สถานะการตรวจ (study 4): where a new listing lands after “ส่งตรวจ” ===== */
+type RevState = 'pending' | 'live' | 'rejected'
+const REV_CHIPS: { v: RevState | 'all'; label: string }[] = [{ v: 'all', label: 'ทั้งหมด' }, { v: 'pending', label: 'รอตรวจ' }, { v: 'live', label: 'ผ่านแล้ว' }, { v: 'rejected', label: 'ต้องแก้' }]
+const REV_PILL: Record<RevState, [string, string, string]> = { pending: ['รอตรวจ', '#B45309', '#FFF4DB'], live: ['ผ่านแล้ว', '#15803D', '#E5F8EC'], rejected: ['ต้องแก้', '#DC2626', '#FDECEC'] }
+function revState(p: Product): RevState {
+  if (p.mod?.status === 'rejected' || p.rev?.status === 'rejected') return 'rejected'
+  if (p.mod?.status === 'pending' || p.rev?.status === 'pending') return 'pending'
+  return 'live'
+}
+function revNote(p: Product, st: RevState) {
+  if (st === 'rejected') return `${p.rev?.status === 'rejected' ? `การแก้ไขไม่ผ่าน · ${p.rev.reason ?? ''}` : p.mod?.reason ?? 'ยังไม่ผ่านการตรวจ'} · แก้แล้วส่งตรวจใหม่ได้เลย`
+  if (st === 'pending') return p.rev ? `ส่งการแก้ไขเมื่อ ${ago(p.rev.at)} · ผู้ซื้อยังเห็นฉบับเดิม` : `ส่งเมื่อ ${ago(p.mod?.at ?? Date.now())} · แจ้งผลในแจ้งเตือน`
+  return 'ขึ้นขายแล้ว · คนอื่นเห็นในหน้าแรกและหน้าค้นหา'
+}
+export function SellStatus() {
+  const db = useDb()
+  const nav = useNavigate()
+  const [sp] = useSearchParams()
+  const sent = sp.get('sent')
+  const [f, setF] = useState<RevState | 'all'>('all')
+  const mine = db.published.filter((p) => p.creatorId === ME).map((p) => ({ p, st: revState(p) }))
+  const list = mine.filter((x) => f === 'all' || x.st === f)
+  const sentOne = sent ? mine.find((x) => x.p.id === sent) : undefined
+  return (
+    <div className={`page has-bar ${s.page}`}>
+      <TopBar title="ผลงานของฉัน" sub="สถานะการตรวจ" />
+      <div className="narrow" style={{ padding: '12px 16px 24px' }}>
+        <div className="chips hscroll" role="tablist" aria-label="สถานะ" style={{ marginBottom: 12 }}>{REV_CHIPS.map((c) => <button key={c.v} role="tab" aria-selected={f === c.v} className={`chip ${f === c.v ? 'on' : ''}`} onClick={() => setF(c.v)}>{c.label} {c.v === 'all' ? mine.length : mine.filter((x) => x.st === c.v).length}</button>)}</div>
+        {sentOne && <div className={`${s.bx} ${s.sentBx} rise`} data-sent={sentOne.st}><div className={s.row}><span className={s.ri} style={{ background: '#fff' }}><Icon name={sentOne.st === 'live' ? 'check' : 'bell'} size={18} color="#6C2BD9" /></span><span className="grow">{sentOne.st === 'pending'
+          ? <><b>ส่งตรวจแล้ว</b><small>ทีม LUMI จะตรวจภายใน 24 ชม. เราจะแจ้งเตือนเมื่อผลงานขึ้นร้าน{REAL ? '' : ' (ตัวอย่างนี้ใช้เวลาราว 20 วินาที)'}</small></>
+          : sentOne.st === 'live' ? <><b>ผ่านการตรวจแล้ว · ผลงานขึ้นร้านแล้ว</b><small>ขึ้นหน้าแรก หน้าค้นหา และหน้าร้านแล้ว</small></> : <><b>ยังไม่ผ่านการตรวจ</b><small>ดูเหตุผลด้านล่าง แก้แล้วส่งตรวจใหม่ได้</small></>}</span></div></div>}
+        {mine.length === 0 && <Empty icon="store" title="ยังไม่มีผลงาน" text="ลงขายชิ้นแรก แล้วติดตามสถานะการตรวจได้ที่นี่" action={<Link to="/sell" className="btn btn-p btn-sm">เริ่มลงขาย</Link>} />}
+        {mine.length > 0 && list.length === 0 && <Empty icon="check" title="ไม่มีผลงานในสถานะนี้" />}
+        {list.map(({ p, st }, i) => { const [lab, c, bg] = REV_PILL[st]; return (
+          <div key={p.id} className={`${s.stRow} rise`} style={{ '--i': i } as React.CSSProperties} data-rev={st}>
+            <Link to={`/product/${p.id}`} className={s.stL}>
+              <Img src={p.covers?.[0] ?? heroOf(p)} className={s.stImg} />
+              <span className="grow" style={{ minWidth: 0 }}>
+                <b className="ell2">{p.title}</b>
+                <span className={s.stMeta}><em style={{ color: c, background: bg }}>{lab}</em><span className="muted">{p.price === 0 ? 'ฟรี' : baht(p.price)}</span></span>
+                <small className="muted">{revNote(p, st)}</small>
+              </span>
+            </Link>
+            {st === 'rejected' && <button className="btn btn-xs btn-p" onClick={() => nav(`/sell?edit=${p.id}&step=2`)}>แก้ไข</button>}
+          </div>
+        ) })}
+      </div>
+      <div className="bottom-bar"><button className="btn btn-p btn-block" onClick={() => nav('/sell', { replace: !!sent })}>ลงขายชิ้นต่อไป</button></div>
     </div>
   )
 }
