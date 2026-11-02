@@ -11,13 +11,24 @@ import { CREATORS, ME, PRODUCTS, creatorById, imgUrl } from '../data/sampleData'
 import type { Product } from '../data/types'
 import { creatorStats, statsOf } from '../data/productExtras'
 import {
-  CATEGORIES, CAT_TOTAL, CHALLENGE, GROUPS, HOT_KEYWORDS, LEADERBOARD, NEW_TODAY, NEW_TODAY_COUNT, POPULAR, SHORT, TRENDS,
+  CATEGORIES, CAT_TOTAL, CHALLENGE, GROUPS, HOT_KEYWORDS, LEADERBOARD, NEW_TODAY, NEW_TODAY_COUNT, POPULAR, SEARCH_GROUPS, SHORT, TRENDS,
   challengeEnd, isCatKey, searchWorks, type CatKey,
 } from '../data/searchData'
 import s from './Search.module.css'
 
-/** Trends, top creators and the weekly challenge stay hidden until there is real data behind them. */
-const SHOW_SAMPLE_STATS = false
+/*
+ * APPROVED LAYOUT: search-v5-a (owner-approved; commit 34c8006). Do not change the look,
+ * sections or their order without the owner's approval.
+ * Order: เทรนด์ › ภาพและดีไซน์ › ซอฟต์แวร์ แอป และเกม › ใหม่วันนี้ › ธุรกิจและ AI ›
+ * ครีเอเตอร์แห่งสัปดาห์ › เรียนรู้ บริการ และของฟรี › โจทย์ › ผลงานสำหรับคุณ.
+ * The switches below keep later, NOT-yet-approved proposals in the code but switched off.
+ */
+/** Trends, creators of the week and the challenge (approved v5-a sections; numbers are sample data). */
+const SHOW_SAMPLE_STATS = true
+/** 'groups' = approved v5-a category tiles. 'chips' = popular-chip row + ทุกหมวด sheet (proposal, off). */
+const CATEGORY_LAYOUT = 'groups' as 'groups' | 'chips'
+/** Sort / price filter / ครีเอเตอร์ tab on results (proposal from the structure review, off until approved). */
+const RESULT_FILTERS = false
 
 const SORTS = [
   { id: 'rel', label: 'เกี่ยวข้อง' },
@@ -64,7 +75,30 @@ function SectionHead({ title, right, onRight }: { title: ReactNode; right?: stri
   )
 }
 
-/** Approved variant B: one horizontal chip row of the popular categories + “ดูทั้งหมด”. */
+/** Approved v5-a: one category group (coloured heading + tile grid). */
+function CategoryGroup({ g, onPick }: { g: (typeof SEARCH_GROUPS)[number]; onPick: (k: CatKey) => void }) {
+  return (
+    <section>
+      <div className={s.gh}><i style={{ background: g.color }} />{g.name}<span>{g.keys.length} ประเภท</span></div>
+      <div className={s.grid}>
+        {g.keys.map((k) => {
+          const c = CATEGORIES[k]
+          return (
+            <button key={k} data-cat={k} className={`${s.tile} ${c.span ? s[`s${c.span}`] : ''}`} style={c.span ? { borderTopColor: g.color } : undefined} onClick={() => onPick(k)}>
+              <span className={`${s.ti} ${c.flip ? s.flip : ''}`} style={{ backgroundImage: `url(${imgUrl(c.image, true)})` }} />
+              <span className={s.tx}>
+                <b><i style={{ background: c.accent }} />{c.name}</b>
+                <small>{c.count} ชิ้น · {c.sub}</small>
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
+/** Proposal (off): one horizontal chip row of the popular categories + “ดูทั้งหมด”. */
 function PopularCats({ onPick, onAll }: { onPick: (k: CatKey) => void; onAll: () => void }) {
   return (
     <section>
@@ -172,11 +206,10 @@ function NewToday({ onAll }: { onAll: () => void }) {
 }
 
 function CreatorsOfWeek({ onPick }: { onPick: (name: string) => void }) {
-  const nav = useNavigate()
   const podium = [1, 0, 2].map((i) => ({ ...LEADERBOARD[i], rank: i + 1 }))
   return (
     <section>
-      <SectionHead title="🏆 ดาวเด่นสัปดาห์นี้" right="ดูอันดับ ›" onRight={() => nav('/community/activities#rank')} />
+      <SectionHead title="🏆 ครีเอเตอร์แห่งสัปดาห์" />
       <div className={s.lb}>
         <div className={s.pod}>
           {podium.map((r) => {
@@ -190,7 +223,7 @@ function CreatorsOfWeek({ onPick }: { onPick: (name: string) => void }) {
             )
           })}
         </div>
-        {LEADERBOARD.slice(3).map((r, i) => {
+        {LEADERBOARD.slice(3, 5).map((r, i) => {
           const c = creatorById(r.creatorId)
           return (
             <div key={r.creatorId} className={s.lr}>
@@ -226,7 +259,7 @@ function DailyChallenge() {
   const left = useChallengeCountdown()
   return (
     <section>
-      <SectionHead title="🚀 ชาเลนจ์ประจำสัปดาห์" right="ส่งผลงานรับแต้ม" />
+      <SectionHead title="✏️ โจทย์ประจำสัปดาห์" right="ส่งผลงานรับแต้ม" />
       <div className={s.ch}>
         <div className={s.cht}><span>สัปดาห์นี้วาดอะไรดี?</span><em>เหลือ {left}</em></div>
         <b>“{CHALLENGE.prompt}”</b>
@@ -234,7 +267,7 @@ function DailyChallenge() {
         <div className={s.chf}>
           <span className={s.avs}>{CHALLENGE.avatars.map((a) => <i key={a} style={{ backgroundImage: `url(${imgUrl(creatorById(a).avatar)})` }} />)}</span>
           <small>ส่งแล้ว {CHALLENGE.joined} คน</small>
-          <Link to="/community/activities" className={s.chb}>ร่วมส่งผลงาน</Link>
+          <Link to="/community/activities" className={s.chb}>ร่วมสนุก</Link>
         </div>
       </div>
     </section>
@@ -249,11 +282,12 @@ export function Search() {
   const catParam = params.get('cat')
   const cat: CatKey | 'new' | null = catParam === 'new' ? 'new' : isCatKey(catParam) ? catParam : null
   const [focused, setFocused] = useState(false)
+  const [toast, setToast] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const tab = params.get('tab') === 'creators' ? 'creators' : 'works'
-  const sort = (SORTS.find((x) => x.id === params.get('sort'))?.id ?? 'rel') as SortId
-  const price = (PRICES.find((x) => x.id === params.get('price'))?.id ?? 'all') as PriceId
+  const tab = RESULT_FILTERS && params.get('tab') === 'creators' ? 'creators' : 'works'
+  const sort = ((RESULT_FILTERS && SORTS.find((x) => x.id === params.get('sort'))?.id) || 'rel') as SortId
+  const price = ((RESULT_FILTERS && PRICES.find((x) => x.id === params.get('price'))?.id) || 'all') as PriceId
   const found = useMemo(() => searchWorks(q, cat), [q, cat])
   const results = useMemo(() => arrange(found, sort, price), [found, sort, price])
   const creators = useMemo(() => matchCreators(q, found), [q, found])
@@ -280,6 +314,12 @@ export function Search() {
   const [allCats, setAllCats] = useState(false)
   const pickFromSheet = (k: CatKey) => { setAllCats(false); setTimeout(() => pickCat(k), 180) }
 
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(''), 2200)
+    return () => clearTimeout(t)
+  }, [toast])
+
 
   const chipsRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -293,9 +333,9 @@ export function Search() {
       <div className={s.deskHeader}><Header /></div>
       <header className={s.hdr}>
         <div className={`wrap ${s.row}`}>
-          {searching && <button className={s.back} aria-label="กลับ" onClick={() => update({ q: '', cat: null })}>
+          <button className={s.back} aria-label="กลับ" onClick={() => (searching ? update({ q: '', cat: null }) : nav('/'))}>
             <Icon name="back" size={22} stroke={2.4} />
-          </button>}
+          </button>
           <form className={`${s.sin} ${focused ? s.act : ''}`} role="search" onSubmit={(e) => { e.preventDefault(); inputRef.current?.blur() }}>
             <Icon name="search" size={18} color="#8A86A0" />
             <input
@@ -310,6 +350,9 @@ export function Search() {
               onBlur={() => setTimeout(() => setFocused(false), 150)}
             />
             {q && <button type="button" className={s.clr} aria-label="ล้างคำค้น" onClick={() => update({ q: '' }, true)}><Icon name="x" size={14} stroke={2.6} /></button>}
+            <button type="button" className={s.cam} aria-label="ค้นหาด้วยรูปภาพ" onClick={() => setToast('ค้นหาด้วยรูปภาพ กำลังพัฒนา จะเปิดใช้เร็ว ๆ นี้')}>
+              <Icon name="camera" size={17} color="#6C2BD9" stroke={2.1} />
+            </button>
           </form>
         </div>
         {focused && !q && (
@@ -337,11 +380,11 @@ export function Search() {
               <h1>{q ? <>ผลการค้นหา “{q}”</> : catLabel}</h1>
               <span>{tab === 'creators' ? `${creators.length} คน` : `${results.length} ชิ้น`}{q && cat ? ` · ใน${catLabel}` : ''}</span>
             </div>
-            <div className={s.rtabs} role="tablist" aria-label="ประเภทผลลัพธ์">
+            {RESULT_FILTERS && <div className={s.rtabs} role="tablist" aria-label="ประเภทผลลัพธ์">
               <button role="tab" aria-selected={tab === 'works'} className={tab === 'works' ? s.rtOn : ''} onClick={() => update({ tab: 'works' }, true)}>ผลงาน</button>
               <button role="tab" aria-selected={tab === 'creators'} className={tab === 'creators' ? s.rtOn : ''} onClick={() => update({ tab: 'creators' }, true)}>ครีเอเตอร์</button>
-            </div>
-            {tab === 'works' && (
+            </div>}
+            {RESULT_FILTERS && tab === 'works' && (
               <div className={s.filt} data-filters>
                 <label><span>เรียง</span><select aria-label="เรียงผลลัพธ์" value={sort} onChange={(e) => update({ sort: e.target.value }, true)}>
                   {SORTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
@@ -382,9 +425,13 @@ export function Search() {
         ) : (
           <>
             {SHOW_SAMPLE_STATS && <TrendCarousel onPick={pickQuery} />}
-            <PopularCats onPick={pickCat} onAll={() => setAllCats(true)} />
+            {CATEGORY_LAYOUT === 'chips' && <PopularCats onPick={pickCat} onAll={() => setAllCats(true)} />}
+            {CATEGORY_LAYOUT === 'groups' && <CategoryGroup g={SEARCH_GROUPS[0]} onPick={pickCat} />}
+            {CATEGORY_LAYOUT === 'groups' && <CategoryGroup g={SEARCH_GROUPS[1]} onPick={pickCat} />}
             <NewToday onAll={() => pickCat('new')} />
+            {CATEGORY_LAYOUT === 'groups' && <CategoryGroup g={SEARCH_GROUPS[2]} onPick={pickCat} />}
             {SHOW_SAMPLE_STATS && <CreatorsOfWeek onPick={pickQuery} />}
+            {CATEGORY_LAYOUT === 'groups' && <CategoryGroup g={SEARCH_GROUPS[3]} onPick={pickCat} />}
             {SHOW_SAMPLE_STATS && <DailyChallenge />}
             <section>
               <SectionHead title="ผลงานสำหรับคุณ" right="คละทุกประเภท" />
@@ -393,7 +440,9 @@ export function Search() {
           </>
         )}
       </main>
-      <AllCatsSheet open={allCats} onClose={() => setAllCats(false)} onPick={pickFromSheet} />
+      {SHOW_SAMPLE_STATS && <div className={s.sbadge} aria-hidden="true">ข้อมูลตัวอย่าง</div>}
+      {toast && <div className={s.toast} role="status">{toast}</div>}
+      {CATEGORY_LAYOUT === 'chips' && <AllCatsSheet open={allCats} onClose={() => setAllCats(false)} onPick={pickFromSheet} />}
     </>
   )
 }

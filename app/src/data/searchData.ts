@@ -71,6 +71,13 @@ export const GROUPS: { name: string; color: string; type: SellType | null; keys:
   ...SELL_TYPE_ORDER.map((k) => SPECS[k]).map((t) => ({ name: t.name, color: t.color, type: t.key, keys: (Object.keys(CATEGORIES) as CatKey[]).filter((k) => CATEGORIES[k].parent === t.key) })),
   { name: 'ทุกประเภท', color: '#16A34A', type: null, keys: ['free'] },
 ]
+/** Search-page category groups of the approved v5-a layout (same 4 groups, tiles and order). */
+export const SEARCH_GROUPS: { name: string; color: string; keys: CatKey[] }[] = [
+  { name: 'ภาพและดีไซน์', color: '#7C3AED', keys: ['img', 'sticker', 'tpl', 'creator'] },
+  { name: 'ซอฟต์แวร์ แอป และเกม', color: '#4F46E5', keys: ['sw', 'app', 'game', 'plugin', 'ext'] },
+  { name: 'ธุรกิจและ AI', color: '#0E9384', keys: ['bot', 'ai', 'auto', 'sme'] },
+  { name: 'เรียนรู้ บริการ และของฟรี', color: '#E0620B', keys: ['course', 'svc', 'free'] },
+]
 /** Sub-categories of a sell type (shown on the sell wizard's type step). */
 export const childrenOf = (t: SellType) => (Object.keys(CATEGORIES) as CatKey[]).filter((k) => CATEGORIES[k].parent === t)
 
