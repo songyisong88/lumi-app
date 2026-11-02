@@ -29,6 +29,7 @@ const Community = lz(() => import('./pages/community/Community'), 'Community')
 const Activities = lz(() => import('./pages/community/More'), 'Activities')
 const PostDetail = lz(() => import('./pages/community/More'), 'PostDetail')
 const Room = lz(() => import('./pages/community/More'), 'Room')
+const FbMock = lz(() => import('./fbmock/FbMock'), 'FbMock')
 const Compose = lz(() => import('./pages/community/Compose'), 'Compose')
 const Sell = lz(() => import('./pages/sell/Sell'), 'Sell')
 const Drafts = lz(() => import('./pages/sell/Sell'), 'Drafts')
@@ -59,6 +60,9 @@ export default function App() {
           <Suspense fallback={<div className="route-wait" aria-busy="true" />}>
           <Routes location={loc}>
             <Route path="/" element={<Home />} />
+            {/* MOCKUP ONLY (branch fb-community-mockups) */}
+            <Route path="/fbmock/s_home" element={<Home />} />
+            <Route path="/fbmock/:screen" element={<FbMock />} />
             <Route path="/search" element={<Search />} />
             <Route path="/favorites" element={<Favorites />} />
             <Route path="/story/:creatorId" element={<StoryViewer />} />

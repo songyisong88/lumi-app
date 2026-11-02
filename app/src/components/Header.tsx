@@ -102,7 +102,8 @@ export function BottomNav() {
   const { pathname } = useLocation()
   const [create, setCreate] = useState(false)
   const b = useBadges()
-  const show = TABBED.includes(pathname)
+  const fbTab = /^\/fbmock\/(c_feed|c_react|c_reacted|c_groups|c_group|c_notif|s_home)$/.test(pathname) // MOCKUP ONLY
+  const show = TABBED.includes(pathname) || fbTab
   return (
     <>
       <nav className={`${s.tabbar} ${show ? '' : s.hide}`} aria-label="เมนูหลัก" aria-hidden={!show}>
@@ -111,7 +112,7 @@ export function BottomNav() {
             <span className={s.mid}><Icon name="plus" size={26} color="#fff" stroke={2.4} /></span>
           </button>
         ) : (
-          <NavLink key={n.to} to={n.to} end replace={ROOTS.includes(pathname)} onClick={reTap(pathname === n.to)} tabIndex={show ? 0 : -1} className={({ isActive }) => `${s.tab} ${isActive ? s.tabOn : ''}`}>
+          <NavLink key={n.to} to={n.to} end replace={ROOTS.includes(pathname)} onClick={reTap(pathname === n.to)} tabIndex={show ? 0 : -1} className={({ isActive }) => `${s.tab} ${isActive || (fbTab && n.to === (pathname === '/fbmock/s_home' ? '/' : pathname === '/fbmock/c_notif' ? '/profile' : '/community')) ? s.tabOn : ''}`}>
             <span className={s.ti}><Icon name={n.icon} size={23} stroke={1.9} />{n.to === '/profile' && b.notif > 0 && <i className={s.tdot} />}</span>
             <span>{n.label}</span>
           </NavLink>

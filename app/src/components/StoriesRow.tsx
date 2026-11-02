@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+import { FbHomeRings } from '../fbmock/FbMock'
 import { creatorById, imgUrl } from '../data/sampleData'
 import { useDb } from '../services/db'
 import { storyGroups } from '../services/storyGroups'
@@ -8,6 +9,8 @@ import s from './StoriesRow.module.css'
 
 /** Creator stories. No section title by design (approved home page). */
 export function StoriesRow() {
+  const { pathname } = useLocation()
+  if (pathname === '/fbmock/s_home') return <FbHomeRings /> // MOCKUP ONLY
   const seen = getSeenStories()
   const STORIES = storyGroups(useDb())
   // unseen first, like Instagram
