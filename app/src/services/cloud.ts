@@ -323,6 +323,8 @@ function unsubscribe() { if (channel) void sb?.removeChannel(channel); channel =
 registerSessionHooks({
   onCloud: (uid) => { void hydrate().catch((e) => toast(e.message)); subscribe(uid) },
   onLeave: () => unsubscribe(),
+  // visitors who are not signed in still see real live listings, posts and stories (sample posts stay)
+  onGuest: () => { void loadPublic().catch(() => {}) },
 })
 export const toast = (m: string) => window.dispatchEvent(new CustomEvent('lumi-toast', { detail: m }))
 export const cloudOn = () => getSession().mode === 'cloud' && isRemoteId(ME)

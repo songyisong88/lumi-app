@@ -39,7 +39,7 @@ export function cloudSeed(): DB {
   }
 }
 
-let hooks: { onCloud?: (uid: string) => void; onLeave?: () => void } = {}
+let hooks: { onCloud?: (uid: string) => void; onLeave?: () => void; onGuest?: () => void } = {}
 /** cloud.ts registers how to fill the local cache after sign-in (avoids an import cycle). */
 export function registerSessionHooks(h: typeof hooks) { hooks = h }
 
@@ -47,6 +47,7 @@ function enterGuest() {
   setMe('guest')
   switchDb('lumi_guest_db', cloudSeed)
   set({ mode: 'guest', userId: undefined, email: undefined, profile: undefined })
+  hooks.onGuest?.()
 }
 function enterDemo() {
   setMe('fasai')
