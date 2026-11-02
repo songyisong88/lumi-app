@@ -57,7 +57,7 @@ export function Profile() {
           <Av src={me.avatar} size={68} ring />
           <div className={s.mm}>
             <b>{me.name}</b>
-            <small><span className="nw">@{HANDLE[ME]}</span> · <span className="nw">ติดตาม {db.follows.length}</span> · <span className="nw">ผู้ติดตาม {creatorStats(ME).followersLabel}</span></small>
+            <small>{HANDLE[ME] && <><span className="nw">@{HANDLE[ME]}</span> · </>}<span className="nw">ติดตาม {db.follows.length}</span> · <span className="nw">ผู้ติดตาม {creatorStats(ME).followersLabel}</span></small>
           </div>
           <Link to={`/creator/${ME}`} className="btn btn-o btn-xs">ดูหน้าร้าน</Link>
         </div>
