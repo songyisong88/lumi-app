@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { Av, Empty, SampleNote, Seg, Sheet, Tabs, TopBar, blockTap } from '../../components/ui'
+import { Av, Empty, SampleNote, Sheet, Tabs, TopBar, blockTap } from '../../components/ui'
 import type { Sale } from '../../data/appTypes'
 import { ME, baht, creatorById, productById } from '../../data/sampleData'
 import { account, orders, stories } from '../../services/api'
@@ -14,9 +14,10 @@ import { refreshSales, thaiError } from '../../services/cloud'
 import { useDb } from '../../services/db'
 import { endRecovery, leaveDemo, signOut, startDemo, useSession } from '../../services/session'
 import { appUrl, publicUrl, sb } from '../../services/supabase'
+import { SHOW_DEMO, SOCIAL, SOCIALS, type SocialId } from '../../config'
+import a from './Auth.module.css'
 import { toast } from '../../services/toast'
 import { ago } from '../../utils/time'
-import { REAL } from '../../config'
 
 const pad = { padding: '16px 16px 24px' }
 const err = (e: unknown) => toast(e instanceof Error ? thaiError(e.message) : 'ทำรายการไม่สำเร็จ')
@@ -29,66 +30,184 @@ export function NeedAccount({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-// ---------------- sign in / sign up / forgot ----------------
+// ---------------- sign in / sign up / verify / forgot (option B, mockups B1–B5) ----------------
+const OK_EMAIL = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim())
+type Step = 'in' | 'up' | 'verify' | 'code' | 'login-code' | 'forgot' | 'reset'
+
+function Pw({ value, onChange, placeholder, auto }: { value: string; onChange: (v: string) => void; placeholder: string; auto: string }) {
+  const [see, setSee] = useState(false)
+  return <div className={a.fld}><input className={`inp ${a.big}`} type={see ? 'text' : 'password'} autoComplete={auto} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={placeholder} />
+    <button type="button" className={a.eye} onClick={() => setSee(!see)} aria-label={see ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}><Icon name="eye" size={20} /></button></div>
+}
+function Otp({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [focus, setFocus] = useState(true)
+  return <div className={a.otp}>
+    {Array.from({ length: 6 }, (_, i) => <b key={i} className={focus && i === Math.min(value.length, 5) ? a.f : ''}>{value[i] ?? ''}</b>)}
+    <input inputMode="numeric" autoComplete="one-time-code" aria-label="รหัส 6 หลัก" autoFocus value={value} onFocus={() => setFocus(true)} onBlur={() => setFocus(false)} onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+  </div>
+}
+/** “ส่งใหม่ได้ใน 0:42” countdown (60 s, like Shopee's OTP). */
+function useCountdown() {
+  const [until, setUntil] = useState(0)
+  const [, tick] = useState(0)
+  useEffect(() => { if (until <= Date.now()) return; const t = setInterval(() => tick((x) => x + 1), 1000); return () => clearInterval(t) }, [until])
+  const left = Math.max(0, Math.ceil((until - Date.now()) / 1000))
+  return { left, start: () => setUntil(Date.now() + 60_000), label: `0:${String(left % 60).padStart(2, '0')}`.replace(/^0:60$/, '1:00') }
+}
+const SOC_ICON: Record<SocialId, ReactNode> = {
+  google: <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>,
+  line: <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><rect width="24" height="24" rx="6" fill="#06C755"/><path fill="#fff" d="M12 5.2c-4.2 0-7.6 2.7-7.6 6.1 0 3 2.7 5.6 6.4 6 .3.1.6.2.7.5.1.2 0 .6 0 .8l-.1.7c0 .2-.2.8.7.4.9-.4 4.8-2.8 6.5-4.8 1.2-1.3 1.7-2.6 1.7-3.6C20.4 7.9 16.2 5.2 12 5.2z"/></svg>,
+  facebook: <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><circle cx="12" cy="12" r="11" fill="#1877F2"/><path fill="#fff" d="M13.3 19.5v-6.2h2.1l.3-2.5h-2.4V9.3c0-.7.2-1.2 1.2-1.2h1.3V5.9c-.2 0-1-.1-1.9-.1-1.9 0-3.2 1.2-3.2 3.3v1.8H8.6v2.5h2.1v6.2z"/></svg>,
+  apple: <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><path fill="#111" d="M16.4 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.9-3-.8c-1.6 0-3 .9-3.8 2.3-1.6 2.8-.4 6.9 1.2 9.2.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.7zM14.2 5.8c.6-.8 1.1-1.8 1-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1 .1 2.1-.5 2.7-1.3z"/></svg>,
+}
+const SOC_NAME: Record<SocialId, string> = { google: 'Google', line: 'LINE', facebook: 'Facebook', apple: 'Apple' }
+const SOC_PROVIDER: Record<SocialId, string> = { google: 'google', line: 'custom:line', facebook: 'facebook', apple: 'apple' }
+
 export function SignIn() {
   const nav = useNavigate()
   const [sp] = useSearchParams()
   const next = sp.get('next') || '/profile'
   const ses = useSession()
-  const [tab, setTab] = useState<'in' | 'up'>(sp.get('tab') === 'up' ? 'up' : 'in')
-  const [how, setHow] = useState<'otp' | 'pw'>('otp')
+  const [step, setStep] = useState<Step>(sp.get('tab') === 'up' ? 'up' : 'in')
+  const [hist, setHist] = useState<Step[]>([])
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
+  const [pw2, setPw2] = useState('')
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
-  const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [forgot, setForgot] = useState(false)
-  useEffect(() => { if (ses.mode === 'cloud') nav(next, { replace: true }) }, [ses.mode, next, nav])
-  const okEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  const hold = useRef(false) // keep the page while a recovery code is being turned into a new password
+  const cd = useCountdown()
+  useEffect(() => { if (ses.mode === 'cloud' && !hold.current) nav(next, { replace: true }) }, [ses.mode, next, nav])
+  const go = (s: Step) => { setHist((h) => [...h, step]); setStep(s); setCode('') }
+  const back = () => { if (!hist.length) return (window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/'); setStep(hist[hist.length - 1]); setHist((h) => h.slice(0, -1)); setCode('') }
+  const okEmail = OK_EMAIL(email)
   const run = async (f: () => Promise<{ error: { message: string } | null }>, okMsg?: string) => {
+    if (!sb) { toast('ยังไม่ได้เชื่อมเซิร์ฟเวอร์'); return false }
+    setBusy(true)
+    try { const { error } = await f(); if (error) toast(thaiError(error.message)); else if (okMsg) toast(okMsg); return !error } catch (e) { err(e); return false } finally { setBusy(false) }
+  }
+  const mail = () => email.trim()
+  const signInPw = async () => {
     if (!sb) return toast('ยังไม่ได้เชื่อมเซิร์ฟเวอร์')
     setBusy(true)
-    try { const { error } = await f(); if (error) toast(thaiError(error.message)); else if (okMsg) toast(okMsg); return !error } finally { setBusy(false) }
+    try {
+      const { error } = await sb.auth.signInWithPassword({ email: mail(), password: pw })
+      if (!error) return
+      // signed up but never confirmed → send a fresh code and show “ยืนยันอีเมล” (B3) instead of a dead end
+      if (/email not confirmed/i.test(error.message)) {
+        const r = await sb.auth.resend({ type: 'signup', email: mail(), options: { emailRedirectTo: appUrl() } })
+        toast(r.error ? thaiError(r.error.message) : 'ยังไม่ได้ยืนยันอีเมล · ส่งรหัสไปที่อีเมลแล้ว')
+        if (!r.error) { cd.start(); go('verify') }
+        return
+      }
+      toast(thaiError(error.message))
+    } catch (e) { err(e) } finally { setBusy(false) }
   }
-  const sendCode = async () => { if (await run(() => sb!.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: tab === 'up', emailRedirectTo: appUrl(), data: name ? { display_name: name.trim() } : undefined } }), 'ส่งรหัสไปที่อีเมลแล้ว')) setSent(true) }
-  const verify = () => run(() => sb!.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'email' }))
-  const withPw = () => tab === 'in'
-    ? run(() => sb!.auth.signInWithPassword({ email: email.trim(), password: pw }))
-    : run(() => sb!.auth.signUp({ email: email.trim(), password: pw, options: { emailRedirectTo: appUrl(), data: { display_name: name.trim() } } }), 'สมัครแล้ว · เปิดอีเมลเพื่อยืนยัน')
-  const reset = async () => { if (await run(() => sb!.auth.resetPasswordForEmail(email.trim(), { redirectTo: appUrl() }), 'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลแล้ว')) setForgot(false) }
+  const signUp = async () => {
+    let exists = false
+    const ok = await run(async () => {
+      const r = await sb!.auth.signUp({ email: mail(), password: pw, options: { emailRedirectTo: appUrl(), data: { display_name: name.trim() } } })
+      exists = !r.error && !!r.data.user && (r.data.user.identities?.length ?? 1) === 0 // Supabase hides “already registered”
+      return r
+    })
+    if (!ok) return
+    if (exists) { toast('อีเมลนี้มีบัญชีแล้ว · เข้าสู่ระบบแทน'); setPw(''); go('in'); return }
+    toast('ส่งรหัสยืนยันไปที่อีเมลแล้ว'); cd.start(); go('verify')
+  }
+  const resendSignup = async () => { if (await run(() => sb!.auth.resend({ type: 'signup', email: mail(), options: { emailRedirectTo: appUrl() } }), 'ส่งรหัสใหม่แล้ว')) cd.start() }
+  const verifySignup = () => run(() => sb!.auth.verifyOtp({ email: mail(), token: code, type: 'signup' }))
+  const sendLoginCode = async (first = true) => {
+    if (await run(() => sb!.auth.signInWithOtp({ email: mail(), options: { shouldCreateUser: false, emailRedirectTo: appUrl() } }), first ? 'ส่งรหัสไปที่อีเมลแล้ว' : 'ส่งรหัสใหม่แล้ว')) { cd.start(); if (first) go('code') }
+  }
+  const verifyLogin = () => run(() => sb!.auth.verifyOtp({ email: mail(), token: code, type: 'email' }))
+  const sendReset = async (first = true) => {
+    if (await run(() => sb!.auth.resetPasswordForEmail(mail(), { redirectTo: appUrl() }), first ? 'ส่งรหัสไปที่อีเมลแล้ว' : 'ส่งรหัสใหม่แล้ว')) { cd.start(); if (first) { setPw(''); setPw2(''); go('reset') } }
+  }
+  const saveNewPw = async () => {
+    hold.current = true
+    const ok = await run(() => sb!.auth.verifyOtp({ email: mail(), token: code, type: 'recovery' }))
+    if (!ok) { hold.current = false; return }
+    const ok2 = await run(() => sb!.auth.updateUser({ password: pw }), 'ตั้งรหัสผ่านใหม่แล้ว')
+    endRecovery(); hold.current = false
+    if (ok2) nav(next, { replace: true })
+  }
+  const social = (id: SocialId) => run(() => sb!.auth.signInWithOAuth({ provider: SOC_PROVIDER[id] as 'google', options: { redirectTo: appUrl() } }))
+  const socials = SOCIALS.filter((id) => SOCIAL[id])
+  const srow = (label: string) => socials.length > 0 && <>
+    <div className={a.or}>{label}</div>
+    <div className={a.srow}>{socials.map((id) => <button key={id} type="button" className={a.sbtn} disabled={busy} onClick={() => void social(id)} aria-label={`${label} ${SOC_NAME[id]}`}>{SOC_ICON[id]}</button>)}</div>
+  </>
+  const terms = <p className={`${a.small} ${a.terms}`}>การดำเนินการต่อถือว่ายอมรับ <span className={a.lnk}>ข้อตกลงการใช้งาน</span> และ <span className={a.lnk}>นโยบายความเป็นส่วนตัว</span></p>
+  const emailIn = <input className={`inp ${a.big}`} type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="อีเมลของคุณ" aria-label="อีเมล" />
+  const resend = (f: () => void) => <p className={a.small} style={{ marginTop: 16 }}>ไม่ได้รับรหัส? ดูในจดหมายขยะ หรือ {cd.left > 0 ? <b>ส่งใหม่ได้ใน {cd.label}</b> : <button type="button" className={a.lnk} disabled={busy} onClick={f}>ส่งรหัสใหม่</button>}</p>
+  const codeBlock = (title: string, btn: string, onOk: () => void, onResend: () => void, icon = true) => <>
+    {icon && <div className={a.ok}><Icon name="mail" size={30} color="var(--p)" /></div>}
+    <h1 className={a.h1}>{title}</h1><p className={a.sub}>ใส่รหัส 6 หลักที่ส่งไปที่ <b>{mail()}</b></p>
+    <Otp value={code} onChange={setCode} />
+    <button className={`btn btn-p ${a.bbig}`} disabled={busy} {...blockTap(code.length !== 6, 'ใส่รหัส 6 หลักจากอีเมลก่อน')} onClick={onOk}>{busy ? 'กำลังตรวจ…' : btn}</button>
+    {resend(onResend)}
+  </>
 
+  let body: ReactNode, foot: ReactNode = null
+  if (step === 'in') {
+    body = <>
+      <div className={a.brand}><div className={a.logo}><Icon name="sparkle" size={30} color="none" stroke={0} fill="#fff" /></div><div className={a.wm}>LUMI</div></div>
+      <h1 className={`${a.h1} ${a.center}`} style={{ marginBottom: 20 }}>เข้าสู่ระบบ</h1>
+      {emailIn}<div className={a.gap} />
+      <Pw value={pw} onChange={setPw} placeholder="รหัสผ่าน" auto="current-password" />
+      <button className={`btn btn-p ${a.bbig}`} style={{ marginTop: 4 }} disabled={busy} {...blockTap(!okEmail || !pw, !okEmail ? 'ใส่อีเมลให้ถูกต้องก่อน' : 'ใส่รหัสผ่านก่อน')} onClick={() => void signInPw()}>{busy ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบ'}</button>
+      <div className={a.links}><button type="button" className={a.lnk} onClick={() => go('forgot')}>ลืมรหัสผ่าน?</button><button type="button" className={a.lnk} onClick={() => go('login-code')}>เข้าด้วยรหัสทางอีเมล</button></div>
+      {srow('หรือเข้าสู่ระบบด้วย')}
+    </>
+    foot = <>
+      <button className={`btn btn-o ${a.bbig}`} onClick={() => { setPw(''); go('up') }}>สร้างบัญชีใหม่</button>
+      {SHOW_DEMO && <button className={a.demo} onClick={() => { startDemo(); nav('/') }}><Icon name="sparkle" size={18} color="var(--p)" />ลองใช้แบบตัวอย่าง (ไม่ต้องสมัคร)</button>}
+      {SHOW_DEMO && ses.mode === 'demo' && <button className={a.demo} onClick={() => void leaveDemo()}><Icon name="user" size={18} />ออกจากโหมดตัวอย่าง</button>}
+    </>
+  } else if (step === 'up') {
+    body = <>
+      <h1 className={a.h1}>สร้างบัญชี LUMI</h1><p className={a.sub}>ฟรี ใช้ได้ทั้งซื้อและขายงาน</p>
+      <input className={`inp ${a.big}`} value={name} onChange={(e) => setName(e.target.value)} placeholder="ชื่อที่แสดง" aria-label="ชื่อที่แสดง" maxLength={40} autoComplete="name" /><div className={a.gap} />
+      {emailIn}<div className={a.gap} />
+      <Pw value={pw} onChange={setPw} placeholder="รหัสผ่าน (อย่างน้อย 8 ตัว)" auto="new-password" />
+      <button className={`btn btn-p ${a.bbig}`} style={{ marginTop: 4 }} disabled={busy} {...blockTap(!name.trim() || !okEmail || pw.length < 8, !name.trim() ? 'ใส่ชื่อที่แสดงก่อน' : !okEmail ? 'ใส่อีเมลให้ถูกต้องก่อน' : 'รหัสผ่านอย่างน้อย 8 ตัว')} onClick={() => void signUp()}>{busy ? 'กำลังสมัคร…' : 'สมัครสมาชิก'}</button>
+      {srow('หรือสมัครด้วย')}
+    </>
+    foot = <><p className={a.small} style={{ marginBottom: 10 }}>มีบัญชีแล้ว? <button type="button" className={a.lnk} onClick={() => go('in')}>เข้าสู่ระบบ</button></p>{terms}</>
+  } else if (step === 'verify') {
+    body = codeBlock('ยืนยันอีเมล', 'ยืนยันและเริ่มใช้', () => void verifySignup(), () => void resendSignup())
+  } else if (step === 'login-code') {
+    body = <>
+      <h1 className={a.h1}>เข้าด้วยรหัสทางอีเมล</h1><p className={a.sub}>ใส่อีเมลที่ใช้สมัคร เราจะส่งรหัส 6 หลักไปให้ ไม่ต้องใช้รหัสผ่าน</p>
+      {emailIn}
+      <button className={`btn btn-p ${a.bbig}`} style={{ marginTop: 12 }} disabled={busy} {...blockTap(!okEmail, 'ใส่อีเมลให้ถูกต้องก่อน')} onClick={() => void sendLoginCode()}>{busy ? 'กำลังส่ง…' : 'ส่งรหัส'}</button>
+      <p className={a.small} style={{ marginTop: 18 }}><button type="button" className={a.lnk} onClick={back}>กลับไปเข้าสู่ระบบ</button></p>
+    </>
+  } else if (step === 'code') {
+    body = codeBlock('ใส่รหัสจากอีเมล', 'เข้าสู่ระบบ', () => void verifyLogin(), () => void sendLoginCode(false))
+  } else if (step === 'forgot') {
+    body = <>
+      <h1 className={a.h1}>ค้นหาบัญชีของคุณ</h1><p className={a.sub}>ใส่อีเมลที่ใช้สมัคร เราจะส่งรหัสไปให้ตั้งรหัสผ่านใหม่</p>
+      {emailIn}
+      <button className={`btn btn-p ${a.bbig}`} style={{ marginTop: 12 }} disabled={busy} {...blockTap(!okEmail, 'ใส่อีเมลให้ถูกต้องก่อน')} onClick={() => void sendReset()}>{busy ? 'กำลังส่ง…' : 'ส่งรหัส'}</button>
+      <p className={a.small} style={{ marginTop: 18 }}><button type="button" className={a.lnk} onClick={back}>กลับไปเข้าสู่ระบบ</button></p>
+    </>
+  } else {
+    body = <>
+      <h1 className={a.h1}>ตั้งรหัสผ่านใหม่</h1><p className={a.sub}>ใส่รหัสจากอีเมล แล้วตั้งรหัสผ่านใหม่</p>
+      <Otp value={code} onChange={setCode} />
+      <Pw value={pw} onChange={setPw} placeholder="รหัสผ่านใหม่" auto="new-password" />
+      <Pw value={pw2} onChange={setPw2} placeholder="ยืนยันรหัสผ่านใหม่" auto="new-password" />
+      <button className={`btn btn-p ${a.bbig}`} style={{ marginTop: 6 }} disabled={busy} {...blockTap(code.length !== 6 || pw.length < 8 || pw !== pw2, code.length !== 6 ? 'ใส่รหัส 6 หลักจากอีเมลก่อน' : pw.length < 8 ? 'รหัสผ่านอย่างน้อย 8 ตัว' : 'รหัสผ่านสองช่องยังไม่ตรงกัน')} onClick={() => void saveNewPw()}>{busy ? 'กำลังบันทึก…' : 'บันทึกรหัสผ่าน'}</button>
+      {resend(() => void sendReset(false))}
+    </>
+  }
   return (
-    <div className="page">
-      <TopBar title={tab === 'in' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'} />
-      <div className="narrow">
-        <Tabs value={tab} options={[{ v: 'in', label: 'เข้าสู่ระบบ' }, { v: 'up', label: 'สมัครใหม่' }]} onChange={(v) => { setTab(v); setSent(false); setCode('') }} />
-        <div style={pad}>
-          {tab === 'up' && <label className="field"><span className="flabel">ชื่อที่แสดง</span><input className="inp" value={name} onChange={(e) => setName(e.target.value)} placeholder="เช่น ฟ้าใส สตูดิโอ" maxLength={40} /></label>}
-          <label className="field"><span className="flabel">อีเมล</span><input className="inp" type="email" inputMode="email" autoComplete="email" value={email} onChange={(e) => { setEmail(e.target.value); setSent(false) }} placeholder="you@example.com" /></label>
-          <Seg value={how} options={[{ v: 'otp', label: 'รหัสทางอีเมล' }, { v: 'pw', label: 'รหัสผ่าน' }]} onChange={setHow} />
-          <div style={{ height: 16 }} />
-          {how === 'otp' ? (!sent
-            ? <button className="btn btn-p btn-block" disabled={busy} {...blockTap(!okEmail || (tab === 'up' && !name.trim()), !okEmail ? 'ใส่อีเมลให้ถูกต้องก่อน' : 'ใส่ชื่อที่จะแสดงก่อน')} onClick={sendCode}>{busy ? 'กำลังส่ง…' : 'ส่งรหัส 6 หลักไปที่อีเมล'}</button>
-            : <>
-              <label className="field"><span className="flabel">รหัสจากอีเมล</span><input className="inp" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="______" autoFocus /></label>
-              <button className="btn btn-p btn-block" disabled={busy} {...blockTap(code.length !== 6, 'ใส่รหัส 6 หลักจากอีเมลก่อน')} onClick={verify}>{busy ? 'กำลังตรวจ…' : 'ยืนยันรหัส'}</button>
-              <button className="btn btn-s btn-block" style={{ marginTop: 10 }} disabled={busy} onClick={sendCode}>ส่งรหัสอีกครั้ง</button>
-            </>)
-            : <>
-              <label className="field"><span className="flabel">รหัสผ่าน</span><input className="inp" type="password" autoComplete={tab === 'in' ? 'current-password' : 'new-password'} value={pw} onChange={(e) => setPw(e.target.value)} placeholder={tab === 'up' ? 'อย่างน้อย 8 ตัว' : ''} /></label>
-              <button className="btn btn-p btn-block" disabled={busy} {...blockTap(!okEmail || pw.length < (tab === 'up' ? 8 : 1) || (tab === 'up' && !name.trim()), !okEmail ? 'ใส่อีเมลให้ถูกต้องก่อน' : tab === 'up' && !name.trim() ? 'ใส่ชื่อที่จะแสดงก่อน' : tab === 'up' ? 'รหัสผ่านอย่างน้อย 8 ตัว' : 'ใส่รหัสผ่านก่อน')} onClick={withPw}>{busy ? 'กำลังดำเนินการ…' : tab === 'in' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}</button>
-              {tab === 'in' && <button className="btn btn-s btn-block" style={{ marginTop: 10 }} onClick={() => setForgot(true)}>ลืมรหัสผ่าน</button>}
-            </>}
-          <p className="hint" style={{ marginTop: 14 }}>การสมัครถือว่ายอมรับข้อตกลงการใช้งานและนโยบายความเป็นส่วนตัวของ LUMI</p>
-          {/* the sample persona lives on the demo site only */}
-          {!REAL && <button className="list-row" style={{ margin: '12px -16px 0', width: 'calc(100% + 32px)' }} onClick={() => { startDemo(); nav('/') }}><Icon name="sparkle" size={20} color="var(--p)" /><span className="grow">ลองใช้แบบตัวอย่าง<small>บัญชีตัวอย่าง ข้อมูลอยู่ในเครื่องนี้เท่านั้น</small></span><Icon name="chev" size={16} color="var(--mut)" /></button>}
-          {ses.mode === 'demo' && <button className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }} onClick={() => void leaveDemo()}><Icon name="user" size={20} /><span className="grow">ออกจากโหมดตัวอย่าง</span></button>}
-        </div>
-      </div>
-      <Sheet open={forgot} onClose={() => setForgot(false)} title="ลืมรหัสผ่าน" sub="เราจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมล" footer={<button className="btn btn-p btn-block" disabled={busy} {...blockTap(!okEmail, 'ใส่อีเมลให้ถูกต้องก่อน')} onClick={reset}>ส่งลิงก์</button>}>
-        <input className="inp" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" aria-label="อีเมล" />
-      </Sheet>
+    <div className={a.scr} data-auth-step={step}>
+      <div className={a.top}><button className="tb-btn" onClick={back} aria-label="ย้อนกลับ"><Icon name="back" size={22} stroke={2.2} /></button></div>
+      <div className={a.body}>{body}</div>
+      {foot && <div className={a.foot}>{foot}</div>}
     </div>
   )
 }

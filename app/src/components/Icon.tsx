@@ -23,6 +23,7 @@ const P: Record<string, string> = {
   puzzle: 'M10 4a2 2 0 0 1 4 0v2h4v4h-2a2 2 0 0 0 0 4h2v4h-4v-2a2 2 0 0 0-4 0v2H6v-4h2a2 2 0 0 0 0-4H6V6h4z',
   ext: 'M5 5h6v6H5zM13 13h6v6h-6zM16 5a3 3 0 1 0 0 .01M5 16l3-3 3 3-3 3z',
   home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
+  mail: 'M4 6h16v12H4zM4 7l8 6 8-6',
   user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
   plus: 'M12 5v14M5 12h14',
   x: 'M6 6l12 12M18 6L6 18',

@@ -25,3 +25,19 @@ export const FEATURES = {
  *    test accounts. All QA writes happen there. */
 export const DEMO_SITE = import.meta.env.VITE_SITE === 'demo'
 export const REAL = FEATURES.accounts && !DEMO_SITE
+/** Social sign-in buttons on the sign-in / sign-up screens (option B, owner 2026-11-03).
+ *  Each one stays HIDDEN until its provider is set up in the Supabase dashboard, so no dead button is shown:
+ *  google  → Auth › Providers › Google (Google Cloud OAuth client)          VITE_AUTH_GOOGLE=1
+ *  line    → Auth › Providers › custom OAuth2 provider id `custom:line`      VITE_AUTH_LINE=1
+ *  facebook→ Auth › Providers › Facebook (Meta developer app)                VITE_AUTH_FACEBOOK=1
+ *  apple   → Auth › Providers › Apple (Apple Developer account)              VITE_AUTH_APPLE=1 */
+export type SocialId = 'google' | 'line' | 'facebook' | 'apple'
+export const SOCIALS: SocialId[] = ['google', 'line', 'facebook', 'apple']
+export const SOCIAL: Record<SocialId, boolean> = {
+  google: import.meta.env.VITE_AUTH_GOOGLE === '1',
+  line: import.meta.env.VITE_AUTH_LINE === '1',
+  facebook: import.meta.env.VITE_AUTH_FACEBOOK === '1',
+  apple: import.meta.env.VITE_AUTH_APPLE === '1',
+}
+/** “ลองใช้แบบตัวอย่าง” on the sign-in screen. */
+export const SHOW_DEMO = !REAL
