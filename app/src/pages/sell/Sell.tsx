@@ -17,6 +17,7 @@ import { ProductView } from '../product/ProductView'
 import { PRICE_OPTS } from '../../data/sellDefaults'
 import { FEATURES } from '../../config'
 import { useModStatus } from '../../components/ModStatus'
+import { cloudOn, removeDeliverable, uploadDeliverable } from '../../services/cloud'
 import s from './Sell.module.css'
 
 const STEPS = ['ประเภท', 'ไฟล์', 'รายละเอียด', 'ราคา', 'สิทธิ์', 'ตัวอย่าง']
@@ -138,7 +139,7 @@ export function Sell() {
       published.current = true
       const id = await sell.publish({ ...d, publishedId: d.publishedId ?? `u-${d.id}` }, share, notify)
       setDone(id)
-    } catch { published.current = false; setCheckOpen(true) } finally { setBusy(false) }
+    } catch (e) { published.current = false; if (cloudOn()) toast((e as Error).message); setCheckOpen(true) } finally { setBusy(false) }
   }
 
   const startNext = () => {
@@ -172,7 +173,7 @@ export function Sell() {
         {d.step === 1 && t && <>
           <H t={d.type === 'hire' ? 'ผลงานตัวอย่างและสิ่งที่ส่ง' : 'อัปโหลดผลงาน'} s="รูปหน้าปก ไฟล์ที่ผู้ซื้อได้รับ และข้อมูลไฟล์" />
           <Covers d={d} patch={patch} />
-          <Fields fs={t.fields} step="files" spec={d.spec} set={setSpec} type={d.type} />
+          <Fields fs={t.fields} step="files" spec={d.spec} set={setSpec} type={d.type} draftId={d.id} />
         </>}
         {d.step === 2 && t && <>
           <H t="บอกผู้ซื้อให้ชัด" s="ชื่อ ประโยคบอกว่าเหมาะกับใคร และรายละเอียด" />
@@ -336,11 +337,11 @@ function StepPrice({ d, patch, set }: { d: ListingDraft; patch: (p: Partial<List
 
 type SetSpec = (id: string, v: SpecValue | ((old: SpecValue | undefined) => SpecValue)) => void
 
-function Fields({ fs, step, spec, set, type = null }: { fs: Field[]; step: Step; spec: Spec; set: SetSpec; type?: SellType | null }) {
-  return <>{fs.filter((f) => f.step === step && visible(f, spec)).map((f) => <FieldView key={f.id} f={f} v={spec[f.id]} spec={spec} set={set} type={type} />)}</>
+function Fields({ fs, step, spec, set, type = null, draftId }: { fs: Field[]; step: Step; spec: Spec; set: SetSpec; type?: SellType | null; draftId?: string }) {
+  return <>{fs.filter((f) => f.step === step && visible(f, spec)).map((f) => <FieldView key={f.id} f={f} v={spec[f.id]} spec={spec} set={set} type={type} draftId={draftId} />)}</>
 }
 
-function FieldView({ f, v, spec, set, type }: { f: Field; v: SpecValue | undefined; spec: Spec; set: SetSpec; type: SellType | null }) {
+function FieldView({ f, v, spec, set, type, draftId }: { f: Field; v: SpecValue | undefined; spec: Spec; set: SetSpec; type: SellType | null; draftId?: string }) {
   const req = typeof f.required === 'function' ? f.required(spec) : !!f.required
   const label = <label className="flabel">{f.label}{(req || f.mustBeOn) && <span className="req">*</span>}</label>
   if (f.kind === 'toggle') return (
@@ -357,7 +358,7 @@ function FieldView({ f, v, spec, set, type }: { f: Field; v: SpecValue | undefin
       {f.kind === 'chips' && <div className="chips" style={{ flexWrap: 'wrap' }}>{f.options!.map((x) => <button key={x} className={`chip ${str(v) === x ? 'on' : ''}`} onClick={() => set(f.id, x)}>{x}</button>)}</div>}
       {f.kind === 'multi' && <div className="chips" style={{ flexWrap: 'wrap' }}>{f.options!.map((x) => { const sel = arr(v).includes(x); return <button key={x} className={`chip ${sel ? 'on' : ''}`} onClick={() => set(f.id, (old) => (sel ? arr(old).filter((y) => y !== x) : [...arr(old), x]))}>{sel && '✓ '}{x}</button> })}</div>}
       {f.kind === 'list' && <ListEdit f={f} v={v} set={set} />}
-      {f.kind === 'files' && <FilesEdit f={f} v={v} set={set} type={type} spec={spec} />}
+      {f.kind === 'files' && <FilesEdit f={f} v={v} set={set} type={type} spec={spec} draftId={draftId} />}
       {f.pattern && str(v) && !f.pattern.test(str(v)) && <span className="hint" style={{ color: '#DC2626' }}>{f.patternNote}</span>}
       {f.hint && f.kind !== 'files' && <span className="hint">{f.hint}</span>}
     </div>
@@ -383,7 +384,7 @@ function ListEdit({ f, v, set }: { f: Field; v: SpecValue | undefined; set: SetS
   )
 }
 
-function FilesEdit({ f, v, set, type, spec }: { f: Field; v: SpecValue | undefined; set: SetSpec; type: SellType | null; spec: Spec }) {
+function FilesEdit({ f, v, set, type, spec, draftId }: { f: Field; v: SpecValue | undefined; set: SetSpec; type: SellType | null; spec: Spec; draftId?: string }) {
   const ref = useRef<HTMLInputElement>(null)
   const files = filesOf(v)
   const rule = uploadRule(type, spec, f.id)
@@ -400,6 +401,14 @@ function FilesEdit({ f, v, set, type, spec }: { f: Field; v: SpecValue | undefin
       if (file.size === 0) { toast(`“${name}” เป็นไฟล์ว่าง`); continue }
       if (room-- <= 0) { toast(`อัปโหลดได้สูงสุด ${MAX_FILES} ไฟล์ · รวมเป็น ZIP ได้`); break }
       write((xs) => [...xs.filter((x) => x.name !== name), { name, size: sizeOf(file.size), scan: 'scan', pct: 0 }])
+      // signed-in account: real upload → private quarantine → server virus scan (same look as the demo)
+      if (cloudOn() && draftId) {
+        const upd = (u: Partial<UploadedFile>) => write((xs) => xs.map((x) => (x.name === name ? { ...x, ...u } : x)))
+        void uploadDeliverable(draftId, file, (n) => upd({ pct: n }))
+          .then((r) => { upd({ pct: 100, scan: r.scan, fileId: r.fileId, reason: r.reason }); toast(r.scan === 'ok' ? `สแกน “${name}” แล้ว ไม่พบภัยที่รู้จัก` : `“${name}” ${r.reason ?? 'ไม่ผ่านการสแกน ลงขายไม่ได้'}`) })
+          .catch((e: Error) => { upd({ pct: 100, scan: 'fail', reason: e.message }); toast(e.message) })
+        continue
+      }
       let p = 0
       const h = setInterval(() => {
         p = Math.min(100, p + 18 + Math.random() * 22)
@@ -418,7 +427,7 @@ function FilesEdit({ f, v, set, type, spec }: { f: Field; v: SpecValue | undefin
             <small>{x.size}{x.size && ' · '}{badExt(x.name) ? 'ไม่ตรงรูปแบบที่เลือก · ลบแล้วอัปใหม่' : x.scan === 'scan' ? `กำลังสแกนไวรัส ${x.pct ?? 0}%` : x.scan === 'ok' ? 'ไม่พบภัยที่รู้จัก ✓' : 'พบความเสี่ยง · ลบแล้วอัปใหม่'}</small>
             {x.scan === 'scan' && <span className={s.fbar}><i style={{ transform: `scaleX(${(x.pct ?? 0) / 100})` }} /></span>}
           </span>
-          <button onClick={() => write((xs) => xs.filter((y) => y.name !== x.name))} aria-label={`ลบ ${x.name}`}><Icon name="trash" size={16} /></button>
+          <button onClick={() => { if (x.fileId && cloudOn()) void removeDeliverable(x.fileId); write((xs) => xs.filter((y) => y.name !== x.name)) }} aria-label={`ลบ ${x.name}`}><Icon name="trash" size={16} /></button>
         </div>
       ))}
       <button className={`${s.drop} press`} onClick={() => ref.current?.click()}><Icon name="upload" size={22} color="var(--p)" /><b>เลือกไฟล์จากเครื่อง</b><small>{f.hint}</small></button>
