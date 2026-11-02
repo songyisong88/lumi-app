@@ -16,6 +16,7 @@ import { endRecovery, leaveDemo, signOut, startDemo, useSession } from '../../se
 import { appUrl, publicUrl, sb } from '../../services/supabase'
 import { toast } from '../../services/toast'
 import { ago } from '../../utils/time'
+import { REAL } from '../../config'
 
 const pad = { padding: '16px 16px 24px' }
 const err = (e: unknown) => toast(e instanceof Error ? thaiError(e.message) : 'ทำรายการไม่สำเร็จ')
@@ -80,7 +81,8 @@ export function SignIn() {
               {tab === 'in' && <button className="btn btn-s btn-block" style={{ marginTop: 10 }} onClick={() => setForgot(true)}>ลืมรหัสผ่าน</button>}
             </>}
           <p className="hint" style={{ marginTop: 14 }}>การสมัครถือว่ายอมรับข้อตกลงการใช้งานและนโยบายความเป็นส่วนตัวของ LUMI</p>
-          <button className="list-row" style={{ margin: '12px -16px 0', width: 'calc(100% + 32px)' }} onClick={() => { startDemo(); nav('/') }}><Icon name="sparkle" size={20} color="var(--p)" /><span className="grow">ลองใช้แบบตัวอย่าง<small>บัญชีตัวอย่าง ข้อมูลอยู่ในเครื่องนี้เท่านั้น</small></span><Icon name="chev" size={16} color="var(--mut)" /></button>
+          {/* the sample persona lives on the demo site only */}
+          {!REAL && <button className="list-row" style={{ margin: '12px -16px 0', width: 'calc(100% + 32px)' }} onClick={() => { startDemo(); nav('/') }}><Icon name="sparkle" size={20} color="var(--p)" /><span className="grow">ลองใช้แบบตัวอย่าง<small>บัญชีตัวอย่าง ข้อมูลอยู่ในเครื่องนี้เท่านั้น</small></span><Icon name="chev" size={16} color="var(--mut)" /></button>}
           {ses.mode === 'demo' && <button className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }} onClick={() => void leaveDemo()}><Icon name="user" size={20} /><span className="grow">ออกจากโหมดตัวอย่าง</span></button>}
         </div>
       </div>
@@ -228,7 +230,7 @@ function ShopOrdersPage() {
             </button>
           ))}
         </div>
-        <div style={{ padding: '4px 16px 24px' }}><SampleNote>โหมดทดลอง · ยังไม่มีการรับหรือโอนเงินจริง สถานะการโอนเป็นการจำลอง</SampleNote></div>
+        <div style={{ padding: '4px 16px 24px' }}><SampleNote keep>โหมดทดลอง · ยังไม่มีการรับหรือโอนเงินจริง สถานะการโอนเป็นการจำลอง</SampleNote></div>
       </div>
       <Sheet open={!!open} onClose={() => setOpen(undefined)} title={open?.title} sub={open ? `ออเดอร์ #${open.orderNo} · ${ago(open.at)}` : ''}
         footer={open?.refund?.status === 'open' ? <div style={{ display: 'flex', gap: 8 }}>

@@ -2,6 +2,7 @@
 import { SPECS, layoutOf, pageContent, sellTypeOf, specOf, str, arr, on } from './listingSpec'
 import { ALL_PRODUCTS, creatorById, isLive } from './sampleData'
 import type { Product, ProductOption } from './types'
+import { REAL } from '../config'
 
 const FALLBACK: Record<string, string> = { p03: 'c_auto.jpg', p05: 'c_bot.jpg', p10: 'c_software.jpg', p13: 'robot.jpg', p18: 'c_bot.jpg' }
 export const heroOf = (p: Product): string =>
@@ -92,7 +93,7 @@ export function creatorStats(id: string, followedByMe = false) {
 }
 const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n))
 
-export const REVIEWS = [
+export const REVIEWS = REAL ? [] : [
   { who: 'shop', stars: 5, when: '2 วันที่แล้ว', text: 'ใช้งานง่ายมาก ตรงตามที่บอกไว้ ลูกค้าทักชมเยอะเลยค่ะ', pic: true },
   { who: 'somjai', stars: 4, when: '1 สัปดาห์ที่แล้ว', text: 'คุ้มราคา ครีเอเตอร์ตอบแชตไว ช่วยแนะนำดีค่ะ', pic: false },
   { who: 'kenji', stars: 5, when: '2 สัปดาห์ที่แล้ว', text: 'ไฟล์ครบตามรายการ มีคู่มือละเอียด ทำตามได้เลยครับ', pic: false },

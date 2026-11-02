@@ -5,7 +5,9 @@ import { HeartButton } from '../components/HeartButton'
 import { copyText } from '../components/ui'
 import { toast } from '../services/toast'
 import { Icon } from '../components/Icon'
-import { STORIES, creatorById, formatPrice, imgUrl, productById } from '../data/sampleData'
+import { creatorById, formatPrice, imgUrl, productById } from '../data/sampleData'
+import { useDb } from '../services/db'
+import { storyGroups } from '../services/storyGroups'
 import { markStorySeen } from '../services/seenStories'
 import { typeOf } from '../data/listingSpec'
 import s from './StoryViewer.module.css'
@@ -15,6 +17,7 @@ const DURATION = 5000
 export function StoryViewer() {
   const { creatorId = '' } = useParams()
   const nav = useNavigate()
+  const STORIES = storyGroups(useDb())
   const idx = STORIES.findIndex((x) => x.creatorId === creatorId)
   const story = STORIES[idx]
   const [slide, setSlide] = useState(0)
@@ -46,13 +49,15 @@ export function StoryViewer() {
   if (!story) return <Navigate to="/" replace />
   const c = creatorById(story.creatorId)
   const sl = story.slides[slide]
-  const p = productById(sl.productId)!
-  const bg = p.image ? imgUrl(p.image.src) : undefined
+  const p = sl.productId ? productById(sl.productId) : undefined
+  // a real story shows its own picture; a sample story shows the work's picture
+  const bg = sl.media && sl.kind !== 'video' ? imgUrl(sl.media) : p?.image ? imgUrl(p.image.src) : undefined
 
   return (
     <div className={s.scrim}>
-      <div className={s.svw} style={{ background: bg ? `#16132B url(${bg}) center/cover` : p.gradient ?? '#16132B' }}
+      <div className={s.svw} style={{ background: bg ? `#16132B url(${bg}) center/cover` : p?.gradient ?? '#16132B' }}
         onPointerDown={() => setPaused(true)} onPointerUp={() => setPaused(false)} onPointerLeave={() => setPaused(false)}>
+        {sl.media && sl.kind === 'video' && <video src={sl.media} autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
         <div className={s.shade} />
         <div className={s.bars}>
           {story.slides.map((_, i) => (
@@ -61,13 +66,13 @@ export function StoryViewer() {
         </div>
         <div className={s.head}>
           <span className="av" style={{ width: 36, height: 36, border: '2px solid #fff', backgroundImage: `url(${imgUrl(c.avatar)})` }} />
-          <div><div className={s.name}>{c.name}</div><div className={s.ago}>ผลงานใหม่ · {sl.postedAgo}</div></div>
+          <div><div className={s.name}>{c.name}</div><div className={s.ago}>{p ? 'ผลงานใหม่ · ' : ''}{sl.postedAgo}</div></div>
           <FollowButton id={c.id} className={s.follow} onClass={s.followOn} />
           <button className={s.x} aria-label="ปิด" onClick={close}><Icon name="x" size={22} color="#fff" stroke={2.2} /></button>
         </div>
         <button className={`${s.tap} ${s.left}`} onClick={prev} aria-label="ก่อนหน้า" />
         <button className={`${s.tap} ${s.right}`} onClick={next} aria-label="ถัดไป" />
-        <div className={s.pc}>
+        {p ? <><div className={s.pc}>
           <span className={s.th} style={{ background: bg ? `url(${bg}) center/cover` : p.gradient }} />
           <div className={s.pi}>
             <div className={s.pt}>{p.title}</div>
@@ -80,7 +85,8 @@ export function StoryViewer() {
           <HeartButton productId={p.id} variant="glass" />
           <Link className={s.go} to={`/product/${p.id}`}>ดูผลงาน <Icon name="arrow" size={18} color="#fff" stroke={2.2} /></Link>
           <button className={s.rb} aria-label="แชร์" onClick={() => { copyText(`${location.origin}${location.pathname}#/product/${p.id}`); toast('คัดลอกลิงก์ผลงานแล้ว') }}><Icon name="send" size={20} color="#fff" /></button>
-        </div>
+        </div></>
+        : sl.caption ? <div className={s.pc}><div className={s.pi}><div className={s.pt}>{sl.caption}</div></div></div> : null}
       </div>
     </div>
   )

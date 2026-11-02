@@ -26,7 +26,9 @@ export function Home() {
         <StoriesRow />
         <FilterChips quick={quick} onQuick={setQuick} type={type} onType={setType} />
         {items.length === 0 ? (
-          <div className={s.empty}>ยังไม่มีผลงานที่ตรงกับตัวกรองนี้<button onClick={() => { setQuick('all'); setType(null) }}>ล้างตัวกรอง</button></div>
+          quick === 'all' && !type
+            ? <div className={s.empty}>ยังไม่มีผลงานในตอนนี้</div>
+            : <div className={s.empty}>ยังไม่มีผลงานที่ตรงกับตัวกรองนี้<button onClick={() => { setQuick('all'); setType(null) }}>ล้างตัวกรอง</button></div>
         ) : (
           <MasonryFeed items={items} />
         )}

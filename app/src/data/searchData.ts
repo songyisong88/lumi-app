@@ -4,6 +4,7 @@
  */
 import { ALL_PRODUCTS, PRODUCTS, SEARCH_EXTRA, TYPES, creatorById, isLive } from './sampleData'
 import type { Product } from './types'
+import { REAL } from '../config'
 import { SELL_TYPE_ORDER, SPECS, sellTypeOf, specOf, type SellType } from './listingSpec'
 
 export type CatKey =
@@ -124,14 +125,14 @@ const hay = (p: Product) => { let h = INDEX.get(p.id); if (h === undefined) { h 
 /** Client-side search over sample works. Every word typed must appear somewhere. */
 export function searchWorks(q: string, cat: CatKey | 'new' | null): Product[] {
   const mine = ALL_PRODUCTS.filter((p) => p.mine && isLive(p)).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
-  let list = cat === 'new' ? [...mine, ...NEW_TODAY.map((n) => n.p)] : [...mine, ...ALL_PRODUCTS.filter((p) => !p.mine)]
+  let list = cat === 'new' ? (REAL ? newToday().map((n) => n.p) : [...mine, ...NEW_TODAY.map((n) => n.p)]) : [...mine, ...ALL_PRODUCTS.filter((p) => !p.mine)]
   if (cat && cat !== 'new') list = list.filter(CATEGORIES[cat].match)
   const words = q.toLowerCase().trim().split(/\s+/).filter(Boolean)
   if (words.length) list = list.filter((p) => { const h = hay(p); return words.every((w) => h.includes(w)) })
   return list
 }
 
-export const TRENDS = [
+export const TRENDS = REAL ? [] : [
   { image: 'g_anime.jpg', title: 'ลอยกระทง 2569', sub: 'ภาพ โพสต์ สติกเกอร์ริมกระทง', count: '1,240', rise: '+182%', q: 'ลอยกระทง', dots: ['#7C3AED', '#F59E0B', '#2563EB'] },
   { image: 't_xmas.jpg', title: 'คริสต์มาส & ปีใหม่', sub: 'การ์ด ปกเพจ แพ็กสติกเกอร์', count: '860', rise: '+96%', q: 'ปีใหม่', dots: ['#7C3AED', '#F59E0B', '#DB2777'] },
   { image: 't_y2k.jpg', title: 'สไตล์ Y2K', sub: 'โครเมียม ผีเสื้อ ฟองโฮโลแกรม', count: '540', rise: '+71%', q: 'y2k', dots: ['#7C3AED', '#DB2777'] },
@@ -139,10 +140,10 @@ export const TRENDS = [
   { image: 'g_cyber.jpg', title: 'ไซเบอร์ไทยนีออน', sub: 'วอลเปเปอร์ ปกเกม เว็บ', count: '380', rise: '+44%', q: 'นีออน', dots: ['#7C3AED', '#4F46E5'] },
 ]
 
-export const HOT_KEYWORDS = ['ลอยกระทง', 'โปรแกรม POS', 'บอท', 'สติกเกอร์แมว', 'ปลั๊กอิน', 'ฟอนต์', 'เกม', 'กาแฟ', 'ปีใหม่', 'มาสคอต']
+export const HOT_KEYWORDS: string[] = REAL ? [] : ['ลอยกระทง', 'โปรแกรม POS', 'บอท', 'สติกเกอร์แมว', 'ปลั๊กอิน', 'ฟอนต์', 'เกม', 'กาแฟ', 'ปีใหม่', 'มาสคอต']
 
 const byId = (id: string) => SEARCH_EXTRA.find((p) => p.id === id) ?? PRODUCTS.find((p) => p.id === id)!
-export const NEW_TODAY = [
+export const NEW_TODAY: { p: Product; ago: string }[] = REAL ? [] : [
   { p: byId('n01'), ago: 'เมื่อสักครู่' },
   { p: byId('n02'), ago: '2 นาทีที่แล้ว' },
   { p: byId('n03'), ago: '5 นาทีที่แล้ว' },
@@ -152,8 +153,21 @@ export const NEW_TODAY = [
 ]
 export const NEW_TODAY_COUNT = NEW_TODAY.length
 
+const agoText = (at: number) => {
+  const m = Math.max(0, Math.round((Date.now() - at) / 60000))
+  return m < 1 ? 'เมื่อสักครู่' : m < 60 ? `${m} นาทีที่แล้ว` : `${Math.floor(m / 60)} ชม.ที่แล้ว`
+}
+/** “ใหม่วันนี้”: the sample list on the demo site; on the real site the live works published in the last 24 hours. */
+export function newToday(): { p: Product; ago: string }[] {
+  if (!REAL) return NEW_TODAY
+  const since = Date.now() - 24 * 3600 * 1000
+  return ALL_PRODUCTS.filter((p) => isLive(p) && (p.createdAt ?? 0) >= since).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)).map((p) => ({ p, ago: agoText(p.createdAt ?? 0) }))
+}
+/** Works in a category: the sample count on the demo site, the real number of live works on the real site. */
+export const catCount = (k: CatKey): string => (REAL ? ALL_PRODUCTS.filter((p) => isLive(p) && CATEGORIES[k].match(p)).length.toLocaleString('th-TH') : CATEGORIES[k].count)
+
 /** One weekly ranking used everywhere (ค้นหา + ชุมชน › กิจกรรม). The signed-in user (ME) is #14. */
-export const LEADERBOARD = [
+export const LEADERBOARD = REAL ? [] : [
   { creatorId: 'nova', what: 'ภาพสินค้า', pts: 2460 },
   { creatorId: 'ton', what: 'ข้อมูล · ระบบอัตโนมัติ', pts: 1820 },
   { creatorId: 'mint', what: 'เทมเพลต', pts: 1505 },

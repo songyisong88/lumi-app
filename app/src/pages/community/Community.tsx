@@ -13,6 +13,7 @@ import { toast } from '../../services/toast'
 import { PostCard } from './PostCard'
 import { Countdown, LEADERS } from './More'
 import { MY_RANK } from '../../data/searchData'
+import { REAL } from '../../config'
 import s from './Community.module.css'
 
 type Tab = 'foryou' | 'following' | 'learn' | 'rooms'
@@ -38,7 +39,7 @@ export function Community() {
 
   return (
     <div className="page">
-      <TopBar back={false} title="ชุมชน" sub="ข้อมูลตัวอย่าง" right={<HeaderActions search={false} />} />
+      <TopBar back={false} title="ชุมชน" sub={REAL ? undefined : 'ข้อมูลตัวอย่าง'} right={<HeaderActions search={false} />} />
       <Tabs sticky value={tab} onChange={setTab} options={[{ v: 'foryou', label: 'สำหรับคุณ' }, { v: 'following', label: 'ติดตาม' }, { v: 'learn', label: 'ความรู้' }, { v: 'rooms', label: 'ห้อง' }]} />
       <div key={tab} className="narrow tab-fade">
         {tab === 'foryou' && <>
@@ -48,8 +49,9 @@ export function Community() {
           {posts.map((p, i) => (
             <div key={p.id}>
               <PostCard p={p} i={i} />
-              {i === 0 && tag === 'all' && <ChallengeCard />}
-              {i === 2 && tag === 'all' && <LeaderCard />}
+              {/* sample challenge and leaderboard: demo site only (no real challenge or points yet) */}
+              {!REAL && i === 0 && tag === 'all' && <ChallengeCard />}
+              {!REAL && i === 2 && tag === 'all' && <LeaderCard />}
               {i === 3 && tag === 'all' && <RoomsSuggest />}
             </div>
           ))}
@@ -62,14 +64,15 @@ export function Community() {
           })()}
         </>}
         {tab === 'learn' && <>
-          <div className={s.live}>
+          {!REAL && <div className={s.live}>
             <span className={s.liveTag}><i />สอนฟรีวันนี้ · 20:00 น.</span>
             <b>เริ่มขายผลงานบน LUMI ใน 30 นาที</b>
             <small>โดย มิ้นท์ สตูดิโอ · ลงทะเบียนแล้ว {312 + (remind ? 1 : 0)} คน</small>
             <button className="btn btn-sm" style={{ background: '#fff', color: 'var(--p)', alignSelf: 'flex-start', marginTop: 8 }} onClick={() => { const v = !remind; setRemind(v); localStorage.setItem('lumi_remind_live', v ? '1' : ''); toast(v ? 'ตั้งเตือนแล้ว จะแจ้งก่อนเริ่ม 15 นาที' : 'ยกเลิกการเตือนแล้ว') }}>{remind ? 'ตั้งเตือนแล้ว ✓' : 'เตือนฉัน'}</button>
-          </div>
+          </div>}
           {composer}
           {db.posts.filter((p) => p.tag === 'ความรู้' || p.tag === 'เบื้องหลัง' || p.tag === 'ถาม-ตอบ').map((p, i) => <PostCard key={p.id} p={p} i={i} />)}
+          {REAL && !db.posts.some((p) => p.tag === 'ความรู้' || p.tag === 'เบื้องหลัง' || p.tag === 'ถาม-ตอบ') && <Empty icon="comment" title="ยังไม่มีโพสต์ความรู้" text="แชร์เทคนิค เบื้องหลัง หรือคำถามเป็นคนแรกได้เลย" action={<Link to="/community/new" className="btn btn-p btn-sm">เขียนโพสต์</Link>} />}
         </>}
         {tab === 'rooms' && <>
           <div className="sec"><div className="sec-h">ห้องของฉัน<span className="more">{db.joined.length} ห้อง</span></div></div>
@@ -91,7 +94,7 @@ export function RoomRow({ id, i = 0 }: { id: string; i?: number }) {
     <div className={`${s.room} rise`} style={{ '--i': i } as React.CSSProperties}>
       <Link to={`/community/room/${id}`} className={s.roomL}>
         <span className={s.ric} style={{ background: r.bg }}><Icon name={r.icon} size={22} color={r.color} /></span>
-        <span className="grow"><b>{r.name}</b><small>{fmtK(r.members + (joined ? 1 : 0))} สมาชิก · {r.desc}</small></span>
+        <span className="grow"><b>{r.name}</b><small>{fmtK(REAL ? Math.max(r.members, joined ? 1 : 0) : r.members + (joined ? 1 : 0))} สมาชิก · {r.desc}</small></span>
       </Link>
       <button className={`btn-follow ${joined ? 'on' : ''}`} onClick={() => community.join(id).then((v) => toast(v ? `เข้าร่วม ${r.name} แล้ว` : `ออกจาก ${r.name} แล้ว`))}>{joined ? 'เข้าร่วมแล้ว' : '+ เข้าร่วม'}</button>
     </div>

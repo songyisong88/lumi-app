@@ -14,6 +14,7 @@ import { useDb } from '../../services/db'
 import { toast } from '../../services/toast'
 import { ago } from '../../utils/time'
 import s from './Library.module.css'
+import { REAL } from '../../config'
 
 const KIND: Record<Asset['kind'], { icon: string; color: string; bg: string; label: string }> = {
   file: { icon: 'file', color: '#1D5FD6', bg: '#EAF2FF', label: 'ไฟล์' },
@@ -188,7 +189,7 @@ export function LibraryItem() {
           <tr><td>ชำระด้วย</td><td>{b.price ? order?.method ?? 'ชำระแล้ว (ทดลอง)' : 'ของฟรี'}</td></tr>
           <tr className={s.tot}><td>ยอดที่จ่าย</td><td>{b.price ? baht(b.price) : '฿0'}</td></tr>
         </tbody></table>
-        <p className="hint">ใบเสร็จตัวอย่าง ไม่ใช่ใบกำกับภาษี · ใบเสร็จทางอีเมลจะเปิดพร้อมระบบบัญชีจริง</p>
+        <p className="hint">{REAL ? 'ใบเสร็จนี้ไม่ใช่ใบกำกับภาษี' : 'ใบเสร็จตัวอย่าง ไม่ใช่ใบกำกับภาษี · ใบเสร็จทางอีเมลจะเปิดพร้อมระบบบัญชีจริง'}</p>
         <button className="btn btn-s btn-block" style={{ marginTop: 10 }} onClick={() => { copyText(`LUMI ออเดอร์ #${b.orderNo} · ${b.title} · ${b.price ? baht(b.price) : 'ฟรี'}`); toast('คัดลอกข้อมูลใบเสร็จแล้ว') }}><Icon name="copy" size={16} />คัดลอกข้อมูลใบเสร็จ</button>
       </Sheet>
       <IssueSheet open={sheet === 'issue'} onClose={() => setSheet(null)} purchaseId={b.id} />

@@ -12,6 +12,7 @@ import { fileToDataUrl } from '../../utils/image'
 import { toast } from '../../services/toast'
 import { TAG_COLOR } from './PostCard'
 import s from './Community.module.css'
+import { REAL } from '../../config'
 
 const TAGS: PostTag[] = ['โชว์ผลงาน', 'ความรู้', 'เบื้องหลัง', 'ถาม-ตอบ', 'แจกฟรี']
 
@@ -20,7 +21,7 @@ export function Compose() {
   const [sp] = useSearchParams()
   const me = creatorById(ME)
   const [tag, setTag] = useState<PostTag>('โชว์ผลงาน')
-  const [text, setText] = useState(sp.get('challenge') ? `ส่งผลงานชาเลนจ์ “${CHALLENGE.prompt}” 🚀 #ชาเลนจ์` : '')
+  const [text, setText] = useState(sp.get('challenge') && !REAL ? `ส่งผลงานชาเลนจ์ “${CHALLENGE.prompt}” 🚀 #ชาเลนจ์` : '')
   const [images, setImages] = useState<string[]>([])
   const [prompt, setPrompt] = useState('')
   const [showPrompt, setShowPrompt] = useState(false)

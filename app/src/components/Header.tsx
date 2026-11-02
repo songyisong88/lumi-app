@@ -5,6 +5,7 @@ import { Icon } from './Icon'
 import { Sheet } from './ui'
 import { scrollPageTop } from './Stage'
 import s from './Header.module.css'
+import { REAL } from '../config'
 
 export const NAV = [
   { to: '/', label: 'หน้าแรก', icon: 'home' },
@@ -59,7 +60,7 @@ export function Header() {
     <header className={s.hdr}>
       <div className={`wrap ${s.row}`}>
         <Brand />
-        <span className="sample-pill" title="ผลงาน ราคา และตัวเลขในแอปนี้เป็นข้อมูลตัวอย่าง">ข้อมูลตัวอย่าง</span>
+        {!REAL && <span className="sample-pill" title="ผลงาน ราคา และตัวเลขในแอปนี้เป็นข้อมูลตัวอย่าง">ข้อมูลตัวอย่าง</span>}
         <nav className={s.desk} aria-label="เมนูหลัก">
           {NAV.filter((n) => n.to !== '/search').map((n) => 'mid' in n
             ? <button key={n.to} className={`${s.dl} ${s.sell}`} onClick={() => setCreate(true)}><Icon name="plus" size={18} stroke={2} />สร้าง</button>

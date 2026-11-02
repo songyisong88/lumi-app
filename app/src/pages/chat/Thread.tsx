@@ -13,6 +13,7 @@ import { toast } from '../../services/toast'
 import { clock, dayLabel } from '../../utils/time'
 import { fileToDataUrl } from '../../utils/image'
 import s from './Chat.module.css'
+import { REAL } from '../../config'
 
 const STICKERS = ['🙏', '😊', '💜', '👍', '🎉', '🥰', '😂', '🔥', '✨', '🐶', '🌸', '☕']
 const STEP_DESC = ['คุณส่งรายละเอียดงานให้ครีเอเตอร์', 'ครีเอเตอร์เสนอราคาและสิ่งที่จะได้รับ', 'ชำระผ่านผู้ให้บริการชำระเงินแล้ว ยังไม่โอนให้ครีเอเตอร์', 'ครีเอเตอร์กำลังทำงานและอัปเดตความคืบหน้า', 'ตรวจงาน ขอแก้ได้ตามจำนวนครั้งในแพ็กเกจ', 'กดรับงานแล้ว (หรือครบ 3 วันหลังส่งงาน) เงินโอนให้ครีเอเตอร์']
@@ -177,7 +178,7 @@ export function Thread() {
             ...(t.role === 'customer' ? [{ ic: 'receipt', l: 'ใบเสนอราคา', bg: '#E5F8EC', c: '#15803D', f: () => setSheet('offer') }] : []),
           ].map((a, i) => <button key={a.l} className="rise" style={{ '--i': i } as React.CSSProperties} onClick={a.f}><span style={{ background: a.bg }}><Icon name={a.ic} size={24} color={a.c} /></span>{a.l}</button>)}
         </div>
-        <p className="hint">ไฟล์ที่แนบเก็บไว้ในเครื่องนี้เท่านั้น ไม่ได้อัปโหลดหรือส่งถึงใคร (ตัวอย่าง)</p>
+        {!REAL && <p className="hint">ไฟล์ที่แนบเก็บไว้ในเครื่องนี้เท่านั้น ไม่ได้อัปโหลดหรือส่งถึงใคร (ตัวอย่าง)</p>}
       </Sheet>
       <Sheet open={sheet === 'sticker'} onClose={() => setSheet(null)} title="สติกเกอร์">
         <div className={s.stk}>{STICKERS.map((e) => <button key={e} className="press" onClick={() => { setSheet(null); chat.sendCard(id, { kind: 'sticker', text: e }) }}>{e}</button>)}</div>

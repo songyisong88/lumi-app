@@ -17,3 +17,11 @@ export const FEATURES = {
    *  this flag only changes what the screens show. Approved 2026-11-02, ON live (VITE_FEATURE_LAUNCH=1). */
   launch: import.meta.env.VITE_FEATURE_LAUNCH === '1',
 } as const
+
+/** Two sites from one code base (owner, 2026-11-03):
+ *  - REAL (default build, /lumi-app/app/): only real server data. No sample works, posts, stories, creators,
+ *    sample notes or “ลองใช้แบบตัวอย่าง”; content by test accounts (profiles.is_test) is hidden.
+ *  - DEMO (VITE_SITE=demo, /lumi-app/demo/): today's app with the sample data, the sample persona and the
+ *    test accounts. All QA writes happen there. */
+export const DEMO_SITE = import.meta.env.VITE_SITE === 'demo'
+export const REAL = FEATURES.accounts && !DEMO_SITE

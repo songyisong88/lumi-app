@@ -17,7 +17,7 @@ import { Modules } from './modules'
 import { WriteReviewSheet } from '../../components/OrderHelp'
 import { ReportSheet } from '../../components/Report'
 import { replyToReview, sell } from '../../services/api'
-import { FEATURES } from '../../config'
+import { FEATURES, REAL } from '../../config'
 import { ModBanner } from '../../components/ModStatus'
 import { catLabel } from '../../data/searchData'
 import s from './Product.module.css'
@@ -383,7 +383,7 @@ function BriefSheet({ open, onClose, p, opts, optId, setOptId }: { open: boolean
         <label key={n} className="field"><span className="flabel">{n}</span>
           <textarea className="ta" style={{ minHeight: 64 }} value={vals[i]} onChange={(e) => setVals(vals.map((v, j) => (j === i ? e.target.value : v)))} placeholder="พิมพ์สั้น ๆ ได้เลย" /></label>
       ))}
-      <p className="hint">ข้อมูลตัวอย่าง · บรีฟถูกเก็บในเครื่องนี้เท่านั้น ไม่ได้ส่งถึงครีเอเตอร์จริง</p>
+      <p className="hint">{REAL ? 'บรีฟจะส่งถึงครีเอเตอร์ในแชต' : 'ข้อมูลตัวอย่าง · บรีฟถูกเก็บในเครื่องนี้เท่านั้น ไม่ได้ส่งถึงครีเอเตอร์จริง'}</p>
     </Sheet>
   )
 }

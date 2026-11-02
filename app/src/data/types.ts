@@ -12,6 +12,7 @@ export interface Creator {
   followers?: number
   bio?: string
   handle?: string
+  verified?: boolean
 }
 
 export interface Product {
@@ -81,8 +82,12 @@ export interface ProductOption {
 }
 
 export interface StorySlide {
-  productId: string
+  /** Sample stories always point at a work; a real story may be just a picture or clip with a caption. */
+  productId?: string
   postedAgo: string
+  media?: string
+  kind?: 'image' | 'video'
+  caption?: string
 }
 
 export interface Story {

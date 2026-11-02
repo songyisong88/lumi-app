@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { imgSrcSet, imgUrl } from '../data/sampleData'
 import { Icon } from './Icon'
 import { toast } from '../services/toast'
+import { REAL } from '../config'
 
 /** A button that is not ready yet keeps the disabled look (aria-disabled) but still answers a tap
  *  with a toast saying what is missing, so it never feels frozen. */
@@ -171,7 +172,9 @@ export function Tabs<T extends string>({ value, options, onChange, sticky }: { v
   )
 }
 
-export function SampleNote({ children = 'ข้อมูลตัวอย่าง · ยังไม่มีการซื้อขาย/ส่งข้อความจริง' }: { children?: ReactNode }) {
+/** “ข้อมูลตัวอย่าง” notes belong to the demo site; the real site hides them unless `keep` (a true statement there too). */
+export function SampleNote({ children = 'ข้อมูลตัวอย่าง · ยังไม่มีการซื้อขาย/ส่งข้อความจริง', keep = false }: { children?: ReactNode; keep?: boolean }) {
+  if (REAL && !keep) return null
   return <div className="sample-note"><Icon name="flag" size={14} />{children}</div>
 }
 

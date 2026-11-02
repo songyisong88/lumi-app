@@ -2,8 +2,9 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// Deployed at https://songyisong88.github.io/lumi-app/app/
-const BASE = '/lumi-app/app/'
+// REAL site: https://songyisong88.github.io/lumi-app/app/  ·  DEMO site (VITE_SITE=demo): /lumi-app/demo/
+const DEMO = process.env.VITE_SITE === 'demo'
+const BASE = DEMO ? '/lumi-app/demo/' : '/lumi-app/app/'
 
 export default defineConfig({
   base: BASE,
@@ -14,8 +15,8 @@ export default defineConfig({
       injectRegister: false, // registered in src/main.tsx (update checks + reload on new version)
       includeAssets: ['fonts/*.woff2', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'LUMI ตลาดงานครีเอเตอร์ AI',
-        short_name: 'LUMI',
+        name: DEMO ? 'LUMI เว็บตัวอย่าง' : 'LUMI ตลาดงานครีเอเตอร์ AI',
+        short_name: DEMO ? 'LUMI ตัวอย่าง' : 'LUMI',
         description: 'ตลาดภาพ เทมเพลต เครื่องมือ บอท คอร์ส และงานจ้างจากครีเอเตอร์',
         lang: 'th',
         start_url: BASE,

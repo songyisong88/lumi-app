@@ -7,12 +7,14 @@ import { scrollPageTop } from '../components/Stage'
 import { Sheet } from '../components/ui'
 import { MasonryFeed } from '../components/MasonryFeed'
 import { ProductCard } from '../components/ProductCard'
-import { CREATORS, ME, PRODUCTS, creatorById, imgUrl } from '../data/sampleData'
+import { CREATORS, ME, PRODUCTS, creatorById, imgUrl, isLive } from '../data/sampleData'
+import { REAL } from '../config'
+import { useDb } from '../services/db'
 import type { Product } from '../data/types'
 import { creatorStats, statsOf } from '../data/productExtras'
 import {
-  CATEGORIES, CAT_TOTAL, CHALLENGE, GROUPS, HOT_KEYWORDS, LEADERBOARD, NEW_TODAY, NEW_TODAY_COUNT, POPULAR, SEARCH_GROUPS, SHORT, TRENDS,
-  challengeEnd, isCatKey, searchWorks, type CatKey,
+  CATEGORIES, CAT_TOTAL, CHALLENGE, GROUPS, HOT_KEYWORDS, LEADERBOARD, NEW_TODAY_COUNT, POPULAR, SEARCH_GROUPS, SHORT, TRENDS,
+  catCount, challengeEnd, isCatKey, newToday, searchWorks, type CatKey,
 } from '../data/searchData'
 import s from './Search.module.css'
 
@@ -23,8 +25,9 @@ import s from './Search.module.css'
  * ครีเอเตอร์แห่งสัปดาห์ › เรียนรู้ บริการ และของฟรี › โจทย์ › ผลงานสำหรับคุณ.
  * The switches below keep later, NOT-yet-approved proposals in the code but switched off.
  */
-/** Trends, creators of the week and the challenge (approved v5-a sections; numbers are sample data). */
-const SHOW_SAMPLE_STATS = true
+/** Trends, creators of the week and the challenge (approved v5-a sections; numbers are sample data).
+ *  Demo site only: the real site has no sample numbers, so these sections and the badge are hidden there. */
+const SHOW_SAMPLE_STATS = !REAL
 /** 'groups' = approved v5-a category tiles. 'chips' = popular-chip row + ทุกหมวด sheet (proposal, off). */
 const CATEGORY_LAYOUT = 'groups' as 'groups' | 'chips'
 /** Sort / price filter / ครีเอเตอร์ tab on results (proposal from the structure review, off until approved). */
@@ -61,6 +64,7 @@ function arrange(list: Product[], sort: SortId, price: PriceId) {
 function matchCreators(q: string, works: Product[]) {
   const w = q.toLowerCase().trim()
   const ids = new Set(works.map((p) => p.creatorId))
+  if (REAL) return [...ids].map(creatorById)
   return CREATORS.filter((c) => ids.has(c.id) || (w && (c.name.toLowerCase().includes(w) || c.id.includes(w))))
 }
 
@@ -88,7 +92,7 @@ function CategoryGroup({ g, onPick }: { g: (typeof SEARCH_GROUPS)[number]; onPic
               <span className={`${s.ti} ${c.flip ? s.flip : ''}`} style={{ backgroundImage: `url(${imgUrl(c.tileImage ?? c.image, true)})` }} />
               <span className={s.tx}>
                 <b><i style={{ background: c.accent }} />{c.name}</b>
-                <small>{c.count} ชิ้น · {c.sub}</small>
+                <small>{catCount(k)} ชิ้น · {c.sub}</small>
               </span>
             </button>
           )
@@ -145,14 +149,14 @@ function AllCatsSheet({ open, onClose, onPick }: { open: boolean; onClose: () =>
               <button key={k} data-sheetcat={k} className={s.brw} onClick={() => onPick(k)}>
                 <span className={`${s.bth} ${c.flip ? s.flip : ''}`} style={{ backgroundImage: `url(${imgUrl(c.image, true)})` }} />
                 <span className={s.brt}><b>{c.name}{c.isNew && <span className={s.nwb}>ใหม่</span>}</b><small>{c.desc}</small></span>
-                <em>{c.count}</em>
+                <em>{catCount(k)}</em>
                 <Icon name="chev" size={16} color="#B4AFC8" stroke={2.2} />
               </button>
             )
           })}
         </div>
       ))}
-      <div className={s.bsf}>ตัวเลขจำนวนผลงานเป็นข้อมูลตัวอย่าง · หมวดที่มีป้าย “ใหม่” เปิดให้ลงขายได้แล้ว</div>
+      <div className={s.bsf}>{REAL ? '' : 'ตัวเลขจำนวนผลงานเป็นข้อมูลตัวอย่าง · '}หมวดที่มีป้าย “ใหม่” เปิดให้ลงขายได้แล้ว</div>
     </Sheet>
   )
 }
@@ -191,11 +195,13 @@ function TrendCarousel({ onPick }: { onPick: (q: string) => void }) {
 }
 
 function NewToday({ onAll }: { onAll: () => void }) {
+  const list = newToday()
+  if (!list.length) return null
   return (
     <section>
-      <SectionHead title={<><span className={s.ldot} />ใหม่วันนี้ <em className={s.nc}>{NEW_TODAY_COUNT}</em></>} right="ดูทั้งหมด" onRight={onAll} />
+      <SectionHead title={<><span className={s.ldot} />ใหม่วันนี้ <em className={s.nc}>{REAL ? list.length : NEW_TODAY_COUNT}</em></>} right="ดูทั้งหมด" onRight={onAll} />
       <div className={s.shelf}>
-        {NEW_TODAY.map(({ p, ago }) => (
+        {list.map(({ p, ago }) => (
           <div key={p.id} className={s.shelfItem}>
             <ProductCard p={{ ...p, ratio: '1/1' }} badge={<span className={s.nw}><i />{ago}</span>} />
           </div>
@@ -288,7 +294,10 @@ export function Search() {
   const tab = RESULT_FILTERS && params.get('tab') === 'creators' ? 'creators' : 'works'
   const sort = ((RESULT_FILTERS && SORTS.find((x) => x.id === params.get('sort'))?.id) || 'rel') as SortId
   const price = ((RESULT_FILTERS && PRICES.find((x) => x.id === params.get('price'))?.id) || 'all') as PriceId
-  const found = useMemo(() => searchWorks(q, cat), [q, cat])
+  const published = useDb().published
+  const found = useMemo(() => searchWorks(q, cat), [q, cat, published]) // eslint-disable-line react-hooks/exhaustive-deps
+  /** “ผลงานสำหรับคุณ”: the sample works on the demo site, the live works on the real site. */
+  const forYou = useMemo(() => (REAL ? published.filter(isLive) : PRODUCTS), [published])
   const results = useMemo(() => arrange(found, sort, price), [found, sort, price])
   const creators = useMemo(() => matchCreators(q, found), [q, found])
   const nav = useNavigate()
@@ -355,7 +364,7 @@ export function Search() {
             </button>
           </form>
         </div>
-        {focused && !q && (
+        {focused && !q && HOT_KEYWORDS.length > 0 && (
           <div className={`wrap ${s.suggest}`}>
             <div className={s.sgT}><Icon name="fire" size={13} color="#EF4444" fill="#EF4444" stroke={0} />คำค้นยอดฮิต</div>
             <div className={s.sgW}>{HOT_KEYWORDS.map((k, i) => (
@@ -417,8 +426,8 @@ export function Search() {
               <div className={s.empty}>
                 <b>ยังไม่เจอผลงานที่ตรงกับ{price !== 'all' ? 'ช่วงราคานี้' : 'คำนี้'}</b>
                 {price !== 'all' && <button className="btn btn-o btn-sm" style={{ marginTop: 10 }} onClick={() => update({ price: 'all' }, true)}>ดูทุกราคา</button>}
-                <p>ลองคำอื่นดูนะ หรือเลือกจากคำค้นยอดฮิต</p>
-                <div className={s.sgW}>{HOT_KEYWORDS.slice(0, 6).map((k) => <button key={k} onClick={() => pickQuery(k)}>{k}</button>)}</div>
+                <p>{HOT_KEYWORDS.length ? 'ลองคำอื่นดูนะ หรือเลือกจากคำค้นยอดฮิต' : 'ลองคำอื่นดูนะ'}</p>
+                {HOT_KEYWORDS.length > 0 && <div className={s.sgW}>{HOT_KEYWORDS.slice(0, 6).map((k) => <button key={k} onClick={() => pickQuery(k)}>{k}</button>)}</div>}
               </div>
             )}
           </>
@@ -435,7 +444,7 @@ export function Search() {
             {SHOW_SAMPLE_STATS && <DailyChallenge />}
             <section>
               <SectionHead title="ผลงานสำหรับคุณ" right="คละทุกประเภท" />
-              <MasonryFeed items={PRODUCTS} />
+              {forYou.length ? <MasonryFeed items={forYou} /> : <div className={s.empty}><b>ยังไม่มีผลงานในตอนนี้</b></div>}
             </section>
           </>
         )}

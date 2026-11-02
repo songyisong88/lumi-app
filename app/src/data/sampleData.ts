@@ -3,6 +3,9 @@
  * Replace with Supabase queries later; keep the shapes from ./types.ts.
  */
 import type { Creator, Product, Story, TypeKey } from './types'
+import { REAL } from '../config'
+
+/** The real site (REAL) ships none of the sample creators, works or stories below: only server data. */
 
 export const TYPES: Record<TypeKey, { name: string; color: string; bg: string }> = {
   img: { name: 'ภาพ', color: '#6C2BD9', bg: '#F3ECFF' },
@@ -18,7 +21,7 @@ export const TYPES: Record<TypeKey, { name: string; color: string; bg: string }>
 
 export const TYPE_ORDER: TypeKey[] = ['img', 'tpl', 'tool', 'bot', 'course', 'svc', 'media', 'skill', 'data']
 
-export const CREATORS: Creator[] = [
+export const CREATORS: Creator[] = REAL ? [] : [
   { id: 'mint', name: 'มิ้นท์ สตูดิโอ', avatar: 'av_mint.jpg' },
   { id: 'nova', name: 'NOVA Lab', avatar: 'av_nova.jpg' },
   { id: 'fasai', name: 'ฟ้าใส ครีเอท', avatar: 'av_fasai.jpg' },
@@ -43,7 +46,7 @@ export const isRemoteId = (id?: string) => !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-
 
 const img = (src: string, w: number, h: number) => ({ src, w, h })
 
-export const PRODUCTS: Product[] = [
+export const PRODUCTS: Product[] = REAL ? [] : [
   { id: 'p01', kind: 'image', type: 'img', label: 'ภาพ + พรอมต์', title: 'ภาพบัวชมพูสีน้ำ โทนพาสเทล', use: 'ภาพแต่งผนัง ปกเพจ', creatorId: 'fasai', price: 390, image: img('g_lotus.jpg', 864, 1152), hasPrompt: true, instant: true },
   { id: 'p02', kind: 'image', type: 'img', label: 'สติกเกอร์ PNG', title: 'สติกเกอร์ชิบะทักทาย 24 ตัว', use: 'ไฟล์ PNG พื้นใส ใช้โพสต์และทำสื่อได้', creatorId: 'pim', price: 59, image: img('shiba.jpg', 900, 900), instant: true },
   { id: 'p03', kind: 'tool', type: 'tool', label: 'ระบบอัตโนมัติ', title: 'ลงออเดอร์อัตโนมัติจาก LINE', use: 'ออเดอร์เข้า Sheets เอง ไม่ต้องพิมพ์', creatorId: 'ton', price: 590, ratio: '4/3', gradient: 'linear-gradient(160deg,#6366F1,#0EA5E9)', icon: 'flow', platforms: ['n8n', 'Sheets', 'LINE'], rating: 4.9, tryable: true },
@@ -74,7 +77,7 @@ export const PRODUCTS: Product[] = [
  * Extra SAMPLE works used by the search page (ใหม่วันนี้ shelf + software/app/game/plugin
  * categories). Kept separate so the approved home feed stays unchanged.
  */
-export const SEARCH_EXTRA: Product[] = [
+export const SEARCH_EXTRA: Product[] = REAL ? [] : [
   { id: 'n01', kind: 'image', type: 'img', title: 'ภาพข้าวเหนียวมะม่วงสีน้ำ', use: 'เมนู ปกเพจ', creatorId: 'fasai', price: 49, image: img('stickyrice.jpg', 900, 900), instant: true },
   { id: 'n02', kind: 'image', type: 'tool', label: 'อัตโนมัติ', title: 'ระบบแจ้งเตือนสต็อกใน LINE', use: 'ของใกล้หมดเตือนเอง', creatorId: 'kenji', price: 0, image: img('c_auto.jpg', 720, 720), tryable: true },
   { id: 'n03', kind: 'image', type: 'img', title: 'ภาพน้ำหอมบนผ้าไหม', use: 'โฆษณาแบรนด์', creatorId: 'nova', price: 129, image: img('perfume.jpg', 900, 900), instant: true },
@@ -102,7 +105,7 @@ export const NEW_CATEGORY_WORKS = SEARCH_EXTRA.filter((p) => ['media', 'skill', 
 /** Every sample work (home feed + search extras). Use this for lookups by id. */
 export const ALL_PRODUCTS: Product[] = [...PRODUCTS, ...SEARCH_EXTRA]
 
-export const STORIES: Story[] = [
+export const STORIES: Story[] = REAL ? [] : [
   { creatorId: 'mint', slides: [{ productId: 'p07', postedAgo: '1 ชม.ที่แล้ว' }, { productId: 'p16', postedAgo: '3 ชม.ที่แล้ว' }] },
   { creatorId: 'nova', slides: [{ productId: 'p20', postedAgo: '2 ชม.ที่แล้ว' }, { productId: 'p15', postedAgo: '5 ชม.ที่แล้ว' }, { productId: 'p08', postedAgo: '8 ชม.ที่แล้ว' }] },
   { creatorId: 'fasai', slides: [{ productId: 'p01', postedAgo: '30 นาทีที่แล้ว' }, { productId: 'p06', postedAgo: '4 ชม.ที่แล้ว' }] },
@@ -123,7 +126,9 @@ export const QUICK_FILTERS: { id: string; label: string; match: (p: Product) => 
 /** Only reviewed (or sample) works show in the home feed, search and similar lists. */
 export const isLive = (p: Product) => !p.mod || p.mod.status === 'live'
 
-const UNKNOWN = (id: string): Creator => ({ id, name: 'ผู้ใช้ LUMI', avatar: 'av_somjai.jpg' })
+/** Neutral picture for accounts without one (the real site never shows a sample person's face). */
+export const NO_AVATAR = REAL ? 'av_none.jpg' : 'av_somjai.jpg'
+const UNKNOWN = (id: string): Creator => ({ id, name: 'ผู้ใช้ LUMI', avatar: NO_AVATAR })
 export const creatorById = (id: string): Creator => CREATORS.find((c) => c.id === id) ?? REMOTE_CREATORS.get(id) ?? UNKNOWN(id)
 export const remoteCreator = (id: string) => REMOTE_CREATORS.get(id)
 export const productById = (id: string) => ALL_PRODUCTS.find((p) => p.id === id)

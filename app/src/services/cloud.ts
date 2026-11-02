@@ -6,7 +6,9 @@
 import type { CartItem, CloudReview, Message, Notif, Order, Post, Purchase, Sale, Thread, UserStory, Asset } from '../data/appTypes'
 import type { ListingDraft } from '../data/listingSpec'
 import type { Creator, Product } from '../data/types'
-import { ME, isRemoteId, productById, registerCreators, remoteCreator } from '../data/sampleData'
+import { ME, NO_AVATAR, isRemoteId, productById, registerCreators, remoteCreator } from '../data/sampleData'
+import { setRoomCounts } from '../data/appSeed'
+import { REAL } from '../config'
 import { getDb, update } from './db'
 import { publicUrl, sb } from './supabase'
 import { getSession, registerSessionHooks, setProfile, type Profile } from './session'
@@ -44,12 +46,12 @@ const S = () => { if (!sb) throw new CloudError('ยังไม่ได้เ�
 
 // ---------- profiles → creators
 export function toCreator(p: Row): Creator {
-  return { id: p.id, name: p.display_name || 'ผู้ใช้ LUMI', avatar: publicUrl(p.avatar_path) ?? 'av_somjai.jpg', followers: p.follower_count ?? 0, bio: p.bio ?? undefined, handle: p.handle ?? undefined }
+  return { id: p.id, name: p.display_name || 'ผู้ใช้ LUMI', avatar: publicUrl(p.avatar_path) ?? NO_AVATAR, followers: p.follower_count ?? 0, bio: p.bio ?? undefined, handle: p.handle ?? undefined, verified: !!p.verified }
 }
 export async function loadProfiles(ids: string[]) {
   const need = uids(ids).filter((id) => !remoteCreator(id))
   if (!need.length) return
-  const rows = must(await S().from('profiles').select('id, handle, display_name, avatar_path, bio, follower_count, is_creator').in('id', need), 'profiles')
+  const rows = must(await S().from('profiles').select('id, handle, display_name, avatar_path, bio, follower_count, is_creator, verified').in('id', need), 'profiles')
   registerCreators((rows ?? []).map(toCreator))
 }
 
@@ -158,6 +160,24 @@ function toMsg(m: Row, offers: Map<string, Row>, job?: Row, latestDelivery?: str
 const NOTIF_KIND: Record<string, Notif['kind']> = { moderation: 'system', payout: 'sale', refund: 'order' }
 const toNotif = (n: Row): Notif => ({ id: n.id, kind: NOTIF_KIND[n.kind] ?? n.kind, text: n.text, at: ms(n.created_at), link: n.link ?? '/', read: !!n.read_at, avatar: remoteCreator(n.actor_id)?.avatar, image: publicUrl(n.image) })
 
+// ---------- real site vs demo site
+/** Test accounts (profiles.is_test, the lumi-qa-* QA accounts). The real site hides their listings, posts, comments,
+ *  stories and reviews from everyone else; the demo site (the testing ground) shows everything. */
+let TEST = new Set<string>()
+async function loadTestIds() {
+  if (!REAL) return
+  const r = await S().from('profiles').select('id').eq('is_test', true)
+  if (!r.error) TEST = new Set(((r.data ?? []) as Row[]).map((x) => x.id as string))
+}
+/** Show this author's content? Always for your own; on the real site never for test accounts. */
+const shown = (id?: string | null) => !REAL || !id || id === ME || !TEST.has(id)
+/** Real member counts of the community rooms (the demo site keeps its sample numbers). */
+async function loadRoomCounts() {
+  if (!REAL) return
+  const r = await S().from('rooms').select('id, member_count')
+  if (!r.error && r.data) setRoomCounts(r.data as { id: string; member_count: number | null }[])
+}
+
 // ---------- hydrate (sign-in, reload, realtime refresh)
 const keepLocal = <T extends { id: string }>(xs: T[]) => xs.filter((x) => !isRemoteId(x.id))
 let hydrating: Promise<void> | null = null
@@ -167,6 +187,7 @@ async function doHydrate() {
   if (!isRemoteId(me)) return
   const prof = must(await c.from('profiles').select('*').eq('id', me).maybeSingle(), 'my profile') as Profile | null
   if (prof) { setProfile(prof); registerCreators([toCreator(prof)]) }
+  await Promise.all([loadTestIds(), loadRoomCounts()])
   const [mine, live, posts, likes, saves, clikes, follows, members, ents, notifs, stories] = await Promise.all([
     c.from('products').select(PRODUCT_COLS).eq('creator_id', me).eq('status', 'published').order('updated_at', { ascending: false }),
     c.from('products').select(PRODUCT_COLS).eq('status', 'published').eq('review_status', 'live').neq('creator_id', me).order('published_at', { ascending: false }).limit(200),
@@ -181,12 +202,12 @@ async function doHydrate() {
     c.from('stories').select('*').gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(200),
   ])
   const myProducts = (must(mine, 'my products') as Row[]).map(toProduct)
-  const otherProducts = (must(live, 'products') as Row[]).map(toProduct)
-  const postRows = must(posts, 'posts') as Row[]
+  const otherProducts = (must(live, 'products') as Row[]).filter((r) => shown(r.creator_id)).map(toProduct)
+  const postRows = (must(posts, 'posts') as Row[]).filter((r) => shown(r.author_id))
   const postIds = postRows.map((p) => p.id)
-  const comments = postIds.length ? (must(await c.from('comments').select('*').in('post_id', postIds).order('created_at'), 'comments') as Row[]) : []
+  const comments = postIds.length ? (must(await c.from('comments').select('*').in('post_id', postIds).order('created_at'), 'comments') as Row[]).filter((r) => shown(r.author_id)) : []
   const entRows = must(ents, 'entitlements') as Row[]
-  const storyRows = must(stories, 'stories') as Row[]
+  const storyRows = (must(stories, 'stories') as Row[]).filter((r) => shown(r.author_id))
   const notifRows = must(notifs, 'notifications') as Row[]
   await loadProfiles([...otherProducts.map((p) => p.creatorId), ...postRows.map((p) => p.author_id), ...comments.map((x) => x.author_id),
     ...entRows.map((e) => e.products?.creator_id), ...storyRows.map((s) => s.author_id), ...notifRows.map((n) => n.actor_id)])
@@ -465,7 +486,8 @@ export async function checkoutCloud(items: CartItem[], method: string, coupon?: 
 
 export async function loadReviews(productId: string) {
   if (!isRemoteId(productId)) return
-  const rows = must(await S().from('reviews').select('*').eq('product_id', productId).order('created_at', { ascending: false }).limit(50), 'reviews') as Row[]
+  await loadTestIds()
+  const rows = (must(await S().from('reviews').select('*').eq('product_id', productId).order('created_at', { ascending: false }).limit(50), 'reviews') as Row[]).filter((r) => shown(r.author_id))
   await loadProfiles(rows.map((r) => r.author_id))
   const list: CloudReview[] = rows.map((r) => ({ id: r.id, authorId: r.author_id, stars: r.stars, text: r.body ?? '', at: ms(r.created_at), reply: r.reply ?? undefined }))
   update((d) => { d.cloudReviews = { ...(d.cloudReviews ?? {}), [productId]: list } })
@@ -474,6 +496,8 @@ export async function loadProduct(id: string) {
   if (!isRemoteId(id) || productById(id)) return
   const r = must(await S().from('products').select(PRODUCT_COLS).eq('id', id).maybeSingle(), 'product') as Row | null
   if (!r) return
+  await loadTestIds()
+  if (!shown(r.creator_id)) return
   await loadProfiles([r.creator_id])
   const p = toProduct(r)
   update((d) => { d.published = [...d.published.filter((x) => x.id !== p.id), p] })
@@ -481,12 +505,14 @@ export async function loadProduct(id: string) {
 /** Public data for visitors who are not signed in (live listings, posts, stories). */
 export async function loadPublic() {
   const c = S()
+  await Promise.all([loadTestIds(), loadRoomCounts()])
   const [live, posts, stories] = await Promise.all([
     c.from('products').select(PRODUCT_COLS).eq('status', 'published').eq('review_status', 'live').order('published_at', { ascending: false }).limit(200),
     c.from('posts').select('*').eq('status', 'visible').order('created_at', { ascending: false }).limit(60),
     c.from('stories').select('*').gt('expires_at', new Date().toISOString()).limit(100),
   ])
-  const prods = ((live.data ?? []) as Row[]).map(toProduct), ps = ((posts.data ?? []) as Row[]).map(toPost), ss = ((stories.data ?? []) as Row[]).map(toStory)
+  const ok = (r: Row) => shown(r.creator_id ?? r.author_id)
+  const prods = ((live.data ?? []) as Row[]).filter(ok).map(toProduct), ps = ((posts.data ?? []) as Row[]).filter(ok).map(toPost), ss = ((stories.data ?? []) as Row[]).filter(ok).map(toStory)
   await loadProfiles([...prods.map((p) => p.creatorId), ...ps.map((p) => p.authorId), ...ss.map((s) => s.authorId)])
   update((d) => { d.published = prods; d.posts = [...ps, ...keepLocal(d.posts)].sort((a, b) => b.at - a.at); d.stories = ss })
 }

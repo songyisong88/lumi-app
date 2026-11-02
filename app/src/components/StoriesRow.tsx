@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
-import { STORIES, creatorById, imgUrl } from '../data/sampleData'
+import { creatorById, imgUrl } from '../data/sampleData'
+import { useDb } from '../services/db'
+import { storyGroups } from '../services/storyGroups'
 import { getSeenStories } from '../services/seenStories'
 import { Icon } from './Icon'
 import s from './StoriesRow.module.css'
@@ -7,6 +9,7 @@ import s from './StoriesRow.module.css'
 /** Creator stories. No section title by design (approved home page). */
 export function StoriesRow() {
   const seen = getSeenStories()
+  const STORIES = storyGroups(useDb())
   // unseen first, like Instagram
   const list = [...STORIES].sort((a, b) => Number(seen.includes(a.creatorId)) - Number(seen.includes(b.creatorId)))
   return (

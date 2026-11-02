@@ -4,14 +4,15 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { HeaderActions } from '../../components/Header'
 import { Icon } from '../../components/Icon'
 import { isCloud } from '../../services/session'
-import { FEATURES } from '../../config'
+import { FEATURES, REAL } from '../../config'
+import { loadProfiles } from '../../services/cloud'
 import { MasonryFeed } from '../../components/MasonryFeed'
 import { ReportButton } from '../../components/Report'
 import { ISSUE_DAYS, IssueSheet, WriteReviewSheet, issueOpen } from '../../components/OrderHelp'
 import { Av, Empty, Img, SampleNote, Seg, Sheet, Stars, TopBar } from '../../components/ui'
 import { completion, SPECS } from '../../data/listingSpec'
 import { creatorStats, heroOf, statsOf } from '../../data/productExtras'
-import { ALL_PRODUCTS, CREATORS, ME, baht, creatorById, imgUrl, isLive } from '../../data/sampleData'
+import { ALL_PRODUCTS, CREATORS, ME, baht, creatorById, imgUrl, isLive, isRemoteId, remoteCreator } from '../../data/sampleData'
 import { chat, resetAll } from '../../services/api'
 import { useDb } from '../../services/db'
 import { useFavorites } from '../../services/FavoritesContext'
@@ -20,8 +21,9 @@ import { ago } from '../../utils/time'
 import s from './Profile.module.css'
 
 type Mode = 'buyer' | 'creator'
-/** SAMPLE DATA: past sales shown in creator mode until real orders exist. */
-const SHOP_SALES = [
+const productImg = (id: string) => { const p = ALL_PRODUCTS.find((x) => x.id === id); return p ? heroOf(p) : undefined }
+/** SAMPLE DATA: past sales shown in creator mode on the demo site (the real site shows only real sales). */
+const SHOP_SALES = REAL ? [] : [
   { no: 'LM-20476', pid: 'p01', who: 'ลูกค้าร้านกาแฟ', amt: 390, st: 'ส่งไฟล์แล้ว · รอพ้น 7 วัน', tone: 'info' },
   { no: 'LM-20451', pid: 'p01', who: 'ร้านดอกไม้ป้าแดง', amt: 159, st: 'เข้ายอดรอโอนแล้ว', tone: 'done' },
 ]
@@ -49,6 +51,12 @@ export function Profile() {
   const mine = ALL_PRODUCTS.filter((p) => p.creatorId === ME)
   const todo = db.threads.filter((t) => t.role === 'customer' && t.tone === 'warn' || (t.role === 'customer' && t.status.includes('รอคุณ')))
   const sales = db.orders.length
+  // real site: this month's income, sold count and pending payout come from the server sales (db.sales)
+  const now = new Date(), monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime()
+  const real = db.sales ?? []
+  const monthSales = real.filter((x) => x.at >= monthStart && x.payout !== 'refunded')
+  const inc = { label: now.toLocaleDateString('th-TH', { month: 'short' }), total: monthSales.reduce((a, x) => a + x.net, 0), count: monthSales.length, pending: real.filter((x) => x.payout === 'held' || x.payout === 'released').reduce((a, x) => a + x.net, 0) }
+  const PAYOUT: Record<string, [string, string]> = { held: ['ส่งไฟล์แล้ว · รอพ้น 7 วัน', 'info'], released: ['เข้ายอดรอโอนแล้ว', 'done'], paid_out: ['โอนเข้าบัญชีแล้ว', 'done'], refunded: ['คืนเงินแล้ว', 'warn'], disputed: ['ผู้ซื้อแจ้งปัญหา', 'warn'] }
   return (
     <div className="page">
       <TopBar back={false} title="โปรไฟล์" right={<><HeaderActions search={false} /><button className="tb-btn" onClick={() => setSettings(true)} aria-label="ตั้งค่า"><Icon name="gear" size={21} /></button></>} />
@@ -57,7 +65,7 @@ export function Profile() {
           <Av src={me.avatar} size={68} ring />
           <div className={s.mm}>
             <b>{me.name}</b>
-            <small>{HANDLE[ME] && <><span className="nw">@{HANDLE[ME]}</span> · </>}<span className="nw">ติดตาม {db.follows.length}</span> · <span className="nw">ผู้ติดตาม {creatorStats(ME).followersLabel}</span></small>
+            <small>{(HANDLE[ME] ?? me.handle) && <><span className="nw">@{HANDLE[ME] ?? me.handle}</span> · </>}<span className="nw">ติดตาม {db.follows.length}</span> · <span className="nw">ผู้ติดตาม {creatorStats(ME).followersLabel}</span></small>
           </div>
           <Link to={`/creator/${ME}`} className="btn btn-o btn-xs">ดูหน้าร้าน</Link>
         </div>
@@ -104,10 +112,10 @@ export function Profile() {
           ) : (
             <>
               <div className={s.inc}>
-                <small>รายได้เดือนนี้ (พ.ย.) · ตัวอย่าง</small>
-                <b>{baht(12480)}</b>
-                <span>↑ 18% · ขายได้ {41 + sales} ชิ้น</span>
-                <div className={s.wd}><span>ยอดรอโอน <b>฿8,200</b></span><button className="btn btn-xs" style={{ background: '#fff', color: 'var(--p)' }} onClick={() => toast('การโอนเงินเข้าบัญชีจะเปิดใช้เร็ว ๆ นี้ หลังเชื่อมบัญชีรับเงิน')}>โอนเข้าบัญชี · เร็ว ๆ นี้</button></div>
+                <small>{REAL ? `รายได้เดือนนี้ (${inc.label})` : 'รายได้เดือนนี้ (พ.ย.) · ตัวอย่าง'}</small>
+                <b>{baht(REAL ? inc.total : 12480)}</b>
+                <span>{REAL ? `ขายได้ ${inc.count} ชิ้น` : `↑ 18% · ขายได้ ${41 + sales} ชิ้น`}</span>
+                <div className={s.wd}><span>ยอดรอโอน <b>{REAL ? baht(inc.pending) : '฿8,200'}</b></span><button className="btn btn-xs" style={{ background: '#fff', color: 'var(--p)' }} onClick={() => toast('การโอนเงินเข้าบัญชีจะเปิดใช้เร็ว ๆ นี้ หลังเชื่อมบัญชีรับเงิน')}>โอนเข้าบัญชี · เร็ว ๆ นี้</button></div>
               </div>
               <div className="sec">
                 <div className="sec-h">ต้องทำวันนี้<span className="pill pill-r">{todo.length} งาน</span></div>
@@ -120,9 +128,10 @@ export function Profile() {
                 ))}
               </div>
               <div className="sec" data-shop-orders>
-                <div className="sec-h">ออเดอร์ของร้าน<span className="more">ตัวอย่าง</span></div>
+                <div className="sec-h">ออเดอร์ของร้าน{!REAL && <span className="more">ตัวอย่าง</span>}</div>
                 <div className="card2" style={{ padding: 0, overflow: 'hidden' }}>
                   {[...db.threads.filter((t) => t.role === 'customer' && t.orderNo).map((t) => ({ k: t.id, to: `/chat/${t.id}`, img: t.image, title: t.title, sub: `${creatorById(t.partnerId).name} · #${t.orderNo} · ${t.amount ? baht(t.amount) : 'ฟรี'}`, st: t.status, tone: t.tone })),
+                    ...(REAL ? real.filter((x) => !db.threads.some((t) => t.orderNo === x.orderNo)).map((x) => ({ k: x.id, to: x.productId ? `/product/${x.productId}` : '/profile?mode=creator', img: (x.productId && productImg(x.productId)) || 'g_lotus.jpg', title: x.title, sub: `${creatorById(x.buyerId).name} · #${x.orderNo} · ${x.gross ? baht(x.gross) : 'ฟรี'}`, st: PAYOUT[x.payout]?.[0] ?? '', tone: PAYOUT[x.payout]?.[1] ?? 'info' })) : []),
                     ...SHOP_SALES.map((x) => ({ k: x.no, to: `/product/${x.pid}`, img: heroOf(ALL_PRODUCTS.find((p) => p.id === x.pid)!), title: ALL_PRODUCTS.find((p) => p.id === x.pid)!.title, sub: `${x.who} · #${x.no} · ${baht(x.amt)}`, st: x.st, tone: x.tone }))].map((o) => (
                     <Link key={o.k} to={o.to} className="list-row">
                       <Img src={o.img} className={s.th} />
@@ -194,8 +203,8 @@ export function Profile() {
         {FEATURES.accounts
           ? <button className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }} onClick={() => { setSettings(false); nav(isCloud() ? '/account' : '/account/login') }}><Icon name="user" size={20} /><span className="grow">บัญชีและการเข้าสู่ระบบ<small>{isCloud() ? 'โปรไฟล์ อีเมล รหัสผ่าน และขอลบบัญชี' : 'สมัคร หรือเข้าสู่ระบบด้วยอีเมล'}</small></span><Icon name="chev" size={16} color="var(--mut)" /></button>
           : <div className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }}><Icon name="user" size={20} /><span className="grow">บัญชีและการเข้าสู่ระบบ<small>สมัคร เข้าสู่ระบบ ใบเสร็จทางอีเมล และขอลบบัญชี จะเปิดพร้อมระบบบัญชีจริง</small></span><span className="pill">เร็ว ๆ นี้</span></div>}
-        <button className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }} onClick={() => { resetAll(); setSettings(false); toast('รีเซ็ตข้อมูลตัวอย่างแล้ว') }}><Icon name="refresh" size={20} />รีเซ็ตข้อมูลตัวอย่างทั้งหมด<small style={{ marginLeft: 'auto' }}>ตะกร้า แชต ร่าง</small></button>
-        <p className="hint">ใช้ตอนอยากเริ่มทดลองใหม่ ข้อมูลทั้งหมดอยู่ในเครื่องนี้ ไม่ได้ส่งไปที่ไหน</p>
+        {!REAL && <><button className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }} onClick={() => { resetAll(); setSettings(false); toast('รีเซ็ตข้อมูลตัวอย่างแล้ว') }}><Icon name="refresh" size={20} />รีเซ็ตข้อมูลตัวอย่างทั้งหมด<small style={{ marginLeft: 'auto' }}>ตะกร้า แชต ร่าง</small></button>
+        <p className="hint">ใช้ตอนอยากเริ่มทดลองใหม่ ข้อมูลทั้งหมดอยู่ในเครื่องนี้ ไม่ได้ส่งไปที่ไหน</p></>}
       </Sheet>
     </div>
   )
@@ -206,7 +215,10 @@ export function CreatorPage() {
   const { id = '' } = useParams()
   const db = useDb()
   const nav = useNavigate()
-  const c = CREATORS.find((x) => x.id === id)
+  const c = CREATORS.find((x) => x.id === id) ?? remoteCreator(id)
+  // real accounts (e.g. LUMI OFFICIAL): load the profile when the page is opened directly
+  const [, bump] = useState(0)
+  useEffect(() => { if (!c && isRemoteId(id)) void loadProfiles([id]).then(() => bump((n) => n + 1), () => {}) }, [c, id]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!c) return <><TopBar title="ครีเอเตอร์" /><Empty icon="user" title="ไม่พบครีเอเตอร์" action={<Link to="/search" className="btn btn-o btn-sm">ค้นหาครีเอเตอร์</Link>} /></>
   const works = ALL_PRODUCTS.filter((p) => p.creatorId === id && isLive(p))
   const posts = db.posts.filter((p) => p.authorId === id)
@@ -228,9 +240,9 @@ export function CreatorPage() {
           </div>
         </div>
         <div style={{ padding: '0 16px' }}>
-          <h1 className={s.cn}>{c.name}<span className={s.vb}><Icon name="check" size={10} color="#fff" stroke={3.4} /></span></h1>
-          <p className="muted">@{HANDLE[id] ?? id}</p>
-          <p className={s.bio}>{BIO[id] ?? 'ลูกค้า LUMI'}</p>
+          <h1 className={s.cn}>{c.name}{(!isRemoteId(id) || c.verified) && <span className={s.vb}><Icon name="check" size={10} color="#fff" stroke={3.4} /></span>}</h1>
+          {(HANDLE[id] ?? c.handle ?? (isRemoteId(id) ? '' : id)) && <p className="muted">@{HANDLE[id] ?? c.handle ?? id}</p>}
+          <p className={s.bio}>{BIO[id] ?? c.bio ?? 'ลูกค้า LUMI'}</p>
           <div className={s.stats}><span><b>{works.length}</b>ผลงาน</span><span><b>{st.followersLabel}</b>ผู้ติดตาม</span><span><b>{st.rating ? st.rating.toFixed(1) : '–'}</b>คะแนน</span><span><b>{posts.length}</b>โพสต์</span></div>
         </div>
         <div className="sec"><div className="sec-h">ผลงาน</div>{works.length ? <MasonryFeed items={works} /> : <Empty icon="store" title="ยังไม่มีผลงานขาย" action={isMe ? <Link to="/sell" className="btn btn-p btn-sm">ลงขายผลงานแรก</Link> : undefined} />}</div>

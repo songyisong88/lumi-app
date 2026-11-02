@@ -31,11 +31,14 @@ jobs:
         run: |
           npm ci
           npm run build
+          # DEMO site (sample data + sample persona + test accounts) from the same code at /lumi-app/demo/
+          VITE_SITE=demo npx vite build --outDir dist-demo
       - name: Assemble site
         run: |
           mkdir _site
           rsync -a --exclude .git --exclude .github --exclude app --exclude _site ./ _site/
           cp -r app/dist _site/app
+          cp -r app/dist-demo _site/demo
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:

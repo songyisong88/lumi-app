@@ -2,6 +2,7 @@
 import type { ListingDraft } from './listingSpec'
 import { SPECS } from './listingSpec'
 import type { DB, Message, Post, Room, Thread } from './appTypes'
+import { REAL } from '../config'
 
 const M = 60_000, H = 60 * M, D = 24 * H
 
@@ -13,6 +14,12 @@ export const ROOMS: Room[] = [
   { id: 'bot', name: 'บอทและระบบอัตโนมัติ', icon: 'robot', color: '#15803D', bg: '#E5F8EC', members: 2800, desc: 'LINE OA n8n Make และ Sheets', cover: 'c_bot.jpg', rules: ['ห้ามโพสต์ API key จริง', 'แชร์ฟลว์เป็นรูปหรือไฟล์'] },
   { id: 'sticker', name: 'คนขายสติกเกอร์ LINE', icon: 'heart', color: '#F59E0B', bg: '#FFF4DB', members: 8900, desc: 'ออกแบบ ส่งตรวจ และโปรโมตสติกเกอร์', cover: 'shiba.jpg', rules: ['โชว์งานได้วันละ 1 โพสต์'] },
 ]
+/** The member numbers above are sample numbers (demo site). The real site starts at 0 and takes the server's
+ *  room member counts (cloud.ts loadRoomCounts). */
+if (REAL) for (const r of ROOMS) r.members = 0
+export function setRoomCounts(rows: { id: string; member_count: number | null }[]) {
+  for (const row of rows) { const r = ROOMS.find((x) => x.id === row.id); if (r) r.members = row.member_count ?? 0 }
+}
 
 export function seed(): DB {
   const now = Date.now()
