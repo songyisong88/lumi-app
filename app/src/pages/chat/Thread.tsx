@@ -108,7 +108,7 @@ export function Thread() {
             <textarea rows={1} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send() } }} placeholder="พิมพ์ข้อความ…" aria-label="ข้อความ" />
             <button onClick={() => setSheet('sticker')} aria-label="สติกเกอร์"><Icon name="smile" size={20} color="var(--mut)" /></button>
           </div>
-          <button className={`${s.send} ${text.trim() ? s.sendOn : ''}`} onClick={() => send()} aria-label="ส่ง" disabled={!text.trim()}><Icon name="back" size={20} color="#fff" stroke={2.4} /></button>
+          <button className={`${s.send} ${text.trim() ? s.sendOn : ''}`} onClick={() => send()} aria-label="ส่ง" {...blockTap(!text.trim(), 'พิมพ์ข้อความก่อนส่ง')}><Icon name="back" size={20} color="#fff" stroke={2.4} /></button>
         </div>
       </div>
       <input ref={imgIn} type="file" accept="image/*" hidden onChange={(e) => pickImage(e.target.files?.[0])} />

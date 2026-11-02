@@ -159,7 +159,7 @@ export function Sell() {
         <div className={s.ht}><b>{d.publishedId && productById(d.publishedId) ? `แก้ไข · ${t?.name ?? ''}` : t ? `ลงขาย · ${t.name}` : 'ลงขายผลงาน'}</b><small className={saved === 'saved' ? s.ok : ''}>{saved === 'saving' ? 'กำลังบันทึก…' : saved === 'saved' ? 'บันทึกร่างแล้ว ✓' : 'บันทึกอัตโนมัติ'}</small></div>
         <Link to="/sell/drafts" className="btn btn-xs btn-s">ร่าง</Link>
       </div>
-      <div className={s.prog}>{STEPS.map((x, i) => <button key={x} className={`${i <= d.step ? s.pd : ''}`} disabled={!d.type && i > 0} onClick={() => d.type && go(i)} aria-label={`ขั้น ${x}`} />)}</div>
+      <div className={s.prog}>{STEPS.map((x, i) => <button key={x} className={`${i <= d.step ? s.pd : ''}`} {...blockTap(!d.type && i > 0, 'เลือกประเภทผลงานก่อน')} onClick={() => d.type && go(i)} aria-label={`ขั้น ${x}`} />)}</div>
       <div className={s.stl}><span>ขั้นที่ <b>{d.step + 1}</b> จาก 6 · {STEPS[d.step]}</span>{d.type && <button className={s.pctB} onClick={() => setCheckOpen(true)}><span className={s.pbar}><i style={{ transform: `scaleX(${pct / 100})` }} /></span>{pct}% พร้อมลงขาย</button>}</div>
     </div>
   )
@@ -377,7 +377,7 @@ function ListEdit({ f, v, set }: { f: Field; v: SpecValue | undefined; set: SetS
           <button onClick={() => set(f.id, (old) => (Array.isArray(old) ? old.filter((_, k) => k !== i) : []))} aria-label="ลบ"><Icon name="trash" size={15} /></button>
         </div>
       ))}
-      <div className={s.li}><i>+</i><input value={n} onChange={(e) => setN(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); add() } }} placeholder={f.placeholder ?? 'เพิ่มรายการ'} aria-label={`เพิ่ม ${f.label}`} /><button className={s.liAdd} onClick={add} disabled={!n.trim()}>เพิ่ม</button></div>
+      <div className={s.li}><i>+</i><input value={n} onChange={(e) => setN(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) { e.preventDefault(); add() } }} placeholder={f.placeholder ?? 'เพิ่มรายการ'} aria-label={`เพิ่ม ${f.label}`} /><button className={s.liAdd} onClick={add} {...blockTap(!n.trim(), 'พิมพ์ก่อนแล้วกดเพิ่ม')}>เพิ่ม</button></div>
       {(f.min ?? 1) > 1 && <span className="hint">อย่างน้อย {f.min} รายการ</span>}
     </div>
   )

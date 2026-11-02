@@ -83,7 +83,7 @@
 .li input{flex:1;border:0;outline:0;font:inherit;font-size:15px;background:transparent;min-width:0}
 .li button{padding:8px;color:var(--mute)}
 .liAdd{font-weight:700;color:var(--p)!important;font-size:13px}
-.liAdd:disabled{opacity:.4}
+.liAdd:disabled,.liAdd[aria-disabled="true"]{opacity:.4}
 .files{display:flex;flex-direction:column;gap:8px}
 .fi{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:#fff;border:1px solid var(--line)}
 .fi b{display:block;font-size:13.5px}
