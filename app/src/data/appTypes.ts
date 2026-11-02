@@ -32,7 +32,13 @@ export interface Purchase {
   price: number
   key?: string
   threadId?: string
+  /** Buyer reported a problem / asked for a refund (local only until moderation exists). */
+  issue?: Issue
+  /** Buyer's own review of this purchase (editable). */
+  review?: { stars: number; text: string; at: number }
 }
+
+export interface Issue { reason: string; note: string; at: number; status: string }
 
 export type MsgKind = 'text' | 'brief' | 'offer' | 'progress' | 'delivery' | 'key' | 'file' | 'product' | 'system' | 'sticker' | 'tip' | 'coupon' | 'typing'
 
@@ -54,6 +60,8 @@ export interface Message {
   fileName?: string
   size?: string
   productId?: string
+  /** Delivery: buyer asked for 3 more days to check the work. */
+  extended?: boolean
 }
 
 export interface Thread {
@@ -77,6 +85,7 @@ export interface Thread {
   updatedAt: number
   pinned?: boolean
   muted?: boolean
+  issue?: Issue
 }
 
 export const HIRE_STEPS = ['บรีฟ', 'ใบเสนอราคา', 'ชำระเงิน', 'กำลังทำ', 'ส่งงาน', 'รีวิว'] as const

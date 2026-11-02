@@ -54,6 +54,8 @@ export interface Product {
   /** Sell type + answers from the listing spec (see listingSpec.ts). */
   st?: import('./listingSpec').SellType
   spec?: import('./listingSpec').Spec
+  /** The wizard draft this listing was published from (minus covers), so the seller can edit it later. */
+  listing?: Omit<import('./listingSpec').ListingDraft, 'covers'>
 }
 
 /** The 8 product-page layouts (approved product-b). */

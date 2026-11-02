@@ -9,7 +9,8 @@ import type { DB } from '../data/appTypes'
 import { registerProducts } from '../data/sampleData'
 
 const KEY = 'lumi_app_db'
-const VERSION = 4
+// bump when the seed or stored shapes change; older local data is replaced by the new seed
+const VERSION = 5
 type Listener = () => void
 const listeners = new Set<Listener>()
 
@@ -21,7 +22,7 @@ function load(): DB {
       if (d && d.v === VERSION) return d
     }
   } catch { /* corrupted: fall back to seed */ }
-  return seed()
+  return { ...seed(), v: VERSION }
 }
 
 let state: DB = load()
@@ -44,7 +45,7 @@ export function update(fn: (d: DB) => DB | void) {
 
 export function resetDb() {
   localStorage.removeItem(KEY)
-  state = seed()
+  state = { ...seed(), v: VERSION }
   listeners.forEach((l) => l())
 }
 

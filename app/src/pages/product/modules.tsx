@@ -3,10 +3,11 @@ import { useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { copyText, Img } from '../../components/ui'
 import { toast } from '../../services/toast'
-import { arr, filesOf, on, str, type Spec } from '../../data/listingSpec'
+import { arr, filesOf, licRows, on, str, type Spec } from '../../data/listingSpec'
 import { galleryOf } from '../../data/productExtras'
 import { baht } from '../../data/sampleData'
 import type { DetailKind, Product, ProductOption } from '../../data/types'
+import { FEATURES } from '../../config'
 import s from './Product.module.css'
 
 const PAL = ['#2B1B4F', '#5B3FA8', '#E9A86B', '#F4D9B0', '#C2416B']
@@ -39,7 +40,7 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
           <div className={`hscroll ${s.canva}`}>{[...g, ...g].slice(0, 4).map((x, i) => <Img key={i} src={x} className={s.canvaI} />)}</div>
           {arr(spec.editable).length > 0 && <><div className={s.st}>{arr(spec.formats).includes('PDF') && arr(spec.formats).length === 1 ? 'ใช้งานยังไง' : 'แก้อะไรได้บ้าง'}</div>
           {arr(spec.editable).map((t) => <Ok key={t}>{t}</Ok>)}</>}
-          {arr(spec.apps).includes('Canva') && <div className={s.scan} style={{ background: '#EAF1FF', color: '#1E40AF' }}><Icon name="link" size={20} color="#2563EB" /><div><b>ได้ลิงก์ Canva ทันทีหลังซื้อ</b>ใช้ Canva ฟรีได้ ไม่ต้องสมัคร Pro</div></div>}
+          {arr(spec.apps).includes('Canva') && <div className={s.scan} style={{ background: '#EAF1FF', color: '#1E40AF' }}><Icon name="link" size={20} color="#2563EB" /><div><b>ได้ลิงก์ Canva ทันทีหลังซื้อ</b>{on(spec.noPro) ? 'ผู้ขายรับรองว่าไม่มีองค์ประกอบ Pro ใช้ Canva ฟรีได้' : 'บางองค์ประกอบอาจต้องใช้ Canva Pro'}</div></div>}
         </>
       )
     case 'sw':
@@ -68,15 +69,18 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
       )
     case 'course': {
       const free = parseInt(str(spec.freeLessons)) || 0
+      const ebook = str(spec.sub) === 'อีบุ๊ก'
+      const nf = filesOf(spec.files).length
       return (
         <>
-          <div className={s.st}>{/อีบุ๊ก/.test(p.label ?? '') ? `เนื้อหา ${arr(spec.lessons).length} บท` : `บทเรียน ${arr(spec.lessons).length} ตอน`}</div>
+          <div className={s.st}>{ebook ? `เนื้อหา ${arr(spec.lessons).length} บท` : `บทเรียน ${arr(spec.lessons).length} ตอน`}</div>
+          {nf > 0 && <p className="hint" style={{ margin: '-4px 0 8px' }}>{ebook ? `ไฟล์อีบุ๊ก ${nf} ไฟล์ (${filesOf(spec.files).map((f) => f.name.split('.').pop()?.toUpperCase()).filter((v, i, a) => a.indexOf(v) === i).join(' / ')})` : `อัปโหลดวิดีโอและไฟล์ประกอบแล้ว ${nf} ไฟล์`}</p>}
           <div className={s.les}>{arr(spec.lessons).map((l, i) => {
             const [a, b, c] = l.split(' · ')
             const fr = i < free
-            return <button key={l} className={fr ? s.fr : ''} onClick={() => fr && onLesson()}><i>{fr ? <Icon name="play" size={12} color="#E0620B" fill="#E0620B" /> : <Icon name="lock" size={13} color="#8A86A0" />}</i><span className="ell">{a} · {b}</span><small>{fr ? 'ดูฟรี' : c}</small></button>
+            return <button key={l} className={fr ? s.fr : ''} onClick={() => fr && onLesson()}><i>{fr ? (ebook ? <Icon name="book" size={12} color="#E0620B" /> : <Icon name="play" size={12} color="#E0620B" fill="#E0620B" />) : <Icon name="lock" size={13} color="#8A86A0" />}</i><span className="ell">{b ? `${a} · ${b}` : a}</span><small>{fr ? (ebook ? 'อ่านฟรี' : 'ดูฟรี') : c}</small></button>
           })}</div>
-          <div className={s.st}>เรียนจบแล้วทำอะไรได้</div>
+          <div className={s.st}>{ebook ? 'อ่านจบแล้วทำอะไรได้' : 'เรียนจบแล้วทำอะไรได้'}</div>
           {arr(spec.outcomes).map((o) => <Ok key={o}>{o}</Ok>)}
         </>
       )
@@ -92,10 +96,14 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
             <div className={s.st}>ในชุดนี้มี {str(spec.count)}</div>
             <div className={s.port}>{['0 0', '50% 0', '100% 0', '0 100%'].map((x) => <div key={x} style={{ backgroundImage: `url(${import.meta.env.BASE_URL}img/${g[0]})`, backgroundSize: '300%', backgroundPosition: x }} />)}</div>
           </>}
-          <div className={s.st}>ตารางสิทธิ์ตามแบบที่ซื้อ</div>
-          <table className={s.lic}><thead><tr><th>ใช้ทำ</th>{opts.map((o) => <th key={o.id}>{o.label}<br />{baht(o.price)}</th>)}</tr></thead>
-            <tbody>{[['งานส่วนตัว การบ้าน', 1, 1], ['โพสต์ขายของ โฆษณา', 0, 1], ['โลโก้ ป้ายร้าน', 0, 1], ['สินค้าที่พิมพ์ขาย', 0, 1], ['ขายต่อไฟล์', 0, 0]].map(([a, b, c]) => (
-              <tr key={a as string}><td>{a}</td>{opts.map((o, i) => { const y = i === 0 ? b : c; return <td key={o.id} className={y ? s.yes : s.no}>{y ? '✓' : '–'}</td> })}</tr>))}</tbody></table>
+          {opts.length > 1 && <>
+            <div className={s.st}>ตารางสิทธิ์ตามแบบที่ซื้อ</div>
+            <table className={s.lic}><thead><tr><th>ใช้ทำ</th>{opts.map((o) => <th key={o.id}>{o.label}<br />{baht(o.price)}</th>)}</tr></thead>
+              <tbody>{licRows('font').map((a, r) => {
+                const full = arr(spec.licAllowed)
+                return <tr key={a}><td>{a}</td>{opts.map((o, i) => { const y = i === 0 ? r === 0 : full.includes(a); return <td key={o.id} className={y ? s.yes : s.no}>{y ? '✓' : '–'}</td> })}</tr>
+              })}</tbody></table>
+          </>}
         </>
       )
     case 'hire': {
@@ -121,10 +129,12 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
     case 'free':
       return (
         <>
-          <div className={s.scan} style={{ marginTop: 14 }}><Icon name="gift" size={24} color="#16A34A" /><div><b>ดาวน์โหลดฟรี ไม่ต้องจ่าย</b>ครีเอเตอร์แจกให้ใช้ · สแกนไวรัสแล้ว</div></div>
-          <div className={s.st}>ชอบไหม? ให้ทิปเป็นกำลังใจ</div>
-          <div className={s.tipr}>{[20, 50, 100].map((a) => <button key={a} className="press" onClick={() => onTip(a)}>฿{a}</button>)}<button className="press" onClick={() => onTip(0)}>อื่น ๆ</button></div>
-          <p className="hint">ไม่บังคับ ทิปส่งถึงครีเอเตอร์เต็มจำนวน</p>
+          <div className={s.scan} style={{ marginTop: 14 }}><Icon name="gift" size={24} color="#16A34A" /><div><b>ดาวน์โหลดฟรี ไม่ต้องจ่าย</b>ครีเอเตอร์แจกให้ใช้ · สแกนไวรัสเบื้องต้นแล้ว</div></div>
+          {FEATURES.tips && <>
+            <div className={s.st}>ชอบไหม? ให้ทิปเป็นกำลังใจ</div>
+            <div className={s.tipr}>{[20, 50, 100].map((a) => <button key={a} className="press" onClick={() => onTip(a)}>฿{a}</button>)}<button className="press" onClick={() => onTip(0)}>อื่น ๆ</button></div>
+            <p className="hint">ไม่บังคับ · ครีเอเตอร์ได้รับทิปหลังหักค่าธรรมเนียมการชำระเงิน</p>
+          </>}
         </>
       )
     case 'media': {
@@ -138,7 +148,7 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
           ) : (
             <div className={s.video}><Img src={g[0]} className={s.videoImg} /><span className={s.playBig}><Icon name="play" size={30} color="#fff" fill="#fff" /></span><span className={s.wm}>ตัวอย่างมีลายน้ำ · ไฟล์จริงไม่มี</span></div>
           )}
-          <div className={s.scan} style={{ background: '#F5EBFF', color: '#6B21A8' }}><Icon name="shield" size={22} color="#9333EA" /><div><b>ไม่ได้โคลนเสียงหรือหน้าคนจริง</b>ผู้ขายยืนยันแล้ว · สร้างด้วย {str(spec.aiTool)}</div></div>
+          <div className={s.scan} style={{ background: '#F5EBFF', color: '#6B21A8' }}><Icon name="shield" size={22} color="#9333EA" /><div><b>ผู้ขายรับรองว่าไม่ได้โคลนเสียงหรือหน้าคนจริง</b>สร้างด้วย {str(spec.aiTool)} · พบการละเมิด กดรายงานได้</div></div>
           <div className={s.st}>สิทธิ์เพลง / เสียง</div>
           <div className={s.box}><div className={s.ok}><Icon name="megaphone" size={15} color="var(--p)" />{str(spec.musicLic)}</div></div>
         </>
@@ -166,8 +176,17 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
           <div className={s.tree}>{cols.map(([k, d]) => <div key={k}><Icon name="hash" size={14} color="#1D4ED8" /><code>{k}</code><span>{d}</span></div>)}</div>
           <div className={s.st}>ที่มาของข้อมูล</div>
           <p className={s.desc}>{str(spec.source)}</p>
-          <div className={s.scan}><Icon name="shield" size={22} color="#16A34A" /><div><b>ไม่มีข้อมูลส่วนบุคคล · มีสิทธิ์เผยแพร่</b>ผู้ขายยืนยันแล้ว และ LUMI สุ่มตรวจก่อนเปิดขาย</div></div>
+          <div className={s.scan}><Icon name="shield" size={22} color="#16A34A" /><div><b>ผู้ขายรับรอง: ไม่มีข้อมูลส่วนบุคคล · มีสิทธิ์เผยแพร่</b>ตรวจอัตโนมัติเบื้องต้น · LUMI สุ่มตรวจและลบได้ถ้าผิดกฎ</div></div>
           {filesOf(spec.files).length > 0 && <p className="hint">ไฟล์: {filesOf(spec.files).map((f) => `${f.name} (${f.size})`).join(', ')}</p>}
+          <button className="btn btn-o btn-sm" style={{ marginTop: 10 }} onClick={() => {
+            const sample = filesOf(spec.sample)[0]
+            const csv = '\uFEFF' + [cols.map(([k]) => k).join(','), ...[0, 1, 2].map((r) => cols.map(([k], i) => `"${SAMPLE_ROW(k, r, i, cols.some(([c]) => c === 'text')).replace(/"/g, '""')}"`).join(','))].join('\n')
+            const a = document.createElement('a')
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+            a.download = sample && /\.csv$/i.test(sample.name) ? sample.name : `${p.id}-sample.csv`
+            a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+            toast(sample ? `ดาวน์โหลดตัวอย่าง “${a.download}” แล้ว` : 'ดาวน์โหลดตัวอย่าง 3 แถวแล้ว (CSV)')
+          }}><Icon name="download" size={15} />ดาวน์โหลดตัวอย่างฟรี</button>
         </>
       )
     }

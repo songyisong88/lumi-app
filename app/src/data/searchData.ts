@@ -4,6 +4,7 @@
  */
 import { ALL_PRODUCTS, PRODUCTS, SEARCH_EXTRA, TYPES, creatorById } from './sampleData'
 import type { Product } from './types'
+import { arr, specOf } from './listingSpec'
 
 export type CatKey =
   | 'img' | 'sticker' | 'tpl' | 'creator'
@@ -33,7 +34,7 @@ const has = (p: Product, ...words: string[]) => words.some((w) => (p.label ?? ''
 
 export const CATEGORIES: Record<CatKey, Category> = {
   img: { key: 'img', name: 'ภาพและกราฟิก', desc: 'ภาพ AI พร้อมพรอมต์', sub: 'ภาพ AI · พรอมต์ · 3D', image: 'g_lotus.jpg', count: '12,400', accent: '#7C3AED', span: 3, match: (p) => p.type === 'img' && !has(p, 'สติกเกอร์') },
-  sticker: { key: 'sticker', name: 'สติกเกอร์ LINE', desc: 'ส่งแชต LINE ได้ทันที', sub: 'ส่งแชตได้ทันที', image: 'shiba.jpg', count: '3,180', accent: '#F59E0B', match: (p) => has(p, 'สติกเกอร์') },
+  sticker: { key: 'sticker', name: 'สติกเกอร์', desc: 'ไฟล์สติกเกอร์ PNG (ไม่ใช่สติกเกอร์ในแอป LINE)', sub: 'ไฟล์ PNG พื้นใส', image: 'shiba.jpg', count: '3,180', accent: '#F59E0B', match: (p) => has(p, 'สติกเกอร์') },
   tpl: { key: 'tpl', name: 'เทมเพลต', desc: 'แก้ข้อความแล้วใช้ได้เลย', sub: 'Canva · Sheets · เว็บ', image: 'c_template.jpg', count: '5,240', accent: '#2563EB', match: (p) => p.type === 'tpl' && p.st !== 'font' && !has(p, 'ฟอนต์', 'สติกเกอร์', 'ไอคอน', 'พรีเซ็ต', 'แปรง') },
   creator: { key: 'creator', name: 'ฟอนต์ พรีเซ็ต ไอคอน', desc: 'ฟอนต์ไทย พรีเซ็ตแต่งภาพ', sub: 'เครื่องมือครีเอเตอร์', image: 'c_creator.jpg', count: '2,060', accent: '#DB2777', match: (p) => has(p, 'ฟอนต์', 'พรีเซ็ต', 'ไอคอน', 'แปรง') },
   sw: { key: 'sw', name: 'ซอฟต์แวร์และโปรแกรม', desc: 'โปรแกรมบนคอมและเว็บ', sub: 'Windows · Mac · เว็บแอป', image: 'c_software.jpg', count: '1,320', accent: '#6D28D9', span: 2, match: (p) => has(p, 'โปรแกรม', 'เว็บแอป') },
@@ -41,12 +42,12 @@ export const CATEGORIES: Record<CatKey, Category> = {
   game: { key: 'game', name: 'เกม', desc: 'เกมพร้อมเล่น ซอร์สเกม', sub: 'เกมมือถือ · PC · ซอร์สเกม', image: 'c_game.jpg', count: '520', accent: '#4F46E5', match: (p) => has(p, 'เกม', 'ม็อด') },
   plugin: { key: 'plugin', name: 'ปลั๊กอิน', desc: 'เพิ่มฟีเจอร์ให้เว็บและร้านออนไลน์', sub: 'WordPress · Shopify', image: 'c_plugin.jpg', count: '690', accent: '#0891B2', match: (p) => has(p, 'ปลั๊กอิน') },
   ext: { key: 'ext', name: 'ส่วนขยาย Chrome', desc: 'ตัวช่วยที่ติดตั้งในเบราว์เซอร์', sub: 'ติดตั้งในเบราว์เซอร์', image: 'c_plugin.jpg', count: '380', accent: '#0D9488', flip: true, match: (p) => has(p, 'ส่วนขยาย') },
-  bot: { key: 'bot', name: 'บอท LINE OA', desc: 'ตอบแชตลูกค้าให้อัตโนมัติ', sub: 'สแกนลองคุยได้', image: 'c_bot.jpg', count: '310', accent: '#16A34A', match: (p) => p.type === 'bot' },
+  bot: { key: 'bot', name: 'บอทแชต', desc: 'ตอบแชตลูกค้าให้อัตโนมัติ', sub: 'สแกนลองคุยได้', image: 'c_bot.jpg', count: '310', accent: '#16A34A', match: (p) => p.type === 'bot' && (!has(p, 'ผู้ช่วย AI', 'ระบบอัตโนมัติ', 'เครื่องมือร้านค้า') || arr(specOf(p).platform).includes('LINE OA')) },
   ai: { key: 'ai', name: 'ผู้ช่วย AI', desc: 'ช่วยแอดมิน เขียนแคปชัน', sub: 'แอดมิน · เขียนแคปชัน', image: 'robot.jpg', count: '860', accent: '#0E9384', match: (p) => has(p, 'ผู้ช่วย AI') || /AI/.test(p.title) && p.type === 'tool' },
   auto: { key: 'auto', name: 'ระบบอัตโนมัติ', desc: 'งานซ้ำ ๆ ให้ทำเองอัตโนมัติ', sub: 'n8n · Make · Zapier', image: 'c_auto.jpg', count: '450', accent: '#7C3AED', match: (p) => has(p, 'อัตโนมัติ') },
-  sme: { key: 'sme', name: 'เครื่องมือ SME', desc: 'POS สต็อก บัญชีร้านค้า', sub: 'POS · สต็อก · บัญชี', image: 'c_sme.jpg', count: '610', accent: '#EA580C', span: 3, match: (p) => p.type === 'tool' && /POS|สต็อก|ออเดอร์|ร้าน/.test(p.title + p.use + (p.label ?? '')) },
+  sme: { key: 'sme', name: 'เครื่องมือ SME', desc: 'POS สต็อก บัญชีร้านค้า', sub: 'POS · สต็อก · บัญชี', image: 'c_sme.jpg', count: '610', accent: '#EA580C', span: 3, match: (p) => has(p, 'เครื่องมือร้านค้า') || p.type === 'tool' && /POS|สต็อก|ออเดอร์|ร้าน/.test(p.title + p.use + (p.label ?? '')) },
   course: { key: 'course', name: 'คอร์สและอีบุ๊ก', desc: 'เรียนจากครีเอเตอร์ตัวจริง', sub: 'เรียนจากครีเอเตอร์', image: 'c_course.jpg', count: '410', accent: '#E0620B', match: (p) => p.type === 'course' },
-  svc: { key: 'svc', name: 'จ้างครีเอเตอร์', desc: 'จ้างทำโลโก้ มาสคอต เว็บ', sub: 'มาสคอต โลโก้ เว็บ', image: 'mascot.jpg', count: '640', accent: '#DB2777', match: (p) => p.type === 'svc' },
+  svc: { key: 'svc', name: 'งานจ้าง', desc: 'จ้างทำโลโก้ มาสคอต เว็บ', sub: 'มาสคอต โลโก้ เว็บ', image: 'mascot.jpg', count: '640', accent: '#DB2777', match: (p) => p.type === 'svc' },
   media: { key: 'media', name: 'วิดีโอ เสียง เพลง', desc: 'คลิป เสียง เพลง พร้อมสิทธิ์ใช้', isNew: true, sub: 'วิดีโอ AI · เสียงพากย์ · เพลง · เทมเพลตตัดต่อ', image: 'c_media.jpg', count: '1,140', accent: '#9333EA', span: 3, match: (p) => p.type === 'media' },
   skill: { key: 'skill', name: 'Agent Skills', desc: 'ชุดทักษะเสริมให้ผู้ช่วย AI', isNew: true, sub: 'สกิลและชุดความรู้ให้ AI agent', image: 'c_skill.jpg', count: '260', accent: '#0F766E', match: (p) => p.type === 'skill' },
   data: { key: 'data', name: 'ชุดข้อมูล', desc: 'ข้อมูลพร้อมใช้ ได้รับอนุญาตถูกต้อง', isNew: true, sub: 'CSV · JSON · พร้อมใช้งาน', image: 'c_data.jpg', count: '330', accent: '#1D4ED8', span: 2, match: (p) => p.type === 'data' },

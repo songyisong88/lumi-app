@@ -38,11 +38,11 @@ const img = (src: string, w: number, h: number) => ({ src, w, h })
 
 export const PRODUCTS: Product[] = [
   { id: 'p01', kind: 'image', type: 'img', label: 'ภาพ + พรอมต์', title: 'ภาพบัวชมพูสีน้ำ โทนพาสเทล', use: 'ภาพแต่งผนัง ปกเพจ', creatorId: 'fasai', price: 390, image: img('g_lotus.jpg', 864, 1152), hasPrompt: true, instant: true },
-  { id: 'p02', kind: 'image', type: 'img', label: 'สติกเกอร์ LINE', title: 'สติกเกอร์ชิบะทักทาย 24 ตัว', use: 'ส่งแชต LINE ใช้ได้ทันที', creatorId: 'pim', price: 59, image: img('shiba.jpg', 900, 900), instant: true },
+  { id: 'p02', kind: 'image', type: 'img', label: 'สติกเกอร์ PNG', title: 'สติกเกอร์ชิบะทักทาย 24 ตัว', use: 'ไฟล์ PNG พื้นใส ใช้โพสต์และทำสื่อได้', creatorId: 'pim', price: 59, image: img('shiba.jpg', 900, 900), instant: true },
   { id: 'p03', kind: 'tool', type: 'tool', label: 'ระบบอัตโนมัติ', title: 'ลงออเดอร์อัตโนมัติจาก LINE', use: 'ออเดอร์เข้า Sheets เอง ไม่ต้องพิมพ์', creatorId: 'ton', price: 590, ratio: '4/3', gradient: 'linear-gradient(160deg,#6366F1,#0EA5E9)', icon: 'flow', platforms: ['n8n', 'Sheets', 'LINE'], rating: 4.9, tryable: true },
   { id: 'p04', kind: 'image', type: 'img', title: 'วอลเปเปอร์ชาไทยสาดน้ำ', use: 'ตั้งพื้นหลังมือถือ', creatorId: 'nova', price: 0, image: img('splashbg.jpg', 506, 900), instant: true },
   { id: 'p05', kind: 'bot', type: 'bot', label: 'บอท LINE', title: 'บอทร้านอาหาร', use: 'ตอบเมนู รับออเดอร์ จองโต๊ะ', creatorId: 'kenji', price: 1500, ratio: '1/1', chat: { q: 'มีเมนูแนะนำไหมคะ', a: 'วันนี้แนะนำข้าวเหนียวมะม่วง สั่งเลยไหมคะ' }, tryable: true },
-  { id: 'p06', kind: 'image', type: 'img', label: 'สติกเกอร์ LINE', title: 'สติกเกอร์กบน้อย 6 อารมณ์', use: 'ส่งแชต LINE ใช้ได้ทันที', creatorId: 'fasai', price: 0, image: img('g_frogs.jpg', 1024, 1024), instant: true },
+  { id: 'p06', kind: 'image', type: 'img', label: 'สติกเกอร์ PNG', title: 'สติกเกอร์กบน้อย 6 อารมณ์', use: 'ไฟล์ PNG พื้นใส ใช้โพสต์และทำสื่อได้', creatorId: 'fasai', price: 0, image: img('g_frogs.jpg', 1024, 1024), instant: true },
   { id: 'p07', kind: 'template', type: 'tpl', title: 'เทมเพลตโพสต์ร้านกาแฟ 30 แบบ', use: 'โพสต์โปรโมชันรายวัน', creatorId: 'mint', price: 199, ratio: '4/5', image: img('cafe.jpg', 900, 675), files: ['CANVA', 'PSD'], tryable: true, instant: true },
   { id: 'p08', kind: 'course', type: 'course', title: 'สร้างภาพสินค้าด้วย AI ใน 1 วัน', use: 'ทำภาพขายของเองไม่ต้องจ้าง', creatorId: 'nova', price: 590, image: img('g_cyber.jpg', 1280, 720), video: true, meta: '6 ตอน · 1.5 ชม.', freeFirst: 'บทแรกฟรี', tryable: true },
   { id: 'p09', kind: 'image', type: 'img', title: 'ตุ๊กตุ๊กดินปั้น 3D ชุด 8 มุม', use: 'ภาพโฆษณา ของที่ระลึก', creatorId: 'toy', price: 290, image: img('g_tuktuk.jpg', 864, 1152), hasPrompt: true, instant: true },
@@ -59,7 +59,7 @@ export const PRODUCTS: Product[] = [
   { id: 'p20', kind: 'commission', type: 'svc', title: 'ทำภาพโปรโมต 5 ภาพ', use: 'ภาพโฆษณาเพจและแบนเนอร์', creatorId: 'nova', price: 450, image: img('g_product.jpg', 1152, 864), days: 3, revisions: 2 },
   { id: 'p21', kind: 'image', type: 'img', title: 'ภาพเทพธิดาชุดไทยแฟนตาซี', use: 'ปกนิยาย ปกเกม', creatorId: 'fasai', price: 190, image: img('fantasy.jpg', 675, 900), hasPrompt: true, instant: true },
   { id: 'p22', kind: 'template', type: 'tpl', label: 'เว็บไซต์', title: 'เว็บไซต์ร้านเบเกอรี่ 1 หน้า', use: 'เปิดหน้าร้านออนไลน์ใน 1 วัน', creatorId: 'kenji', price: 690, ratio: '4/5', image: img('bakery.jpg', 900, 675), files: ['HTML', 'FIGMA'], tryable: true },
-  { id: 'p23', kind: 'image', type: 'img', label: 'สติกเกอร์ LINE', title: 'สติกเกอร์แมวส้ม 6 อารมณ์', use: 'ส่งแชต LINE ใช้ได้ทันที', creatorId: 'pim', price: 0, image: img('cats.jpg', 900, 900), instant: true },
+  { id: 'p23', kind: 'image', type: 'img', label: 'สติกเกอร์ PNG', title: 'สติกเกอร์แมวส้ม 6 อารมณ์', use: 'ไฟล์ PNG พื้นใส ใช้โพสต์และทำสื่อได้', creatorId: 'pim', price: 0, image: img('cats.jpg', 900, 900), instant: true },
   { id: 'p24', kind: 'image', type: 'img', title: 'ภาพกาแฟเย็นสาดน้ำ', use: 'ปกเพจ โฆษณาร้านกาแฟ', creatorId: 'mint', price: 79, image: img('coffee.jpg', 900, 506), instant: true },
 ]
 
@@ -111,7 +111,7 @@ export const QUICK_FILTERS: { id: string; label: string; match: (p: Product) => 
   { id: 'instant', label: 'ใช้ได้ทันที', match: (p) => !!p.instant },
   { id: 'prompt', label: 'มีพรอมต์', match: (p) => !!p.hasPrompt },
   { id: 'u200', label: 'ต่ำกว่า ฿200', match: (p) => p.price < 200 },
-  { id: 'hire', label: 'จ้างทำให้', match: (p) => p.kind === 'commission' },
+  { id: 'hire', label: 'งานจ้าง', match: (p) => p.kind === 'commission' },
 ]
 
 export const creatorById = (id: string) => CREATORS.find((c) => c.id === id)!

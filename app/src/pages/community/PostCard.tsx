@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { FollowButton } from '../../components/FollowButton'
 import { Link, useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
+import { ReportButton } from '../../components/Report'
 import { Av, Img, copyText } from '../../components/ui'
 import type { Post } from '../../data/appTypes'
 import { heroOf } from '../../data/productExtras'
@@ -43,6 +44,7 @@ export function PostCard({ p, full, i = 0 }: { p: Post; full?: boolean; i?: numb
           <small>{ago(p.at)} · <span className={s.tag} style={{ color: tc, background: tb }}>{p.tag}</span></small>
         </div>
         {p.authorId !== ME && <FollowButton id={p.authorId} />}
+        {p.authorId !== ME && !p.mine && <ReportButton target="post" id={p.id} className="tb-btn" label="" />}
       </div>
       <div className={s.tx} onClick={open}>
         {more ? p.text : <>{p.text.slice(0, 130)}… <button className={s.more} onClick={(e) => { e.stopPropagation(); setMore(true) }}>ดูเพิ่มเติม</button></>}

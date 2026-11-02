@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Empty, Img, SampleNote, Sheet, Toggle, TopBar } from '../../components/ui'
-import { LIC_PRESETS, LIC_ROWS, MAX_FILES, SPECS, uploadRule, arr, checkListing, completion, filesOf, on, str, visible } from '../../data/listingSpec'
+import { licRows, presetRows, MAX_FILES, SPECS, uploadRule, arr, checkListing, completion, filesOf, on, str, visible, sellTypeOf, specOf } from '../../data/listingSpec'
 import type { Field, ListingDraft, SellType, Spec, SpecValue, Step, UploadedFile } from '../../data/listingSpec'
-import { baht, ME } from '../../data/sampleData'
-import { creatorStats } from '../../data/productExtras'
+import { baht, ME, productById } from '../../data/sampleData'
+import { creatorStats, heroOf, optionsOf } from '../../data/productExtras'
 import { draftToProduct, sell } from '../../services/api'
 import { getDb, uid, useDb } from '../../services/db'
 import { toast } from '../../services/toast'
@@ -13,6 +13,7 @@ import { fileToDataUrl } from '../../utils/image'
 import { ago } from '../../utils/time'
 import { ProductView } from '../product/ProductView'
 import { PRICE_OPTS } from '../../data/sellDefaults'
+import { FEATURES } from '../../config'
 import s from './Sell.module.css'
 
 const STEPS = ['ประเภท', 'ไฟล์', 'รายละเอียด', 'ราคา', 'สิทธิ์', 'ตัวอย่าง']
@@ -24,7 +25,21 @@ const SAMPLE_COVERS: Record<SellType, string[]> = {
   bot: ['c_bot.jpg', 'robot.jpg'], skill: ['c_skill.jpg', 'c_plugin.jpg'], data: ['c_data.jpg', 'c_sme.jpg'], course: ['c_course.jpg', 'g_product.jpg'], font: ['c_creator.jpg', 't_color.jpg'], hire: ['mascot.jpg', 'toys.jpg'],
 }
 const blank = (): ListingDraft => ({ id: uid('d'), type: null, step: 0, title: '', use: '', desc: '', tags: [], covers: [], spec: {}, free: false, tips: false, options: [], updatedAt: Date.now() })
+/** Open a published listing in the wizard again (edit price, switch free ⇄ paid, fix details). Reuses an open edit draft if there is one. */
+function editDraft(productId: string, step: number): ListingDraft | undefined {
+  const ex = getDb().drafts.find((x) => x.publishedId === productId)
+  if (ex) return { ...ex, step }
+  const p = productById(productId)
+  if (!p || p.creatorId !== ME) return undefined
+  const covers = p.covers?.length ? p.covers : [heroOf(p)]
+  if (p.listing) return { ...p.listing, free: p.listing.free && p.listing.type !== 'hire', covers, id: uid('d'), publishedId: p.id, step, updatedAt: Date.now() }
+  const t = sellTypeOf(p)
+  const live = p.price > 0 ? optionsOf(p).map((o) => ({ id: o.id, label: o.label, sub: o.sub, price: o.price, on: true, suffix: o.suffix })) : []
+  return { ...blank(), type: t, step, title: p.title, use: p.use, desc: p.desc ?? `${p.title} · ${p.use}`, tags: p.tags ?? [], covers, spec: { ...specOf(p) }, free: p.price === 0 && t !== 'hire', tips: p.price === 0 && t !== 'hire', options: live.length ? live : PRICE_OPTS[t].map((x) => ({ ...x })), publishedId: p.id }
+}
 const sizeOf = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`)
+
+const PAYOUT_ACK = 'lumi_payout_ack'
 
 export function Sell() {
   const nav = useNavigate()
@@ -33,6 +48,8 @@ export function Sell() {
   const [d, setD] = useState<ListingDraft>(() => {
     const ex = draftId ? getDb().drafts.find((x) => x.id === draftId) : undefined
     if (ex) return ex
+    const ed = sp.get('edit') ? editDraft(sp.get('edit')!, Number(sp.get('step') ?? 1) || 1) : undefined
+    if (ed) return ed
     const t = sp.get('type') as SellType | null
     const b = blank()
     return t && SPECS[t] ? { ...b, type: t, spec: { ...SPECS[t].defaults }, options: PRICE_OPTS[t].map((x) => ({ ...x })), step: 1 } : b
@@ -40,8 +57,11 @@ export function Sell() {
   const [saved, setSaved] = useState<'idle' | 'saving' | 'saved'>('idle')
   // same /sell screen re-targeted (deep link, “ทำต่อ” on another draft, back/forward): load what the URL asks for
   useEffect(() => {
-    const dId = sp.get('draft'); const ty = sp.get('type') as SellType | null
-    if (dId && dId !== d.id) {
+    const dId = sp.get('draft'); const ty = sp.get('type') as SellType | null; const eId = sp.get('edit')
+    if (eId && eId !== d.publishedId) {
+      const ed = editDraft(eId, Number(sp.get('step') ?? 1) || 1)
+      if (ed) { published.current = false; setDone(undefined); setD(ed) }
+    } else if (dId && dId !== d.id) {
       const ex = getDb().drafts.find((x) => x.id === dId)
       if (ex) { published.current = false; setDone(undefined); setD(ex) }
     } else if (!dId && ty && SPECS[ty] && ty !== d.type) {
@@ -50,8 +70,8 @@ export function Sell() {
     }
   }, [sp]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [share, setShare] = useState(true)
-  const [notify, setNotify] = useState(true)
+  const [share, setShare] = useState(() => !sp.get('edit'))
+  const [notify, setNotify] = useState(() => !sp.get('edit'))
   const [done, setDone] = useState<string>()
   const [busy, setBusy] = useState(false)
   const [checkOpen, setCheckOpen] = useState(false)
@@ -70,7 +90,7 @@ export function Sell() {
     const exists = getDb().drafts.some((x) => x.id === d.id)
     const touched = !!(d.title.trim() || d.use.trim() || d.desc.trim() || d.tags.length || d.covers.length || d.step >= 2
       || JSON.stringify(d.spec) !== JSON.stringify(SPECS[d.type].defaults))
-    if (!exists && !touched) { setSaved('idle'); return }
+    if (!exists && !touched && !d.publishedId) { setSaved('idle'); return }
     setSaved('saving')
     const h = setTimeout(() => { if (published.current) return; sell.saveDraft(d).then(() => setSaved('saved')); if (!draftId) setSp({ draft: d.id }, { replace: true }) }, 600)
     return () => clearTimeout(h)
@@ -90,8 +110,12 @@ export function Sell() {
     setD((x) => ({ ...x, type: k, spec: { ...SPECS[k].defaults }, options: PRICE_OPTS[k].map((y) => ({ ...y })), step: 1 }))
     setDir(1)
   }
-  const publish = async () => {
+  const [payout, setPayout] = useState(false)
+  const publish = async (ack = false) => {
     if (missing.length) { setCheckOpen(true); return }
+    // B5: before the first paid listing, say what real selling will need (ID check + payout account)
+    const paid = !(d.free && d.type !== 'hire')
+    if (paid && !ack && !localStorage.getItem(PAYOUT_ACK)) { setPayout(true); return }
     setBusy(true)
     try {
       published.current = true
@@ -107,7 +131,7 @@ export function Sell() {
     setSp({}, { replace: true })
     requestAnimationFrame(() => (document.querySelector('.layer[data-active="1"] .lsc') as HTMLElement | null)?.scrollTo({ top: 0 }))
   }
-  if (done) return <Success id={done} d={d} share={share} notify={notify} onNext={startNext} />
+  if (done) return <Success edited={!!d.publishedId && d.publishedId !== `u-${d.id}`} id={done} d={d} share={share} notify={notify} onNext={startNext} />
 
   const stepMissing = (n: number) => checks.filter((c) => !c.ok && c.step === n).length
   const close = () => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/profile?mode=creator'))
@@ -115,7 +139,7 @@ export function Sell() {
     <div className={s.head} ref={topRef}>
       <div className={s.hrow}>
         <button className="tb-btn" onClick={close} aria-label="ปิด"><Icon name="x" size={22} /></button>
-        <div className={s.ht}><b>{t ? `ลงขาย · ${t.name}` : 'ลงขายผลงาน'}</b><small className={saved === 'saved' ? s.ok : ''}>{saved === 'saving' ? 'กำลังบันทึก…' : saved === 'saved' ? 'บันทึกร่างแล้ว ✓' : 'บันทึกอัตโนมัติ'}</small></div>
+        <div className={s.ht}><b>{d.publishedId && productById(d.publishedId) ? `แก้ไข · ${t?.name ?? ''}` : t ? `ลงขาย · ${t.name}` : 'ลงขายผลงาน'}</b><small className={saved === 'saved' ? s.ok : ''}>{saved === 'saving' ? 'กำลังบันทึก…' : saved === 'saved' ? 'บันทึกร่างแล้ว ✓' : 'บันทึกอัตโนมัติ'}</small></div>
         <Link to="/sell/drafts" className="btn btn-xs btn-s">ร่าง</Link>
       </div>
       <div className={s.prog}>{STEPS.map((x, i) => <button key={x} className={`${i <= d.step ? s.pd : ''}`} disabled={!d.type && i > 0} onClick={() => d.type && go(i)} aria-label={`ขั้น ${x}`} />)}</div>
@@ -143,13 +167,13 @@ export function Sell() {
         </>}
         {d.step === 3 && t && <StepPrice d={d} patch={patch} set={setSpec} />}
         {d.step === 4 && t && <>
-          <H t="สิทธิ์การใช้งาน" s="ผู้ซื้อทำอะไรได้บ้าง ตารางนี้จะโชว์บนหน้าสินค้า" />
+          <H t="สิทธิ์การใช้งาน" s="ผู้ซื้อทำอะไรได้บ้าง ตารางนี้จะโชว์บนหน้าผลงาน" />
           <Fields fs={t.fields} step="license" spec={d.spec} set={(id, v) => {
             setSpec(id, v)
-            if (id === 'licPreset' && typeof v === 'string' && LIC_PRESETS[v]?.length) setSpec('licAllowed', LIC_PRESETS[v])
+            if (id === 'licPreset' && typeof v === 'string' && presetRows(d.type, v).length) setSpec('licAllowed', presetRows(d.type, v))
           }} />
           {arr(d.spec.licAllowed).length > 0 && (
-            <div className={s.lict}>{LIC_ROWS.map((r) => { const ok = arr(d.spec.licAllowed).includes(r); return <div key={r}><span>{r}</span>{ok ? <b className={s.y}>ได้ ✓</b> : <b className={s.n}>ไม่ได้</b>}</div> })}</div>
+            <div className={s.lict}>{licRows(d.type).map((r) => { const ok = arr(d.spec.licAllowed).includes(r); return <div key={r}><span>{r}</span>{ok ? <b className={s.y}>ได้ ✓</b> : <b className={s.n}>ไม่ได้</b>}</div> })}</div>
           )}
         </>}
         {d.step === 5 && t && <>
@@ -167,8 +191,14 @@ export function Sell() {
         {d.step > 0 ? <button className="btn btn-o" onClick={() => go(d.step - 1)}>{d.step === 5 ? 'แก้ไข' : 'ย้อนกลับ'}</button> : <span />}
         {d.step < 5
           ? <button className="btn btn-p" style={{ flex: 1 }} disabled={!d.type} onClick={() => go(d.step + 1)}>ถัดไป · {STEPS[d.step + 1]}{d.step > 0 && stepMissing(d.step) > 0 && <span className={s.miss}>ขาด {stepMissing(d.step)}</span>}</button>
-          : <button className="btn btn-p" style={{ flex: 1 }} disabled={busy} onClick={publish}>{busy ? 'กำลังลงขาย…' : missing.length ? `ยังขาด ${missing.length} อย่าง` : 'ลงขายเลย'}</button>}
+          : <button className="btn btn-p" style={{ flex: 1 }} disabled={busy} onClick={() => publish()}>{busy ? 'กำลังลงขาย…' : missing.length ? `ยังขาด ${missing.length} อย่าง` : d.publishedId && productById(d.publishedId) ? 'บันทึกการแก้ไข' : d.free && d.type !== 'hire' ? 'แจกฟรีเลย' : 'ลงขายเลย'}</button>}
       </div>
+      <Sheet open={payout} onClose={() => setPayout(false)} title="ก่อนรับเงินจากการขายจริง" sub="ยืนยันตัวตนและผูกบัญชีรับเงิน · เร็ว ๆ นี้"
+        footer={<button className="btn btn-p btn-block" onClick={() => { localStorage.setItem(PAYOUT_ACK, '1'); setPayout(false); publish(true) }}>รับทราบ ลงขายต่อ</button>}>
+        <div className="list-row"><Icon name="user" size={20} color="var(--p)" /><span className="grow">ยืนยันตัวตน<small>ใช้บัตรประชาชน ตรวจครั้งเดียว · ป้องกันการแอบอ้างและโกง</small></span><span className="pill">เร็ว ๆ นี้</span></div>
+        <div className="list-row"><Icon name="coin" size={20} color="#B45309" /><span className="grow">ผูกบัญชีรับเงิน<small>บัญชีธนาคารหรือพร้อมเพย์ที่ชื่อตรงกับผู้ขาย</small></span><span className="pill">เร็ว ๆ นี้</span></div>
+        <p className="hint" style={{ marginTop: 10 }}>ตอนนี้ลงขายในโหมดทดลองได้เลย ยังไม่มีการซื้อขายจริง · ของแจกฟรีไม่ต้องยืนยัน</p>
+      </Sheet>
       <Sheet open={checkOpen} onClose={() => setCheckOpen(false)} title={missing.length ? `ตรวจอัตโนมัติ · ยังขาด ${missing.length} อย่าง` : 'ตรวจอัตโนมัติ · พร้อมลงขาย ✓'} sub={t ? `สิ่งที่ “${t.name}” ต้องมีก่อนลงขาย` : undefined} tall>
         <CheckList checks={checks} go={(n) => { setCheckOpen(false); setTimeout(() => go(n), 200) }} />
       </Sheet>
@@ -255,12 +285,12 @@ function StepPrice({ d, patch, set }: { d: ListingDraft; patch: (p: Partial<List
   const top = live.length ? Math.max(...live.map((x) => x.price)) : 0
   const upd = (id: string, p: Partial<Opt>) => patch({ options: opts.map((x) => (x.id === id ? { ...x, ...p } : x)) })
   return <>
-    <H t="ตั้งราคาและแบบที่ขาย" s="เปิดเฉพาะแบบที่อยากขาย ผู้ซื้อเลือกเองบนหน้าสินค้า" />
-    <div className={`${s.bx} ${d.free ? s.freeOn : ''}`}>
-      <Row icon="gift" c="#16A34A" bg="#E5F8EC" t="แจกฟรี" sub="ผู้ใช้กดรับได้เลย ยังต้องกรอกข้อมูลให้ครบเหมือนของขาย" on={d.free} set={(v) => patch({ free: v })} />
-      {d.free && <Row icon="coin" c="#B45309" bg="#FFF4DB" t="เปิดรับทิป" sub="ผู้ใช้ให้ทิปได้ตามใจ" on={d.tips} set={(v) => patch({ tips: v })} />}
-    </div>
-    {!d.free && <>
+    <H t="ตั้งราคาและแบบที่ขาย" s="เปิดเฉพาะแบบที่อยากขาย ผู้ซื้อเลือกเองบนหน้าผลงาน" />
+    {d.type === 'hire' ? <p className="hint" style={{ marginTop: 0 }}>งานจ้างต้องตั้งราคาอย่างน้อย 1 แพ็กเกจ · ผู้จ้างจ่ายเมื่อรับข้อเสนอ เงินพักไว้จนกว่าจะรับงาน</p> : <div className={`${s.bx} ${d.free ? s.freeOn : ''}`}>
+      <Row icon="gift" c="#16A34A" bg="#E5F8EC" t="แจกฟรี" sub="ผู้ใช้กดรับได้เลย ยังต้องกรอกข้อมูลให้ครบเหมือนของขาย · สลับกลับเป็นขายได้ทุกเมื่อ" on={d.free} set={(v) => patch({ free: v })} />
+      {d.free && FEATURES.tips && <Row icon="coin" c="#B45309" bg="#FFF4DB" t="เปิดรับทิป" sub="ผู้ใช้ให้ทิปได้ตามใจ" on={d.tips} set={(v) => patch({ tips: v })} />}
+    </div>}
+    {(!d.free || d.type === 'hire') && <>
       <label className="flabel" style={{ marginTop: 16 }}>แบบที่ขาย<small className={s.fsub}>เปิดได้หลายแบบ</small></label>
       {opts.map((x) => (
         <div key={x.id} className={`${s.op} ${x.on ? s.opOn : ''}`}>
@@ -268,7 +298,7 @@ function StepPrice({ d, patch, set }: { d: ListingDraft; patch: (p: Partial<List
           {x.on && <div className={s.opP}><span>฿</span><input inputMode="numeric" value={x.price || ''} onChange={(e) => upd(x.id, { price: Math.min(999999, parseInt(e.target.value.replace(/\D/g, '')) || 0) })} aria-label={`ราคา ${x.label}`} placeholder="0" />{x.suffix && <em>{x.suffix}</em>}</div>}
         </div>
       ))}
-      {top > 0 && <div className={s.earn}><div><small>ราคาสูงสุด</small><b>{baht(top)}</b></div><div><small>ค่าธรรมเนียม LUMI 10%</small><b>−{baht(Math.round(top * FEE))}</b></div><div><small>คุณได้รับ</small><b className={s.y}>{baht(top - Math.round(top * FEE))}</b></div></div>}
+      {top > 0 && <><div className={s.earn}><div><small>ราคาสูงสุด</small><b>{baht(top)}</b></div><div><small>ค่าธรรมเนียม LUMI 10%</small><b>−{baht(Math.round(top * FEE))}</b></div><div><small>คุณได้รับ</small><b className={s.y}>{baht(top - Math.round(top * FEE))}</b></div></div><p className="hint" style={{ marginTop: 6 }}>ตัวอย่าง · ยังไม่รวม VAT และค่าธรรมเนียมการชำระเงิน</p></>}
     </>}
     <Fields fs={t.fields} step="price" spec={d.spec} set={set} />
   </>
@@ -297,7 +327,7 @@ function FieldView({ f, v, spec, set, type }: { f: Field; v: SpecValue | undefin
       {f.kind === 'chips' && <div className="chips" style={{ flexWrap: 'wrap' }}>{f.options!.map((x) => <button key={x} className={`chip ${str(v) === x ? 'on' : ''}`} onClick={() => set(f.id, x)}>{x}</button>)}</div>}
       {f.kind === 'multi' && <div className="chips" style={{ flexWrap: 'wrap' }}>{f.options!.map((x) => { const sel = arr(v).includes(x); return <button key={x} className={`chip ${sel ? 'on' : ''}`} onClick={() => set(f.id, (old) => (sel ? arr(old).filter((y) => y !== x) : [...arr(old), x]))}>{sel && '✓ '}{x}</button> })}</div>}
       {f.kind === 'list' && <ListEdit f={f} v={v} set={set} />}
-      {f.kind === 'files' && <FilesEdit f={f} v={v} set={set} type={type} />}
+      {f.kind === 'files' && <FilesEdit f={f} v={v} set={set} type={type} spec={spec} />}
       {f.pattern && str(v) && !f.pattern.test(str(v)) && <span className="hint" style={{ color: '#DC2626' }}>{f.patternNote}</span>}
       {f.hint && f.kind !== 'files' && <span className="hint">{f.hint}</span>}
     </div>
@@ -323,10 +353,11 @@ function ListEdit({ f, v, set }: { f: Field; v: SpecValue | undefined; set: SetS
   )
 }
 
-function FilesEdit({ f, v, set, type }: { f: Field; v: SpecValue | undefined; set: SetSpec; type: SellType | null }) {
+function FilesEdit({ f, v, set, type, spec }: { f: Field; v: SpecValue | undefined; set: SetSpec; type: SellType | null; spec: Spec }) {
   const ref = useRef<HTMLInputElement>(null)
   const files = filesOf(v)
-  const rule = uploadRule(type)
+  const rule = uploadRule(type, spec, f.id)
+  const badExt = (n: string) => rule.exts.length > 0 && !rule.exts.includes((n.split('.').pop() ?? '').toLowerCase())
   const write = (fn: (xs: UploadedFile[]) => UploadedFile[]) => set(f.id, (old) => fn(filesOf(old)).map((x) => JSON.stringify(x)))
   const add = (fl: FileList | null) => {
     if (!fl) return
@@ -344,17 +375,17 @@ function FilesEdit({ f, v, set, type }: { f: Field; v: SpecValue | undefined; se
         p = Math.min(100, p + 18 + Math.random() * 22)
         const bad = /eicar|virus|malware/i.test(name)
         write((xs) => xs.map((x) => (x.name === name ? (p >= 100 ? { ...x, pct: 100, scan: bad ? 'fail' : 'ok' } : { ...x, pct: Math.round(p) }) : x)))
-        if (p >= 100) { clearInterval(h); toast(bad ? `“${name}” ไม่ผ่านการสแกน ลงขายไม่ได้` : `สแกน “${name}” แล้ว ปลอดภัย`) }
+        if (p >= 100) { clearInterval(h); toast(bad ? `“${name}” ไม่ผ่านการสแกน ลงขายไม่ได้` : `สแกน “${name}” เบื้องต้นแล้ว ไม่พบภัยที่รู้จัก`) }
       }, 260)
     }
   }
   return (
     <div className={s.files}>
       {files.map((x) => (
-        <div key={x.name} className={`${s.fi} ${x.scan === 'fail' ? s.fail : ''} rise`}>
+        <div key={x.name} className={`${s.fi} ${x.scan === 'fail' || badExt(x.name) ? s.fail : ''} rise`}>
           <span className={s.fic}><Icon name="file" size={18} /></span>
           <span className="grow"><b className="ell">{x.name}</b>
-            <small>{x.size}{x.size && ' · '}{x.scan === 'scan' ? `กำลังสแกนไวรัส ${x.pct ?? 0}%` : x.scan === 'ok' ? 'สแกนแล้ว ปลอดภัย ✓' : 'พบความเสี่ยง · ลบแล้วอัปใหม่'}</small>
+            <small>{x.size}{x.size && ' · '}{badExt(x.name) ? 'ไม่ตรงรูปแบบที่เลือก · ลบแล้วอัปใหม่' : x.scan === 'scan' ? `กำลังสแกนไวรัส ${x.pct ?? 0}%` : x.scan === 'ok' ? 'ไม่พบภัยที่รู้จัก ✓' : 'พบความเสี่ยง · ลบแล้วอัปใหม่'}</small>
             {x.scan === 'scan' && <span className={s.fbar}><i style={{ transform: `scaleX(${(x.pct ?? 0) / 100})` }} /></span>}
           </span>
           <button onClick={() => write((xs) => xs.filter((y) => y.name !== x.name))} aria-label={`ลบ ${x.name}`}><Icon name="trash" size={16} /></button>
@@ -390,7 +421,7 @@ function CheckList({ checks, go, compact }: { checks: ReturnType<typeof checkLis
   )
 }
 
-function Success({ id, d, share, notify, onNext }: { id: string; d: ListingDraft; share: boolean; notify: boolean; onNext: () => void }) {
+function Success({ id, d, share, notify, onNext, edited }: { id: string; d: ListingDraft; share: boolean; notify: boolean; onNext: () => void; edited?: boolean }) {
   const nav = useNavigate()
   const p = draftToProduct(d, id)
   const opts = p.options ?? []
@@ -399,17 +430,17 @@ function Success({ id, d, share, notify, onNext }: { id: string; d: ListingDraft
       <TopBar title="" back={false} right={<button className="tb-btn" onClick={() => nav('/profile?mode=creator', { replace: true })} aria-label="ปิด"><Icon name="x" size={22} /></button>} />
       <div className={`narrow ${s.okp}`}>
         <div className={`${s.okBg} pop-in`}><Icon name="check" size={48} color="#fff" stroke={3} /></div>
-        <h2 className="rise">ลงขายแล้ว!</h2>
-        <p className="rise" style={{ '--i': 1 } as React.CSSProperties}>ผลงานของคุณขึ้นหน้าร้าน ฟีด และหน้าค้นหาแล้ว</p>
+        <h2 className="rise">{edited ? 'อัปเดตผลงานแล้ว!' : d.free && d.type !== 'hire' ? 'แจกฟรีแล้ว!' : 'ลงขายแล้ว!'}</h2>
+        <p className="rise" style={{ '--i': 1 } as React.CSSProperties}>ผ่านการตรวจอัตโนมัติเบื้องต้น ขึ้นหน้าร้าน ฟีด และหน้าค้นหาแล้ว · LUMI สุ่มตรวจและลบได้ถ้าผิดกฎ</p>
         <Link to={`/product/${id}`} className={`${s.mini} rise press`} style={{ '--i': 2 } as React.CSSProperties}><Img src={p.covers?.[0] ?? p.image?.src} className={s.drbI} /><span className="grow"><b className="ell">{p.title}</b><small>{p.price === 0 ? 'แจกฟรี' : `${opts.length} แบบ · เริ่ม ${baht(p.price)}`}</small></span><Icon name="chev" size={18} /></Link>
         <div className={`${s.bx} rise`} style={{ '--i': 3, textAlign: 'left' } as React.CSSProperties}>
           <div className={s.row}><span className={s.ri} style={{ background: '#F3ECFF' }}><Icon name="share" size={18} color="#6C2BD9" /></span><span className="grow"><b>แชร์ลงชุมชน LUMI</b><small>{share ? 'โพสต์แล้ว พร้อมลิงก์สินค้า' : 'ไม่ได้แชร์'}</small></span>{share && <span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>}</div>
-          <div className={s.row}><span className={s.ri} style={{ background: '#FDEBF2' }}><Icon name="megaphone" size={18} color="#D6336C" /></span><span className="grow"><b>แจ้งผู้ติดตาม 1.2K คน</b><small>{notify ? 'จำลองการแจ้งแล้ว (ทดลอง)' : 'ไม่ได้แจ้ง'}</small></span>{notify && <span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>}</div>
+          <div className={s.row}><span className={s.ri} style={{ background: '#FDEBF2' }}><Icon name="megaphone" size={18} color="#D6336C" /></span><span className="grow"><b>แจ้งผู้ติดตาม {creatorStats(ME).followersLabel} คน</b><small>{notify ? 'จำลองการแจ้งแล้ว (ทดลอง)' : 'ไม่ได้แจ้ง'}</small></span>{notify && <span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>}</div>
         </div>
         <SampleNote>โหมดทดลอง · เก็บในเครื่องนี้เท่านั้น</SampleNote>
       </div>
       <div className="bottom-bar">
-        <button className="btn btn-o" onClick={() => nav(`/product/${id}`, { replace: true })}>ดูหน้าสินค้า</button>
+        <button className="btn btn-o" onClick={() => nav(`/product/${id}`, { replace: true })}>ดูหน้าผลงาน</button>
         <button className="btn btn-p" style={{ flex: 1 }} onClick={onNext}>ลงขายชิ้นต่อไป</button>
       </div>
     </div>

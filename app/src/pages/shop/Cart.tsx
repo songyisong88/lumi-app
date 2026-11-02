@@ -63,7 +63,7 @@ export function Cart() {
           <>
             <div style={{ padding: '10px 16px 0' }}><SampleNote>โหมดทดลอง · ยังไม่มีการตัดเงินจริง</SampleNote></div>
             <Lines items={lines} removable />
-            <div className={s.demo}><Icon name="tag" size={18} color="#B45309" /><div><b>มีโค้ดส่วนลด?</b>ใส่ได้ในขั้นตอนชำระเงิน เช่น LUMI10</div></div>
+            <div className={s.demo}><Icon name="tag" size={18} color="#B45309" /><div><b>มีโค้ดส่วนลดจากครีเอเตอร์?</b>ใส่ได้ในขั้นตอนชำระเงิน</div></div>
           </>
         )}
       </div>
@@ -122,7 +122,7 @@ export function Checkout() {
 
   const apply = (c = code) => {
     const k = c.trim().toUpperCase()
-    if (!COUPONS[k]) { toast('ไม่พบโค้ดนี้ ลอง LUMI10'); return }
+    if (!COUPONS[k]) { toast('ไม่พบโค้ดนี้ · ใช้ได้เฉพาะโค้ดจากครีเอเตอร์'); return }
     if (!discountOf(items, k)) { toast('โค้ดนี้ใช้กับรายการในตะกร้าไม่ได้'); return }
     setCoupon(k); setCode(k); toast(`ใช้โค้ด ${k} แล้ว`)
   }
@@ -171,7 +171,7 @@ export function Checkout() {
           <div><span>ค่าธรรมเนียม</span><span>฿0</span></div>
           <div className={s.grand}><span>ยอดชำระ</span><span>{baht(total)}</span></div>
         </div>
-        <p className="hint" style={{ margin: '10px 16px 0' }}>ไฟล์ คีย์ และลิงก์ จะส่งเข้าแชตกับครีเอเตอร์ทันทีหลังชำระ · งานจ้าง LUMI พักเงินไว้จนกว่าคุณจะกดรับงาน</p>
+        <p className="hint" style={{ margin: '10px 16px 0' }}>{total === 0 ? 'ของฟรี ไม่มีการชำระเงิน · ไฟล์ส่งเข้าแชตและอยู่ใน โปรไฟล์ › ซื้อแล้ว' : <>ชำระผ่านผู้ให้บริการชำระเงินที่มีใบอนุญาต · ไฟล์ คีย์ และลิงก์ส่งเข้าแชตทันทีหลังชำระ กด “แจ้งปัญหา / ขอคืนเงิน” ได้ภายใน 7 วันที่ โปรไฟล์ › ซื้อแล้ว · งานจ้าง: เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงานถ้าไม่ได้ขอแก้หรือแจ้งปัญหา</>}</p>
       </div>
       <div className="bottom-bar">
         <div className={s.tot}><small>ยอดชำระ</small><b>{baht(total)}</b></div>
@@ -203,7 +203,7 @@ function Success({ order }: { order: Order }) {
         <div className={s.done}>
           <span className={`${s.bigOk} pop-in`}><Icon name="check" size={44} color="#fff" stroke={3} /></span>
           <h1>{order.total === 0 ? 'รับฟรีเรียบร้อย!' : tipOnly ? 'ส่งทิปแล้ว ขอบคุณค่ะ!' : 'ชำระเงินสำเร็จ!'}</h1>
-          <p>{hireThread ? 'LUMI พักเงินไว้ให้ ครีเอเตอร์เริ่มงานได้แล้ว ติดตามงานได้ในแชต' : tipOnly ? 'ทิปส่งถึงครีเอเตอร์เต็มจำนวน (ทดลอง)' : 'ไฟล์ คีย์ และลิงก์ส่งเข้าแชตกับครีเอเตอร์แล้ว เปิดได้ตลอดจากโปรไฟล์ > ที่ซื้อแล้ว'}</p>
+          <p>{hireThread ? 'ครีเอเตอร์เริ่มงานได้แล้ว ติดตามงานได้ในแชต · เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงานถ้าไม่ได้ขอแก้หรือแจ้งปัญหา' : tipOnly ? 'ครีเอเตอร์ได้รับทิปหลังหักค่าธรรมเนียมการชำระเงิน (ทดลอง)' : 'ไฟล์ คีย์ และลิงก์ส่งเข้าแชตกับครีเอเตอร์แล้ว · เปิดได้จากโปรไฟล์ › ซื้อแล้ว · แนะนำให้ดาวน์โหลดเก็บไว้'}</p>
         </div>
         <div className={`${s.rcp} rise`}>
           <div><span>เลขออเดอร์</span><b>#{order.no}</b></div>
@@ -214,7 +214,7 @@ function Success({ order }: { order: Order }) {
         </div>
         <div className={s.acts}>
           {thread && <button className="btn btn-p btn-block" onClick={() => nav(`/chat/${thread}`, { replace: true })}><Icon name="chat" size={18} color="#fff" />{hireThread ? 'ไปที่แชตงานจ้าง' : 'เปิดไฟล์ในแชต'}</button>}
-          <button className="btn btn-o btn-block" onClick={() => nav('/profile?tab=bought', { replace: true })}>ดูที่ซื้อแล้ว</button>
+          <button className="btn btn-o btn-block" onClick={() => nav('/profile?tab=bought', { replace: true })}>ดูรายการซื้อแล้ว</button>
           <button className="btn btn-s btn-block" onClick={() => nav('/', { replace: true })}>เลือกซื้อต่อ</button>
         </div>
         <SampleNote>ออเดอร์ตัวอย่าง · ไม่มีการตัดเงินจริง</SampleNote>

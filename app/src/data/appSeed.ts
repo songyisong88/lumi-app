@@ -39,7 +39,7 @@ export function seed(): DB {
       { id: id(), from: 'them', kind: 'text', at: t(18 * M), text: 'สวัสดีค่ะ ภาพบัวชมพูนี้มีโทนสีเขียวไหมคะ อยากใช้ทำปกเมนูร้าน 🌿' },
     ],
     't-kenji': [
-      { id: id(), from: 'system', kind: 'system', at: t(4 * D), text: 'ชำระเงิน ฿1,900 แล้ว · LUMI พักเงินไว้จนกว่าคุณจะกดรับงาน' },
+      { id: id(), from: 'system', kind: 'system', at: t(4 * D), text: 'ชำระเงิน ฿1,900 แล้ว · เงินพักไว้จนกว่าคุณจะกดรับงาน หรือครบ 3 วันหลังส่งงาน' },
       { id: id(), from: 'them', kind: 'progress', at: t(2 * D), title: 'อัปเดตความคืบหน้า', text: 'ใส่เมนู รูปร้าน และปุ่มสั่งผ่าน LINE แล้วครับ', pct: 70 },
       { id: id(), from: 'them', kind: 'delivery', at: t(2 * H + 5 * M), title: 'ส่งงานแล้ว · รอบที่ 2', image: 'bakery.jpg', round: 2, left: 1, status: 'pending', text: 'แก้ตามที่ขอ เปลี่ยนสีหัวเว็บและเพิ่มแผนที่ร้านแล้วครับ' },
       { id: id(), from: 'them', kind: 'file', at: t(2 * H + 4 * M), fileName: 'bakery-site-v2.zip', size: '6.1 MB' },

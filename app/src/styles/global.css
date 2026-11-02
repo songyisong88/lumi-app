@@ -21,5 +21,4 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .av{border-radius:50%;background-size:cover;background-position:center;flex:none}
 .hscroll{display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .hscroll::-webkit-scrollbar{display:none}
-.sample-badge{position:fixed;right:12px;bottom:calc(var(--tabbar-h) + 12px);z-index:70;font-size:11px;background:rgba(22,19,43,.78);color:#fff;border-radius:8px;padding:3px 9px;pointer-events:none}
-@media(min-width:1024px){.sample-badge{bottom:16px}}
+.sample-pill{flex:none;align-self:center;font-size:10.5px;font-weight:600;line-height:1;color:#B45309;background:#FFF4DB;border:1px solid #FCE3A6;border-radius:9px;padding:4px 7px;white-space:nowrap}

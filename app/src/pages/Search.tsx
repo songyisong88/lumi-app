@@ -7,12 +7,51 @@ import { scrollPageTop } from '../components/Stage'
 import { Sheet } from '../components/ui'
 import { MasonryFeed } from '../components/MasonryFeed'
 import { ProductCard } from '../components/ProductCard'
-import { PRODUCTS, creatorById, imgUrl } from '../data/sampleData'
+import { CREATORS, ME, PRODUCTS, creatorById, imgUrl } from '../data/sampleData'
+import type { Product } from '../data/types'
+import { creatorStats, statsOf } from '../data/productExtras'
 import {
   CATEGORIES, CAT_TOTAL, CHALLENGE, GROUPS, HOT_KEYWORDS, LEADERBOARD, NEW_TODAY, NEW_TODAY_COUNT, POPULAR, SHORT, TRENDS,
   challengeEnd, isCatKey, searchWorks, type CatKey,
 } from '../data/searchData'
 import s from './Search.module.css'
+
+/** Trends, top creators and the weekly challenge stay hidden until there is real data behind them. */
+const SHOW_SAMPLE_STATS = false
+
+const SORTS = [
+  { id: 'rel', label: 'เกี่ยวข้อง' },
+  { id: 'new', label: 'ใหม่ล่าสุด' },
+  { id: 'rate', label: 'รีวิวดี' },
+  { id: 'lo', label: 'ราคาต่ำ-สูง' },
+  { id: 'hi', label: 'ราคาสูง-ต่ำ' },
+] as const
+const PRICES = [
+  { id: 'all', label: 'ทุกราคา', ok: () => true },
+  { id: 'free', label: 'ฟรี', ok: (p: Product) => p.price === 0 },
+  { id: 'u100', label: 'ไม่เกิน ฿100', ok: (p: Product) => p.price > 0 && p.price <= 100 },
+  { id: 'u500', label: '฿101–500', ok: (p: Product) => p.price > 100 && p.price <= 500 },
+  { id: 'o500', label: 'มากกว่า ฿500', ok: (p: Product) => p.price > 500 },
+] as const
+type SortId = (typeof SORTS)[number]['id']
+type PriceId = (typeof PRICES)[number]['id']
+
+function arrange(list: Product[], sort: SortId, price: PriceId) {
+  const ok = PRICES.find((x) => x.id === price)!.ok
+  const out = list.filter(ok)
+  const idx = new Map(list.map((p, i) => [p.id, i]))
+  if (sort === 'lo') out.sort((a, b) => a.price - b.price)
+  if (sort === 'hi') out.sort((a, b) => b.price - a.price)
+  if (sort === 'rate') out.sort((a, b) => statsOf(b).rating - statsOf(a).rating || statsOf(b).reviews - statsOf(a).reviews)
+  if (sort === 'new') out.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0) || idx.get(b.id)! - idx.get(a.id)!)
+  return out
+}
+
+function matchCreators(q: string, works: Product[]) {
+  const w = q.toLowerCase().trim()
+  const ids = new Set(works.map((p) => p.creatorId))
+  return CREATORS.filter((c) => ids.has(c.id) || (w && (c.name.toLowerCase().includes(w) || c.id.includes(w))))
+}
 
 /* ---------- small pieces ---------- */
 
@@ -212,15 +251,28 @@ export function Search() {
   const [focused, setFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const results = useMemo(() => searchWorks(q, cat), [q, cat])
+  const tab = params.get('tab') === 'creators' ? 'creators' : 'works'
+  const sort = (SORTS.find((x) => x.id === params.get('sort'))?.id ?? 'rel') as SortId
+  const price = (PRICES.find((x) => x.id === params.get('price'))?.id ?? 'all') as PriceId
+  const found = useMemo(() => searchWorks(q, cat), [q, cat])
+  const results = useMemo(() => arrange(found, sort, price), [found, sort, price])
+  const creators = useMemo(() => matchCreators(q, found), [q, found])
+  const nav = useNavigate()
   const searching = q.trim() !== '' || cat !== null
 
-  const update = (next: { q?: string; cat?: string | null }, replace = false) => {
+  const update = (next: { q?: string; cat?: string | null; tab?: string; sort?: string; price?: string }, replace = false) => {
     const p = new URLSearchParams()
     const nq = next.q ?? q
     const nc = next.cat === undefined ? cat : next.cat
+    const keep = next.q === undefined && next.cat === undefined
+    const nt = next.tab ?? (keep ? tab : 'works')
+    const ns = next.sort ?? (keep ? sort : 'rel')
+    const np = next.price ?? (keep ? price : 'all')
     if (nq) p.set('q', nq)
     if (nc) p.set('cat', nc)
+    if (nt !== 'works') p.set('tab', nt)
+    if (ns !== 'rel') p.set('sort', ns)
+    if (np !== 'all') p.set('price', np)
     setParams(p, { replace })
   }
   const pickQuery = (text: string) => { update({ q: text, cat: null }); inputRef.current?.blur(); scrollPageTop() }
@@ -283,13 +335,45 @@ export function Search() {
             </div>
             <div className={s.rh}>
               <h1>{q ? <>ผลการค้นหา “{q}”</> : catLabel}</h1>
-              <span>{results.length} ชิ้น{q && cat ? ` · ใน${catLabel}` : ''}</span>
+              <span>{tab === 'creators' ? `${creators.length} คน` : `${results.length} ชิ้น`}{q && cat ? ` · ใน${catLabel}` : ''}</span>
             </div>
-            {results.length > 0 ? (
+            <div className={s.rtabs} role="tablist" aria-label="ประเภทผลลัพธ์">
+              <button role="tab" aria-selected={tab === 'works'} className={tab === 'works' ? s.rtOn : ''} onClick={() => update({ tab: 'works' }, true)}>ผลงาน</button>
+              <button role="tab" aria-selected={tab === 'creators'} className={tab === 'creators' ? s.rtOn : ''} onClick={() => update({ tab: 'creators' }, true)}>ครีเอเตอร์</button>
+            </div>
+            {tab === 'works' && (
+              <div className={s.filt} data-filters>
+                <label><span>เรียง</span><select aria-label="เรียงผลลัพธ์" value={sort} onChange={(e) => update({ sort: e.target.value }, true)}>
+                  {SORTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                </select></label>
+                <label><span>ราคา</span><select aria-label="กรองราคา" value={price} onChange={(e) => update({ price: e.target.value }, true)}>
+                  {PRICES.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+                </select></label>
+              </div>
+            )}
+            {tab === 'creators' ? (creators.length > 0 ? (
+              <div className={s.clist}>
+                {creators.map((c) => {
+                  const st = creatorStats(c.id)
+                  return (
+                    <div key={c.id} className={s.crow}>
+                      <button className={s.crowMain} onClick={() => nav(`/creator/${c.id}`)}>
+                        <img src={imgUrl(c.avatar)} alt="" />
+                        <span><b>{c.name}</b><small>{st.works} ผลงาน · ★ {st.rating || '-'} · ผู้ติดตาม {st.followersLabel}</small></span>
+                      </button>
+                      {c.id !== ME && <FollowButton id={c.id} />}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className={s.empty}><b>ยังไม่เจอครีเอเตอร์ที่ตรงกับคำนี้</b><p>ลองค้นด้วยชื่อร้านหรือประเภทผลงาน</p></div>
+            )) : results.length > 0 ? (
               <MasonryFeed items={results} />
             ) : (
               <div className={s.empty}>
-                <b>ยังไม่เจอผลงานที่ตรงกับคำนี้</b>
+                <b>ยังไม่เจอผลงานที่ตรงกับ{price !== 'all' ? 'ช่วงราคานี้' : 'คำนี้'}</b>
+                {price !== 'all' && <button className="btn btn-o btn-sm" style={{ marginTop: 10 }} onClick={() => update({ price: 'all' }, true)}>ดูทุกราคา</button>}
                 <p>ลองคำอื่นดูนะ หรือเลือกจากคำค้นยอดฮิต</p>
                 <div className={s.sgW}>{HOT_KEYWORDS.slice(0, 6).map((k) => <button key={k} onClick={() => pickQuery(k)}>{k}</button>)}</div>
               </div>
@@ -297,11 +381,11 @@ export function Search() {
           </>
         ) : (
           <>
-            <TrendCarousel onPick={pickQuery} />
+            {SHOW_SAMPLE_STATS && <TrendCarousel onPick={pickQuery} />}
             <PopularCats onPick={pickCat} onAll={() => setAllCats(true)} />
             <NewToday onAll={() => pickCat('new')} />
-            <CreatorsOfWeek onPick={pickQuery} />
-            <DailyChallenge />
+            {SHOW_SAMPLE_STATS && <CreatorsOfWeek onPick={pickQuery} />}
+            {SHOW_SAMPLE_STATS && <DailyChallenge />}
             <section>
               <SectionHead title="ผลงานสำหรับคุณ" right="คละทุกประเภท" />
               <MasonryFeed items={PRODUCTS} />

@@ -12,6 +12,7 @@ import { ME, creatorById, productById, unregisterProduct } from '../data/sampleD
 import { creatorStats } from '../data/productExtras'
 import type { Product } from '../data/types'
 import { getDb, resetDb, uid, update } from './db'
+import { FEATURES } from '../config'
 
 export interface FollowService { toggle(creatorId: string): Promise<boolean> }
 export interface CartService { add(item: Omit<CartItem, 'key'>): Promise<string>; remove(key: string): Promise<void> }
@@ -20,7 +21,7 @@ export interface ChatService {
   openWith(partnerId: string, productId?: string): Promise<string>
   send(threadId: string, text: string): Promise<void>
   sendCard(threadId: string, msg: Omit<Message, 'id' | 'at' | 'from'>, from?: Message['from']): Promise<void>
-  sendBrief(creatorId: string, productId: string, brief: string[], pkg: string): Promise<string>
+  sendBrief(creatorId: string, productId: string, brief: string[], pkg: string, amount?: number): Promise<string>
   acceptOffer(threadId: string, msgId: string): Promise<void>
   payOffer(threadId: string, msgId: string): Promise<string>
   acceptDelivery(threadId: string, msgId: string, stars: number, review: string): Promise<void>
@@ -38,6 +39,14 @@ export interface CommunityService {
   create(p: Omit<Post, 'id' | 'at' | 'likes' | 'comments' | 'shares' | 'authorId' | 'mine'>): Promise<string>
   join(roomId: string): Promise<boolean>
   vote(entryId: string): Promise<void>
+}
+export interface OrderService {
+  /** Report a problem / ask for a refund on a purchase or a hire thread. */
+  reportIssue(target: { purchaseId?: string; threadId?: string }, reason: string, note: string): Promise<void>
+  /** Write or edit the buyer's review of a purchase. */
+  review(purchaseId: string, stars: number, text: string): Promise<void>
+  /** Hire delivery: buyer asks for 3 more days to check the work (once per round). */
+  extendReview(threadId: string, msgId: string): Promise<void>
 }
 export interface NotificationService { read(id: string): Promise<void>; readAll(): Promise<void> }
 export interface SellService {
@@ -127,7 +136,7 @@ class LocalCart implements CartService {
 
 export const COUPONS: Record<string, { label: string; pct: number; creator?: string }> = {
   PIM15: { label: 'ลด 15% สินค้าร้านพิมพ์ดาว', pct: 15, creator: 'pim' },
-  LUMI10: { label: 'ลด 10% ทุกชิ้น (ทดลอง)', pct: 10 },
+  ...(FEATURES.platformCoupons ? { LUMI10: { label: 'ลด 10% ทุกชิ้น (ทดลอง)', pct: 10 } } : {}),
 }
 export function discountOf(items: CartItem[], code?: string) {
   const c = code ? COUPONS[code.toUpperCase()] : undefined
@@ -150,7 +159,7 @@ class LocalCheckout implements CheckoutService {
         if (it.offerThreadId) {
           const t = thr(d, it.offerThreadId)
           t.step = 3; t.status = 'กำลังทำงาน'; t.tone = 'info'; t.orderNo ??= order.no
-          push(d, t.id, { from: 'system', kind: 'system', text: `ชำระเงิน ฿${it.price.toLocaleString('th-TH')} แล้ว (ทดลอง) · LUMI พักเงินไว้จนกว่าคุณจะกดรับงาน` })
+          push(d, t.id, { from: 'system', kind: 'system', text: `ชำระเงิน ฿${it.price.toLocaleString('th-TH')} แล้ว (ทดลอง) · เงินพักไว้จนกว่าคุณจะกดรับงาน หรือครบ 3 วันหลังส่งงาน` })
           sims.push(t.id)
           continue
         }
@@ -167,7 +176,7 @@ class LocalCheckout implements CheckoutService {
         const sp = specOf(p)
         const key = ['sw', 'game'].includes(st.key) && sp.keyType !== 'ไม่ต้องใช้คีย์' ? `LUMI-${rnd()}-${rnd()}-${rnd()}` : undefined
         t.orderNo = order.no; t.amount = it.price; t.status = 'ซื้อแล้ว · ดาวน์โหลดได้'; t.tone = 'ok'
-        push(d, t.id, { from: 'system', kind: 'system', text: `ชำระเงิน ฿${it.price.toLocaleString('th-TH')} แล้ว (ทดลอง) · ออเดอร์ #${order.no}` })
+        push(d, t.id, { from: 'system', kind: 'system', text: it.price ? `ชำระเงิน ฿${it.price.toLocaleString('th-TH')} แล้ว (ทดลอง) · ออเดอร์ #${order.no}` : `รับของฟรีแล้ว · ออเดอร์ #${order.no}` })
         if (key) push(d, t.id, { from: 'them', kind: 'key', title: `คีย์ใช้งาน · ${it.optionLabel ?? '1 เครื่อง'}`, code: key })
         const files = (Array.isArray(sp.files) ? sp.files : []).map((x) => { try { return JSON.parse(String(x)) } catch { return { name: String(x), size: '' } } })
         for (const f of files) push(d, t.id, { from: 'them', kind: 'file', fileName: f.name, size: f.size })
@@ -175,7 +184,7 @@ class LocalCheckout implements CheckoutService {
         if (typeof sp.canvaLink === 'string') push(d, t.id, { from: 'them', kind: 'file', fileName: sp.canvaLink, size: 'ลิงก์ Canva' })
         d.purchases.unshift({ id: uid('b'), productId: p.id, orderNo: order.no, optionLabel: it.optionLabel, at: now(), title: p.title, image: p.image?.src ?? p.covers?.[0], creatorId: p.creatorId, price: it.price, key, threadId: t.id } satisfies Purchase)
       }
-      notify(d, { kind: 'order', text: `ชำระเงินสำเร็จ (ทดลอง) ออเดอร์ #${order.no} · ไฟล์และคีย์อยู่ในแชตแล้ว`, link: '/profile?tab=bought', image: undefined })
+      notify(d, { kind: 'order', text: order.total > 0 ? `ชำระเงินสำเร็จ (ทดลอง) ออเดอร์ #${order.no} · ไฟล์และคีย์อยู่ในแชตแล้ว` : `รับของฟรีแล้ว ออเดอร์ #${order.no} · ไฟล์อยู่ในแชตแล้ว`, link: '/profile?tab=bought', image: undefined })
     })
     for (const id of sims) simulateHireProgress(id)
     return order
@@ -184,8 +193,8 @@ class LocalCheckout implements CheckoutService {
 const rnd = () => Math.random().toString(36).slice(2, 6).toUpperCase()
 const sellTypeOfSafe = (p: Product) => sellTypeOf(p)
 
-function simulateHireProgress(threadId: string) {
-  simulateReply(threadId, 'ได้รับเงินผ่าน LUMI แล้วครับ เริ่มงานเลยนะครับ 💪', () => {})
+function simulateHireProgress(threadId: string, free = false) {
+  simulateReply(threadId, free ? 'ขอบคุณที่ไว้ใจครับ เริ่มงานเลยนะครับ 💪' : 'ได้รับแจ้งการชำระเงินแล้วครับ เริ่มงานเลยนะครับ 💪', () => {})
   later(6000, () => update((d) => {
     push(d, threadId, { from: 'them', kind: 'progress', title: 'อัปเดตความคืบหน้า', text: 'ร่างลายเส้นเสร็จแล้ว กำลังลงสีครับ', pct: 45, image: 'mascot.jpg' })
   }))
@@ -221,7 +230,7 @@ class LocalChat implements ChatService {
       }))
     } else if (from === 'me' && msg.kind !== 'product') simulateReply(threadId)
   }
-  async sendBrief(creatorId: string, productId: string, brief: string[], pkg: string) {
+  async sendBrief(creatorId: string, productId: string, brief: string[], pkg: string, pkgPrice?: number) {
     let id = ''
     update((d) => {
       const p = productById(productId)
@@ -236,7 +245,8 @@ class LocalChat implements ChatService {
     })
     const p = productById(productId)
     const price = p?.price ?? 600
-    const amount = pkg.includes('พรีเมียม') ? price * 4 : pkg.includes('มาตรฐาน') ? price * 2 : price
+    // the quote starts at the package price the buyer picked on the product page
+    const amount = pkgPrice ?? (pkg.includes('พรีเมียม') ? price * 4 : pkg.includes('มาตรฐาน') ? price * 2 : price)
     simulateReply(id, 'ได้รับบรีฟแล้ว ขอทำใบเสนอราคาให้นะครับ', (d) => {
       push(d, id, { from: 'them', kind: 'offer', title: `ใบเสนอราคา · ${pkg}`, amount, items: (() => { const v = p ? specOf(p).deliverables : undefined; return Array.isArray(v) ? v : ['งานตามบรีฟ', 'ไฟล์ความละเอียดสูง'] })(), status: 'pending' })
       const t = thr(d, id); t.step = 1; t.status = 'รอคุณตอบรับข้อเสนอ'; t.tone = 'warn'; t.amount = amount
@@ -249,11 +259,18 @@ class LocalChat implements ChatService {
       const m = d.messages[threadId].find((x) => x.id === msgId)!
       m.status = 'accepted'
       const t = thr(d, threadId)
-      t.step = 2; t.status = 'รับข้อเสนอแล้ว · รอชำระเงิน'; t.tone = 'info'; t.amount = m.amount
+      t.amount = m.amount
       t.orderNo ??= orderNo()
       t.quick = ['ส่งงานได้วันไหนครับ', 'ขอดูภาพร่างก่อนได้ไหมครับ']
-      push(d, threadId, { from: 'system', kind: 'system', text: `คุณรับข้อเสนอ ฿${m.amount?.toLocaleString('th-TH')} แล้ว · ชำระเงินเพื่อเริ่มงาน` })
+      if (!m.amount) {
+        t.step = 3; t.status = 'กำลังทำงาน (งานฟรี)'; t.tone = 'info'
+        push(d, threadId, { from: 'system', kind: 'system', text: 'คุณรับข้อเสนอแล้ว · งานนี้ฟรี ไม่ต้องชำระเงิน ครีเอเตอร์เริ่มงานได้เลย' })
+      } else {
+        t.step = 2; t.status = 'รับข้อเสนอแล้ว · รอชำระเงิน'; t.tone = 'info'
+        push(d, threadId, { from: 'system', kind: 'system', text: `คุณรับข้อเสนอ ฿${m.amount.toLocaleString('th-TH')} แล้ว · ชำระเงินเพื่อเริ่มงาน` })
+      }
     })
+    if (!getDb().messages[threadId].find((x) => x.id === msgId)?.amount) simulateHireProgress(threadId, true)
   }
   async payOffer(threadId: string, msgId: string) {
     const d = getDb()
@@ -270,9 +287,9 @@ class LocalChat implements ChatService {
       const t = thr(d, threadId)
       t.step = 5; t.status = 'เสร็จสมบูรณ์'; t.tone = 'done'
       t.quick = ['ขอบคุณมากครับ', 'ไว้มีงานใหม่จะจ้างอีกนะครับ']
-      push(d, threadId, { from: 'system', kind: 'system', text: `คุณรับงานแล้ว · รีวิว ${'★'.repeat(stars)}${review ? ` “${review}”` : ''} · LUMI โอนเงินให้ครีเอเตอร์ (ทดลอง)` })
+      push(d, threadId, { from: 'system', kind: 'system', text: `คุณรับงานแล้ว · รีวิว ${'★'.repeat(stars)}${review ? ` “${review}”` : ''} · ${t.amount ? 'เงินโอนให้ครีเอเตอร์ (ทดลอง)' : 'งานฟรี · ให้ทิปขอบคุณครีเอเตอร์ได้'}` })
       push(d, threadId, { from: 'them', kind: 'file', fileName: `${t.title.slice(0, 18)}-final.zip`, size: '24 MB' })
-      d.purchases.unshift({ id: uid('b'), productId: t.productId ?? 'offer', orderNo: t.orderNo ?? '-', optionLabel: 'งานจ้าง', at: now(), title: t.title, image: t.image, creatorId: t.partnerId, price: t.amount ?? 0, threadId })
+      d.purchases.unshift({ id: uid('b'), productId: t.productId ?? 'offer', orderNo: t.orderNo ?? '-', optionLabel: 'งานจ้าง', at: now(), title: t.title, image: t.image, creatorId: t.partnerId, price: t.amount ?? 0, threadId, review: { stars, text: review, at: now() } })
     })
     simulateReply(threadId, 'ขอบคุณสำหรับรีวิวมากครับ ไว้มีงานใหม่ทักมาได้เลยนะครับ 🙏')
   }
@@ -362,6 +379,39 @@ class LocalCommunity implements CommunityService {
   async vote(id: string) { update((d) => { d.votes = d.votes.includes(id) ? d.votes.filter((x) => x !== id) : [...d.votes, id] }) }
 }
 
+export const ISSUE_STATUS = 'รอครีเอเตอร์ตอบภายใน 3 วัน · ถ้าไม่ตอบหรือตกลงกันไม่ได้ ทีม LUMI จะตัดสิน'
+class LocalOrders implements OrderService {
+  async reportIssue(target: { purchaseId?: string; threadId?: string }, reason: string, note: string) {
+    update((d) => {
+      const issue = { reason, note, at: now(), status: ISSUE_STATUS }
+      const b = target.purchaseId ? d.purchases.find((x) => x.id === target.purchaseId) : undefined
+      if (b) b.issue = issue
+      const tid = target.threadId ?? b?.threadId
+      const t = tid ? d.threads.find((x) => x.id === tid) : undefined
+      if (t) {
+        t.issue = issue
+        t.status = 'แจ้งปัญหาแล้ว รอครีเอเตอร์ตอบ'; t.tone = 'warn'; t.updatedAt = now()
+        push(d, t.id, { from: 'system', kind: 'system', text: `คุณแจ้งปัญหา: ${reason}${note ? ` “${note}”` : ''} · ${ISSUE_STATUS} (ตัวอย่าง)` })
+      }
+      notify(d, { kind: 'system', text: `ส่งเรื่อง “${reason}” แล้ว · ${ISSUE_STATUS}`, link: t ? `/chat/${t.id}` : '/profile?tab=bought' })
+    })
+  }
+  async review(purchaseId: string, stars: number, text: string) {
+    update((d) => {
+      const b = d.purchases.find((x) => x.id === purchaseId)
+      if (b) b.review = { stars, text, at: now() }
+    })
+  }
+  async extendReview(threadId: string, msgId: string) {
+    update((d) => {
+      const m = d.messages[threadId]?.find((x) => x.id === msgId)
+      if (!m || m.extended) return
+      m.extended = true
+      push(d, threadId, { from: 'system', kind: 'system', text: 'คุณขอเวลาตรวจงานเพิ่ม 3 วัน · เงินยังพักไว้จนกว่าคุณจะกดรับงาน (ตัวอย่าง)' })
+    })
+  }
+}
+
 class LocalNotifs implements NotificationService {
   async read(id: string) { update((d) => { const n = d.notifs.find((x) => x.id === id); if (n) n.read = true }) }
   async readAll() { update((d) => { d.notifs.forEach((n) => { n.read = true }) }) }
@@ -386,7 +436,8 @@ export function draftToProduct(dr: ListingDraft, id = dr.publishedId ?? `u-${dr.
   const t = dr.type ?? 'img'
   const m = TYPE_MAP[t]
   const opts = dr.options.filter((o) => o.on && o.price > 0)
-  const price = dr.free ? 0 : opts.length ? Math.min(...opts.map((o) => o.price)) : 0
+  const free = dr.free && dr.type !== 'hire'
+  const price = free ? 0 : opts.length ? Math.min(...opts.map((o) => o.price)) : 0
   const sub = typeof dr.spec.sub === 'string' ? dr.spec.sub : undefined
   const cover = dr.covers[0] ?? 'g_lotus.jpg'
   const days = typeof dr.spec.timeline === 'string' ? parseInt(dr.spec.timeline.split('–')[1] ?? '7') : undefined
@@ -394,7 +445,7 @@ export function draftToProduct(dr: ListingDraft, id = dr.publishedId ?? `u-${dr.
     id, kind: m.kind, type: m.type, label: sub && t !== 'hire' ? sub : m.label, st: t,
     title: dr.title || 'ผลงานใหม่ (ยังไม่ตั้งชื่อ)', use: dr.use || '—', desc: dr.desc, tags: dr.tags,
     creatorId: ME, price, image: { src: cover, w: 900, h: 1100 }, covers: dr.covers, spec: dr.spec,
-    options: dr.free ? undefined : opts.map(({ id, label, sub, price, suffix }) => ({ id, label, sub, price, suffix })),
+    options: free ? undefined : opts.map(({ id, label, sub, price, suffix }) => ({ id, label, sub, price, suffix })),
     hasPrompt: on(dr.spec.sellPrompt), tryable: on(dr.spec.trial), instant: t !== 'hire',
     days, revisions: typeof dr.spec.revisions === 'string' ? parseInt(dr.spec.revisions) : undefined,
     mine: true, createdAt: now(),
@@ -413,12 +464,14 @@ class LocalSell implements SellService {
   async deleteDraft(id: string) { update((d) => { d.drafts = d.drafts.filter((x) => x.id !== id) }) }
   async publish(dr: ListingDraft, share: boolean, notifyFollowers: boolean) {
     if (checkListing(dr).some((c) => !c.ok)) throw new Error('listing incomplete')
-    const p = draftToProduct(dr)
+    const { covers: _c, ...listing } = dr; void _c
+    const was = productById(dr.publishedId ?? '')
+    const p: Product = { ...draftToProduct(dr), listing: { ...listing, step: 1 }, createdAt: was?.createdAt ?? now() }
     update((d) => {
       d.published = [p, ...d.published.filter((x) => x.id !== p.id)]
       d.drafts = d.drafts.filter((x) => x.id !== dr.id)
-      if (share) d.posts.unshift({ id: uid('u'), authorId: ME, at: now(), tag: p.price === 0 ? 'แจกฟรี' : 'โชว์ผลงาน', text: `ลงผลงานใหม่ “${p.title}” 🎉 ${p.use}`, images: dr.covers.slice(0, 3), productIds: [p.id], likes: 0, comments: 0, shares: 0, mine: true })
-      notify(d, { kind: 'system', text: `ลงขาย “${p.title}” แล้ว${notifyFollowers ? ` · แจ้งผู้ติดตาม ${creatorStats(ME).followersLabel} คน (ทดลอง)` : ''}`, link: `/product/${p.id}`, image: dr.covers[0] })
+      if (share) d.posts.unshift({ id: uid('u'), authorId: ME, at: now(), tag: p.price === 0 ? 'แจกฟรี' : 'โชว์ผลงาน', text: was ? `อัปเดตผลงาน “${p.title}” ${p.price === 0 ? '· ตอนนี้แจกฟรีแล้ว 🎁' : '✨'} ${p.use}` : `ลงผลงานใหม่ “${p.title}” 🎉 ${p.use}`, images: dr.covers.slice(0, 3), productIds: [p.id], likes: 0, comments: 0, shares: 0, mine: true })
+      notify(d, { kind: 'system', text: `${was ? 'อัปเดต' : 'ลงขาย'} “${p.title}” แล้ว${notifyFollowers ? ` · แจ้งผู้ติดตาม ${creatorStats(ME).followersLabel} คน (ทดลอง)` : ''}`, link: `/product/${p.id}`, image: dr.covers[0] })
     })
     return p.id
   }
@@ -434,10 +487,12 @@ export const checkout: CheckoutService = new LocalCheckout()
 export const chat: ChatService = new LocalChat()
 export const community: CommunityService = new LocalCommunity()
 export const notifications: NotificationService = new LocalNotifs()
+export const orders: OrderService = new LocalOrders()
 export const sell: SellService = new LocalSell()
 export function resetAll() {
   timers.forEach((h) => clearTimeout(h))
   timers.clear()
   resetDb()
+  for (const k of ['lumi_reports', 'lumi_payout_ack']) localStorage.removeItem(k)
 }
 export { HIRE_STEPS }

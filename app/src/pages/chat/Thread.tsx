@@ -2,10 +2,12 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Av, Empty, Img, Sheet, Stars, TopBar, copyText } from '../../components/ui'
+import { IssueSheet, issueOpen } from '../../components/OrderHelp'
+import { ReportSheet } from '../../components/Report'
 import { HIRE_STEPS, type Message, type Thread as T } from '../../data/appTypes'
 import { heroOf } from '../../data/productExtras'
 import { ALL_PRODUCTS, ME, baht, creatorById, productById } from '../../data/sampleData'
-import { chat } from '../../services/api'
+import { chat, orders } from '../../services/api'
 import { useDb } from '../../services/db'
 import { toast } from '../../services/toast'
 import { clock, dayLabel } from '../../utils/time'
@@ -13,7 +15,7 @@ import { fileToDataUrl } from '../../utils/image'
 import s from './Chat.module.css'
 
 const STICKERS = ['🙏', '😊', '💜', '👍', '🎉', '🥰', '😂', '🔥', '✨', '🐶', '🌸', '☕']
-const STEP_DESC = ['คุณส่งรายละเอียดงานให้ครีเอเตอร์', 'ครีเอเตอร์เสนอราคาและสิ่งที่จะได้รับ', 'LUMI พักเงินไว้ ยังไม่โอนให้ครีเอเตอร์', 'ครีเอเตอร์กำลังทำงานและอัปเดตความคืบหน้า', 'ตรวจงาน ขอแก้ได้ตามจำนวนครั้งในแพ็กเกจ', 'กดรับงานแล้ว LUMI โอนเงินให้ครีเอเตอร์']
+const STEP_DESC = ['คุณส่งรายละเอียดงานให้ครีเอเตอร์', 'ครีเอเตอร์เสนอราคาและสิ่งที่จะได้รับ', 'เงินพักไว้กับผู้ให้บริการชำระเงิน ยังไม่โอนให้ครีเอเตอร์', 'ครีเอเตอร์กำลังทำงานและอัปเดตความคืบหน้า', 'ตรวจงาน ขอแก้ได้ตามจำนวนครั้งในแพ็กเกจ', 'กดรับงานแล้ว (หรือครบ 3 วันหลังส่งงาน) เงินโอนให้ครีเอเตอร์']
 
 export function Thread() {
   const { id = '' } = useParams()
@@ -22,7 +24,7 @@ export function Thread() {
   const t = db.threads.find((x) => x.id === id)
   const msgs = db.messages[id] ?? []
   const [text, setText] = useState('')
-  const [sheet, setSheet] = useState<'menu' | 'files' | 'track' | 'attach' | 'sticker' | 'product' | 'offer' | null>(null)
+  const [sheet, setSheet] = useState<'menu' | 'files' | 'track' | 'attach' | 'sticker' | 'product' | 'offer' | 'issue' | 'late' | 'report' | null>(null)
   const [review, setReview] = useState<Message>()
   const [revise, setRevise] = useState<Message>()
   const scroller = useRef<HTMLDivElement>(null)
@@ -40,6 +42,8 @@ export function Thread() {
 
   if (!t) return <><TopBar title="แชต" /><Empty icon="chat" title="ไม่พบแชตนี้" action={<Link to="/chat" className="btn btn-o btn-sm">กลับไปที่แชต</Link>} /></>
   const c = creatorById(t.partnerId)
+  const bought = t.role === 'creator' && !t.hire ? db.purchases.find((x) => x.threadId === id && x.price > 0 && !x.issue && issueOpen(x.at)) : undefined
+  const hirePaid = t.role === 'creator' && t.hire && (t.step ?? 0) >= 2 && (t.step ?? 0) < 5 && !!t.amount && !t.issue
   const p = t.productId ? productById(t.productId) : undefined
   const send = (v = text) => { const x = v.trim(); if (!x) return; chat.send(id, x); setText('') }
   const typing = msgs.some((m) => m.kind === 'typing')
@@ -114,11 +118,12 @@ export function Thread() {
         <div className={s.menu}>
           <button className="list-row" onClick={() => setSheet('files')}><Icon name="key" size={20} color="var(--p)" /><span className="grow">ไฟล์และคีย์<small>ไฟล์ คีย์ใช้งาน ลิงก์ และคูปองในแชตนี้</small></span><span className="badge-n" style={{ background: 'var(--p)' }}>{assets.length}</span></button>
           {t.hire && <button className="list-row" onClick={() => setSheet('track')}><Icon name="target" size={20} />ติดตามงานจ้าง</button>}
-          {p && <button className="list-row" onClick={() => { setSheet(null); nav(`/product/${p.id}`) }}><Icon name="store" size={20} />ดูหน้าสินค้า</button>}
+          {p && <button className="list-row" onClick={() => { setSheet(null); nav(`/product/${p.id}`) }}><Icon name="store" size={20} />ดูหน้าผลงาน</button>}
           <button className="list-row" onClick={() => { setSheet(null); nav(`/creator/${c.id}`) }}><Icon name="user" size={20} />ดูโปรไฟล์ {c.name}</button>
           <button className="list-row" onClick={() => { chat.setFlag(id, 'pinned'); setSheet(null) }}><Icon name="pin" size={20} />{t.pinned ? 'เลิกปักหมุด' : 'ปักหมุดแชต'}</button>
           <button className="list-row" onClick={() => { chat.setFlag(id, 'muted'); setSheet(null) }}><Icon name="eyeoff" size={20} />{t.muted ? 'เปิดการแจ้งเตือน' : 'ปิดการแจ้งเตือน'}</button>
-          <button className="list-row" style={{ color: '#DC2626' }} onClick={() => { setSheet(null); toast('บันทึกการรายงานไว้แล้ว (ตัวอย่าง ยังไม่ได้ส่งจริง)') }}><Icon name="flag" size={20} color="#DC2626" />รายงานปัญหา</button>
+          {(bought || hirePaid) && <button className="list-row" style={{ color: '#DC2626' }} onClick={() => setSheet('issue')}><Icon name="receipt" size={20} color="#DC2626" />แจ้งปัญหา / ขอคืนเงิน</button>}
+          <button className="list-row" style={{ color: '#DC2626' }} onClick={() => setSheet('report')}><Icon name="flag" size={20} color="#DC2626" />รายงาน {c.name}</button>
         </div>
       </Sheet>
 
@@ -154,7 +159,9 @@ export function Thread() {
             )
           })}
         </div>
-        <div className={s.escrow}><Icon name="shield" size={22} color="#15803D" /><div><b>{t.amount ? baht(t.amount) : 'รอใบเสนอราคา'} · {(t.step ?? 0) >= 2 && (t.step ?? 0) < 5 ? 'LUMI พักเงินไว้' : (t.step ?? 0) >= 5 ? 'โอนให้ครีเอเตอร์แล้ว' : 'ยังไม่ชำระ'}</b>ถ้าครีเอเตอร์ไม่ส่งงานตามกำหนด ขอเงินคืนได้เต็มจำนวน (ตัวอย่าง)</div></div>
+        <div className={s.escrow}><Icon name="shield" size={22} color="#15803D" /><div><b>{t.amount ? baht(t.amount) : (t.step ?? 0) >= 1 ? 'งานฟรี' : 'รอใบเสนอราคา'} · {!t.amount && (t.step ?? 0) >= 1 ? 'ไม่ต้องชำระเงิน' : (t.step ?? 0) >= 2 && (t.step ?? 0) < 5 ? 'เงินพักไว้ รอคุณกดรับงาน' : (t.step ?? 0) >= 5 ? 'โอนให้ครีเอเตอร์แล้ว' : 'ยังไม่ชำระ'}</b>{!t.amount && (t.step ?? 0) >= 1 ? 'งานฟรีไม่มีการชำระเงิน · คุย ตรวจงาน และกดรับงานในแชตนี้ได้เลย' : 'ถ้าครีเอเตอร์ไม่ส่งงานตามกำหนด ขอเงินคืนได้เต็มจำนวน · ถ้าไม่ขอแก้หรือแจ้งปัญหาภายใน 3 วันหลังส่งงาน เงินโอนให้ครีเอเตอร์อัตโนมัติ (ตัวอย่าง)'}</div></div>
+      {hirePaid && (t.step ?? 0) < 4 && <button className="btn btn-o btn-block" style={{ marginTop: 12, color: '#DC2626' }} onClick={() => setSheet('late')}>ครีเอเตอร์ส่งช้าเกินกำหนด? ขอยกเลิกและคืนเงิน</button>}
+        {t.issue && <p className="hint" style={{ marginTop: 10, color: '#B91C1C' }}>แจ้งปัญหาแล้ว: {t.issue.reason} · {t.issue.status}</p>}
       </Sheet>
 
       {/* attach */}
@@ -180,6 +187,8 @@ export function Thread() {
           </button>
         ))}
       </Sheet>
+      <IssueSheet open={sheet === 'issue' || sheet === 'late'} onClose={() => setSheet(null)} purchaseId={bought?.id} threadId={bought ? undefined : id} hire={!bought} preset={sheet === 'late' ? 'ส่งงานช้าเกินกำหนด · ขอยกเลิกและคืนเงิน' : undefined} />
+      <ReportSheet open={sheet === 'report'} onClose={() => setSheet(null)} target="creator" id={c.id} />
       <OfferSheet open={sheet === 'offer'} onClose={() => setSheet(null)} thread={t} />
       <ReviewSheet m={review} onClose={() => setReview(undefined)} onDone={(st, r) => { chat.acceptDelivery(id, review!.id, st, r); setReview(undefined); toast('รับงานแล้ว ขอบคุณสำหรับรีวิว') }} />
       <ReviseSheet m={revise} onClose={() => setRevise(undefined)} onDone={(n) => { chat.requestRevision(id, revise!.id, n); setRevise(undefined) }} />
@@ -212,7 +221,7 @@ function Bubble({ m, t, fresh, onPay, onReview, onRevise }: { m: Message; t: T; 
     case 'product': {
       const p = productById(m.productId ?? '')
       if (!p) return null
-      return <div className={cls}><Link to={`/product/${p.id}`} className={`${s.card} ${s.pc} press`}><Img src={heroOf(p)} className={s.pcImg} /><span><b className="ell2">{p.title}</b><small>{p.price ? baht(p.price) : 'ฟรี'} · ดูสินค้า ›</small></span></Link>{time}</div>
+      return <div className={cls}><Link to={`/product/${p.id}`} className={`${s.card} ${s.pc} press`}><Img src={heroOf(p)} className={s.pcImg} /><span><b className="ell2">{p.title}</b><small>{p.price ? baht(p.price) : 'ฟรี'} · ดูผลงาน ›</small></span></Link>{time}</div>
     }
     case 'brief': return (
       <div className={cls}><div className={`${s.card} ${s.brief}`}><div className={s.ch}><Icon name="file" size={16} color="var(--p)" />{m.title}</div><ul>{m.items?.map((x) => <li key={x}>{x}</li>)}</ul></div>{time}</div>
@@ -222,12 +231,13 @@ function Bubble({ m, t, fresh, onPay, onReview, onRevise }: { m: Message; t: T; 
       return (
         <div className={cls}><div className={`${s.card} ${s.offer}`}>
           <div className={s.ch}><Icon name="receipt" size={16} color="#15803D" />{m.title}</div>
-          <div className={s.amt}>{baht(m.amount ?? 0)}</div>
+          <div className={s.amt}>{m.amount ? baht(m.amount) : 'ฟรี'}</div>
           <ul>{m.items?.map((x) => <li key={x}><Icon name="check" size={13} color="#16A34A" stroke={2.6} />{x}</li>)}</ul>
           {mine ? <div className={s.state}>{m.status === 'accepted' ? 'ลูกค้ารับข้อเสนอแล้ว' : 'รอลูกค้าตอบรับ'}</div>
-            : m.status === 'pending' ? <div className={s.btns}><button className="btn btn-sm btn-o" onClick={() => chat.send(t.id, 'ขอคุยรายละเอียดเพิ่มก่อนนะครับ')}>ขอคุยเพิ่ม</button><button className="btn btn-sm btn-p" onClick={() => chat.acceptOffer(t.id, m.id)}>รับข้อเสนอ</button></div>
+            : m.status === 'pending' ? <div className={s.btns}><button className="btn btn-sm btn-o" onClick={() => chat.send(t.id, 'ขอคุยรายละเอียดเพิ่มก่อนนะครับ')}>ขอคุยเพิ่ม</button><button className="btn btn-sm btn-p" onClick={() => chat.acceptOffer(t.id, m.id)}>{m.amount ? 'รับข้อเสนอ' : 'รับข้อเสนอ (ฟรี)'}</button></div>
+            : m.status === 'accepted' && !m.amount ? <div className={s.state}><Icon name="check" size={14} color="#16A34A" stroke={2.6} />งานฟรี · ไม่ต้องชำระเงิน</div>
             : m.status === 'accepted' && !paid ? <button className="btn btn-sm btn-p btn-block" onClick={() => onPay(m)}>ชำระเงิน {baht(m.amount ?? 0)} (ทดลอง)</button>
-            : <div className={s.state}><Icon name="check" size={14} color="#16A34A" stroke={2.6} />ชำระแล้ว · LUMI พักเงินไว้</div>}
+            : <div className={s.state}><Icon name="check" size={14} color="#16A34A" stroke={2.6} />ชำระแล้ว · เงินพักไว้จนกว่าจะรับงาน</div>}
         </div>{time}</div>
       )
     }
@@ -240,7 +250,7 @@ function Bubble({ m, t, fresh, onPay, onReview, onRevise }: { m: Message; t: T; 
         <div className={s.wmw}><Img src={m.image} className={s.pic} />{m.status !== 'accepted' && <span className={s.wm}>LUMI · ตัวอย่างมีลายน้ำ</span>}</div>
         <p className={s.ctx}>{m.text}</p>
         {m.status === 'pending' && !mine ? <>
-          <small className={s.ps}>ขอแก้ได้อีก {m.left} ครั้ง · ตรวจงานภายใน 3 วัน</small>
+          <small className={s.ps}>ขอแก้ได้อีก {m.left} ครั้ง · ตรวจงานภายใน {m.extended ? '6 วัน (ขยายแล้ว)' : '3 วัน'}{!m.extended && <> · <button className={s.lnk} onClick={() => orders.extendReview(t.id, m.id)}>ขอเวลาตรวจเพิ่ม 3 วัน</button></>}</small>
           <div className={s.btns}><button className="btn btn-sm btn-o" disabled={!m.left} onClick={() => onRevise(m)}>ขอแก้ไข</button><button className="btn btn-sm btn-p" onClick={() => onReview(m)}>รับงาน</button></div>
         </> : <div className={s.state}>{m.status === 'accepted' ? <><Icon name="check" size={14} color="#16A34A" stroke={2.6} />รับงานแล้ว</> : m.status === 'revise' ? 'ขอแก้ไขแล้ว' : 'รอลูกค้าตรวจ'}</div>}
       </div>{time}</div>
@@ -260,7 +270,7 @@ function OfferSheet({ open, onClose, thread }: { open: boolean; onClose: () => v
     <Sheet open={open} onClose={onClose} title="ส่งใบเสนอราคา" sub={thread.title}
       footer={<button className="btn btn-p btn-block" disabled={!ok} onClick={() => { chat.sendCard(thread.id, { kind: 'offer', title: 'ใบเสนอราคา', amount: Number(amount), items: items.split('\n').filter((x) => x.trim()), status: 'pending' }); onClose(); setAmount('') }}>ส่งใบเสนอราคา</button>}>
       <div className="field"><label className="flabel">ราคา (บาท)<span className="req">*</span></label><input className="inp" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} placeholder="เช่น 900" /></div>
-      <div className="field"><label className="flabel">สิ่งที่ลูกค้าจะได้รับ<span className="req">*</span></label><textarea className="ta" rows={4} value={items} onChange={(e) => setItems(e.target.value)} /><p className="hint">บรรทัดละ 1 รายการ · LUMI หัก 10% เมื่อปิดงาน (ตัวอย่าง)</p></div>
+      <div className="field"><label className="flabel">สิ่งที่ลูกค้าจะได้รับ<span className="req">*</span></label><textarea className="ta" rows={4} value={items} onChange={(e) => setItems(e.target.value)} /><p className="hint">บรรทัดละ 1 รายการ · LUMI หัก 10% เมื่อปิดงาน (ตัวอย่าง · ยังไม่รวม VAT และค่าธรรมเนียมการชำระเงิน)</p></div>
     </Sheet>
   )
 }

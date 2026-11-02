@@ -4,7 +4,9 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { HeaderActions } from '../../components/Header'
 import { Icon } from '../../components/Icon'
 import { MasonryFeed } from '../../components/MasonryFeed'
-import { Av, Empty, Img, SampleNote, Seg, Sheet, TopBar } from '../../components/ui'
+import { ReportButton } from '../../components/Report'
+import { ISSUE_DAYS, IssueSheet, WriteReviewSheet, issueOpen } from '../../components/OrderHelp'
+import { Av, Empty, Img, SampleNote, Seg, Sheet, Stars, TopBar } from '../../components/ui'
 import { completion, SPECS } from '../../data/listingSpec'
 import { creatorStats, heroOf, statsOf } from '../../data/productExtras'
 import { ALL_PRODUCTS, CREATORS, ME, baht, creatorById } from '../../data/sampleData'
@@ -16,6 +18,11 @@ import { ago } from '../../utils/time'
 import s from './Profile.module.css'
 
 type Mode = 'buyer' | 'creator'
+/** SAMPLE DATA: past sales shown in creator mode until real orders exist. */
+const SHOP_SALES = [
+  { no: 'LM-20488', pid: 'p01', who: 'ลูกค้าร้านกาแฟ', amt: 129, st: 'ส่งไฟล์แล้ว · รอพ้น 7 วัน', tone: 'info' },
+  { no: 'LM-20451', pid: 'p01', who: 'ร้านดอกไม้ป้าแดง', amt: 129, st: 'เข้ายอดรอโอนแล้ว', tone: 'done' },
+]
 const HANDLE: Record<string, string> = { fasai: 'fasai.create', mint: 'mint.studio', nova: 'novalab', kenji: 'kenjiweb', pim: 'pimdao', toy: 'toymascot', ton: 'tondata' }
 const BIO: Record<string, string> = {
   fasai: 'วาดภาพสีน้ำด้วย AI · ภาพดอกไม้ ลายไทย โทนพาสเทล 🌸', mint: 'เทมเพลต Canva สำหรับร้านเล็ก แก้ง่ายในมือถือ', nova: 'ทีมทำโปรแกรมและภาพ 3D สำหรับ SME ไทย',
@@ -31,6 +38,9 @@ export function Profile() {
   const setMode = (m: Mode) => { const n = new URLSearchParams(sp); n.set('mode', m); n.delete('tab'); setSp(n, { replace: true }) }
   const { ids } = useFavorites()
   const [settings, setSettings] = useState(false)
+  const [act, setAct] = useState<{ id: string; sheet: 'menu' | 'issue' | 'review' } | null>(null)
+  const actB = act ? db.purchases.find((x) => x.id === act.id) : undefined
+  useEffect(() => setAct(null), [mode])
   const bought = useRef<HTMLDivElement>(null)
   useEffect(() => { if (sp.get('tab') === 'bought') setTimeout(() => bought.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350) }, [sp])
   const me = creatorById(ME)
@@ -60,14 +70,15 @@ export function Profile() {
                 <Icon name="chev" size={18} color="var(--mut)" />
               </Link>
               <div ref={bought} className="sec" style={{ scrollMarginTop: 60 }}>
-                <div className="sec-h">ซื้อแล้ว และดาวน์โหลด<span className="more">ทั้งหมด {db.purchases.length}</span></div>
+                <div className="sec-h">ซื้อแล้ว<span className="more">ทั้งหมด {db.purchases.length}</span></div>
                 {db.purchases.length === 0 ? <Empty icon="receipt" title="ยังไม่มีรายการที่ซื้อ" text="ของที่ซื้อและของฟรีที่กดรับจะอยู่ที่นี่" action={<Link to="/" className="btn btn-p btn-sm">เลือกดูผลงาน</Link>} /> : (
                   <div className="card2" style={{ padding: 0, overflow: 'hidden' }}>
                     {db.purchases.map((b, i) => (
                       <div key={b.id} className={`list-row rise`} style={{ '--i': Math.min(i, 6) } as React.CSSProperties}>
                         <Img src={b.image} className={s.th} />
-                        <Link to={b.productId.startsWith('offer') ? `/chat/${b.threadId}` : `/product/${b.productId}`} className="grow"><b className="ell" style={{ display: 'block' }}>{b.title}</b><small className="ell">{creatorById(b.creatorId).name} · {b.optionLabel ?? (b.price ? baht(b.price) : 'ฟรี')} · {ago(b.at)}</small></Link>
+                        <Link to={b.productId.startsWith('offer') ? `/chat/${b.threadId}` : `/product/${b.productId}`} className="grow"><b className="ell" style={{ display: 'block' }}>{b.title}</b><small className="ell">{creatorById(b.creatorId).name} · {b.optionLabel ?? (b.price ? baht(b.price) : 'ฟรี')} · {ago(b.at)}</small>{(b.issue || b.review) && <small className="ell" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>{b.issue && <span className="pill pill-r">แจ้งปัญหาแล้ว</span>}{b.review && <Stars v={b.review.stars} size={11} />}</small>}</Link>
                         <button className="btn btn-xs btn-s" onClick={async () => nav(`/chat/${b.threadId ?? await chat.openWith(b.creatorId, b.productId)}`)}><Icon name="download" size={14} />เปิด</button>
+                        <button className="tb-btn" style={{ width: 34, height: 34 }} aria-label={`จัดการรายการ ${b.title}`} data-order-menu={b.id} onClick={() => setAct({ id: b.id, sheet: 'menu' })}><Icon name="dots" size={19} /></button>
                       </div>
                     ))}
                   </div>
@@ -94,7 +105,7 @@ export function Profile() {
                 <small>รายได้เดือนนี้ (พ.ย.) · ตัวอย่าง</small>
                 <b>{baht(12480)}</b>
                 <span>↑ 18% · ขายได้ {41 + sales} ชิ้น</span>
-                <div className={s.wd}><span>ถอนได้ <b>฿8,200</b></span><button className="btn btn-xs" style={{ background: '#fff', color: 'var(--p)' }} onClick={() => toast('ถอนเงินจะเปิดใช้เร็ว ๆ นี้ หลังเชื่อมบัญชีรับเงิน')}>ถอนเงิน · เร็ว ๆ นี้</button></div>
+                <div className={s.wd}><span>ยอดรอโอน <b>฿8,200</b></span><button className="btn btn-xs" style={{ background: '#fff', color: 'var(--p)' }} onClick={() => toast('การโอนเงินเข้าบัญชีจะเปิดใช้เร็ว ๆ นี้ หลังเชื่อมบัญชีรับเงิน')}>โอนเข้าบัญชี · เร็ว ๆ นี้</button></div>
               </div>
               <div className="sec">
                 <div className="sec-h">ต้องทำวันนี้<span className="pill pill-r">{todo.length} งาน</span></div>
@@ -105,6 +116,20 @@ export function Profile() {
                     <span className="btn btn-xs btn-p">เปิด</span>
                   </Link>
                 ))}
+              </div>
+              <div className="sec" data-shop-orders>
+                <div className="sec-h">ออเดอร์ของร้าน<span className="more">ตัวอย่าง</span></div>
+                <div className="card2" style={{ padding: 0, overflow: 'hidden' }}>
+                  {[...db.threads.filter((t) => t.role === 'customer' && t.orderNo).map((t) => ({ k: t.id, to: `/chat/${t.id}`, img: t.image, title: t.title, sub: `${creatorById(t.partnerId).name} · #${t.orderNo} · ${t.amount ? baht(t.amount) : 'ฟรี'}`, st: t.status, tone: t.tone })),
+                    ...SHOP_SALES.map((x) => ({ k: x.no, to: `/product/${x.pid}`, img: heroOf(ALL_PRODUCTS.find((p) => p.id === x.pid)!), title: ALL_PRODUCTS.find((p) => p.id === x.pid)!.title, sub: `${x.who} · #${x.no} · ${baht(x.amt)}`, st: x.st, tone: x.tone }))].map((o) => (
+                    <Link key={o.k} to={o.to} className="list-row">
+                      <Img src={o.img} className={s.th} />
+                      <span className="grow"><b className="ell" style={{ display: 'block' }}>{o.title}</b><small className="ell" style={{ display: 'block' }}>{o.sub}</small><small className="ell" style={{ display: 'block', fontWeight: 600, color: o.tone === 'warn' ? '#B45309' : o.tone === 'done' || o.tone === 'ok' ? '#15803D' : 'var(--p)' }}>{o.st}</small></span>
+                      <Icon name="chev" size={16} color="var(--mut)" />
+                    </Link>
+                  ))}
+                </div>
+                <p className="hint" style={{ marginTop: 8 }}>ไฟล์ส่งให้ผู้ซื้ออัตโนมัติ · เงินเข้ายอดรอโอนเมื่อพ้นระยะแจ้งปัญหา 7 วัน (งานจ้าง: เมื่อลูกค้ากดรับงาน)</p>
               </div>
               {db.drafts.length > 0 && (
                 <div className="sec">
@@ -131,7 +156,7 @@ export function Profile() {
                       {p.mine && <span className={s.gn}>ใหม่</span>}
                     </Link>
                   ))}
-                  <Link to="/sell" className={`${s.gi} ${s.add} press`}><Icon name="plus" size={26} color="var(--p)" /><span>ลงผลงานใหม่</span></Link>
+                  <Link to="/sell" className={`${s.gi} ${s.add} press`}><Icon name="plus" size={26} color="var(--p)" /><span>ลงขายผลงาน</span></Link>
                 </div>
               </div>
             </>
@@ -149,7 +174,21 @@ export function Profile() {
           <div style={{ padding: '14px 16px 0' }}><SampleNote>บัญชีตัวอย่าง · ข้อมูลเก็บในเครื่องนี้เท่านั้น</SampleNote></div>
         </div>
       </div>
+      <Sheet open={act?.sheet === 'menu' && !!actB} onClose={() => setAct(null)} title={actB?.title} sub={actB ? `ออเดอร์ #${actB.orderNo} · ${actB.price ? baht(actB.price) : 'ฟรี'} · ${ago(actB.at)}` : ''}>
+        {actB && <div>
+          {actB.issue && <div className="hint" style={{ background: '#FEF2F2', color: '#B91C1C', borderRadius: 12, padding: '10px 12px', marginBottom: 8 }}><b>แจ้งปัญหาแล้ว: {actB.issue.reason}</b><br />{actB.issue.status}</div>}
+          <button className="list-row" style={{ width: '100%' }} onClick={async () => { const id = actB.threadId ?? await chat.openWith(actB.creatorId, actB.productId); setAct(null); nav(`/chat/${id}`) }}><Icon name="download" size={20} color="var(--p)" /><span className="grow">เปิดไฟล์และคีย์<small>อยู่ในแชตกับ {creatorById(actB.creatorId).name}</small></span></button>
+          {!actB.productId.startsWith('offer') && <button className="list-row" style={{ width: '100%' }} onClick={() => { setAct(null); nav(`/product/${actB.productId}`) }}><Icon name="store" size={20} />ดูหน้าผลงาน</button>}
+          <button className="list-row" style={{ width: '100%' }} onClick={() => setAct({ id: actB.id, sheet: 'review' })}><Icon name="star" size={20} color="#F5A524" /><span className="grow">{actB.review ? 'แก้ไขรีวิว' : 'เขียนรีวิว'}{actB.review && <small><Stars v={actB.review.stars} size={11} /> {actB.review.text || 'ไม่มีข้อความ'}</small>}</span></button>
+          {actB.optionLabel === 'งานจ้าง'
+            ? actB.threadId && <button className="list-row" style={{ width: '100%' }} onClick={() => { setAct(null); nav(`/chat/${actB.threadId}`) }}><Icon name="flag" size={20} color="#DC2626" /><span className="grow">แจ้งปัญหางานจ้าง<small>แจ้งในแชตงานจ้าง เมนู ⋯</small></span></button>
+            : !actB.issue && <button className="list-row" style={{ width: '100%', color: issueOpen(actB.at) ? '#DC2626' : undefined }} disabled={!issueOpen(actB.at)} onClick={() => setAct({ id: actB.id, sheet: 'issue' })}><Icon name="flag" size={20} color={issueOpen(actB.at) ? '#DC2626' : 'var(--mut)'} /><span className="grow">{actB.price ? 'แจ้งปัญหา / ขอคืนเงิน' : 'แจ้งปัญหา'}<small>{issueOpen(actB.at) ? `แจ้งได้ภายใน ${ISSUE_DAYS} วันหลังซื้อ` : `เกิน ${ISSUE_DAYS} วันแล้ว · ทักครีเอเตอร์ในแชตได้`}</small></span></button>}
+        </div>}
+      </Sheet>
+      <IssueSheet open={act?.sheet === 'issue'} onClose={() => setAct(null)} purchaseId={act?.id} />
+      {actB && <WriteReviewSheet open={act?.sheet === 'review'} onClose={() => setAct(null)} purchaseId={actB.id} initial={actB.review} />}
       <Sheet open={settings} onClose={() => setSettings(false)} title="ตั้งค่า">
+        <div className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }}><Icon name="user" size={20} /><span className="grow">บัญชีและการเข้าสู่ระบบ<small>สมัคร เข้าสู่ระบบ ใบเสร็จทางอีเมล และขอลบบัญชี จะเปิดพร้อมระบบบัญชีจริง</small></span><span className="pill">เร็ว ๆ นี้</span></div>
         <button className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }} onClick={() => { resetAll(); setSettings(false); toast('รีเซ็ตข้อมูลตัวอย่างแล้ว') }}><Icon name="refresh" size={20} />รีเซ็ตข้อมูลตัวอย่างทั้งหมด<small style={{ marginLeft: 'auto' }}>ตะกร้า แชต ร่าง</small></button>
         <p className="hint">ใช้ตอนอยากเริ่มทดลองใหม่ ข้อมูลทั้งหมดอยู่ในเครื่องนี้ ไม่ได้ส่งไปที่ไหน</p>
       </Sheet>
@@ -179,6 +218,7 @@ export function CreatorPage() {
             {isMe ? <button className="btn btn-sm btn-o" onClick={() => nav('/profile?mode=creator')}>จัดการร้าน</button> : <>
               <button className="btn btn-sm btn-o" onClick={async () => nav(`/chat/${await chat.openWith(id)}`)}><Icon name="chat" size={16} />แชต</button>
               <FollowButton id={id} style={{ height: 36 }} />
+              <ReportButton target="creator" id={id} className="tb-btn" label="" />
             </>}
           </div>
         </div>
@@ -188,7 +228,7 @@ export function CreatorPage() {
           <p className={s.bio}>{BIO[id] ?? 'ลูกค้า LUMI'}</p>
           <div className={s.stats}><span><b>{works.length}</b>ผลงาน</span><span><b>{st.followersLabel}</b>ผู้ติดตาม</span><span><b>{st.rating ? st.rating.toFixed(1) : '–'}</b>คะแนน</span><span><b>{posts.length}</b>โพสต์</span></div>
         </div>
-        <div className="sec"><div className="sec-h">ผลงาน</div>{works.length ? <MasonryFeed items={works} /> : <Empty icon="store" title="ยังไม่มีผลงานขาย" action={isMe ? <Link to="/sell" className="btn btn-p btn-sm">ลงผลงานแรก</Link> : undefined} />}</div>
+        <div className="sec"><div className="sec-h">ผลงาน</div>{works.length ? <MasonryFeed items={works} /> : <Empty icon="store" title="ยังไม่มีผลงานขาย" action={isMe ? <Link to="/sell" className="btn btn-p btn-sm">ลงขายผลงานแรก</Link> : undefined} />}</div>
       </div>
     </div>
   )

@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { HeartButton } from '../../components/HeartButton'
 import { Icon } from '../../components/Icon'
 import { Av, copyText, Img, Sheet, Stars } from '../../components/ui'
-import { LIC_ROWS, layoutOf, sellTypeOf, specOf, SPECS, str, arr, on, filesOf } from '../../data/listingSpec'
+import { licRows, layoutOf, sellTypeOf, specOf, SPECS, str, arr, on, filesOf } from '../../data/listingSpec'
 import { galleryOf, highlightsOf, optionsOf, pageContent, REVIEWS, reviewer, similarOf, statsOf, creatorStats } from '../../data/productExtras'
 import { baht, creatorById, ME } from '../../data/sampleData'
 import type { Product } from '../../data/types'
@@ -12,6 +12,10 @@ import { cart, chat, checkout } from '../../services/api'
 import { getDb, useDb } from '../../services/db'
 import { toast } from '../../services/toast'
 import { Modules } from './modules'
+import { WriteReviewSheet } from '../../components/OrderHelp'
+import { ReportSheet } from '../../components/Report'
+import { sell } from '../../services/api'
+import { FEATURES } from '../../config'
 import s from './Product.module.css'
 
 type Sec = 'over' | 'get' | 'how' | 'rev' | 'sim'
@@ -34,9 +38,10 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
   const st = statsOf(p)
   const gallery = galleryOf(p)
   const owned = db.purchases.find((x) => x.productId === p.id)
+  const [myRev, setMyRev] = useState(false)
   const mine = p.creatorId === ME
   const [busy, setBusy] = useState(false)
-  const [sheet, setSheet] = useState<null | 'brief' | 'tip' | 'free' | 'trial' | 'lesson' | 'share' | 'sendto' | 'added'>(null)
+  const [sheet, setSheet] = useState<null | 'brief' | 'tip' | 'free' | 'trial' | 'lesson' | 'share' | 'sendto' | 'added' | 'manage' | 'report'>(null)
   const [freeThread, setFreeThread] = useState('')
   const root = useRef<HTMLDivElement>(null)
   const [sec, setSec] = useState<Sec>('over')
@@ -67,7 +72,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
 
   const [tipAmt, setTipAmt] = useState(50)
   const inCart = db.cart.filter((c) => !c.direct).length
-  const guard = () => { if (preview) { toast('นี่คือตัวอย่างหน้าสินค้า ปุ่มยังกดซื้อไม่ได้'); return true } return false }
+  const guard = () => { if (preview) { toast('นี่คือตัวอย่างหน้าผลงาน ปุ่มยังกดซื้อไม่ได้'); return true } return false }
   const addToCart = async (go: boolean) => {
     if (guard()) return
     const key = await cart.add({ productId: p.id, optionId: opt?.id, optionLabel: opt?.label, price: opt?.price ?? p.price, creatorId: p.creatorId, direct: go })
@@ -91,15 +96,20 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
   }
 
   const price = L === 'free' ? 0 : opt?.price ?? p.price
+  const freeHire = L === 'hire' && p.price === 0
+  const ebook = t === 'course' && str(spec.sub) === 'อีบุ๊ก'
+  const freeLessons = t === 'course' && str(spec.freeLessons) !== 'ไม่มี'
+  // previews of visual / audio work carry a LUMI watermark until bought (files themselves are clean)
+  const marked = !mine && !owned && !preview && L !== 'free' && ['img', 'font', 'media', 'tpl'].includes(t)
   const similar = useMemo(() => similarOf(p), [p])
 
   // bottom bar per layout (approved product-b “bar”)
   const bar = (() => {
-    if (mine && !preview) return { sub: 'ผลงานของคุณ', main: <button className="btn btn-d" onClick={() => nav('/profile?mode=creator')}>จัดการผลงาน</button>, sec: <button className="btn btn-o btn-sm" onClick={() => setSheet('share')}><Icon name="share" size={16} />แชร์</button> }
+    if (mine && !preview) return { sub: 'ผลงานของคุณ', main: <button className="btn btn-d" onClick={() => setSheet('manage')}>จัดการผลงาน</button>, sec: <button className="btn btn-o btn-sm" onClick={() => setSheet('share')}><Icon name="share" size={16} />แชร์</button> }
     if (owned && L !== 'hire') return { sub: `ซื้อแล้ว · #${owned.orderNo}`, main: <button className="btn btn-p" onClick={() => owned.threadId ? nav(`/chat/${owned.threadId}`) : openChat()}><Icon name="download" size={18} color="#fff" />เปิดไฟล์และคีย์</button>, sec: null }
     switch (L) {
-      case 'free': return { sub: 'ของฟรี', main: <button className="btn btn-p" disabled={busy} onClick={getFree}>{busy ? 'กำลังเตรียมไฟล์…' : 'ดาวน์โหลดฟรี'}</button>, sec: <button className="btn btn-o btn-sm" onClick={() => (guard() ? null : setSheet('tip'))}><Icon name="gift" size={16} color="#B45309" />ให้ทิป</button> }
-      case 'hire': return { sub: `แพ็กเกจ${opt?.label ?? ''}`, main: <button className="btn btn-p" onClick={() => (guard() ? null : setSheet('brief'))}>ส่งบรีฟ</button>, sec: <button className="btn btn-o btn-sm" onClick={openChat}><Icon name="chat" size={16} color="var(--p)" />แชตถามก่อน</button> }
+      case 'free': return { sub: 'ของฟรี', main: <button className="btn btn-p" disabled={busy} onClick={getFree}>{busy ? 'กำลังเตรียมไฟล์…' : 'ดาวน์โหลดฟรี'}</button>, sec: FEATURES.tips ? <button className="btn btn-o btn-sm" onClick={() => (guard() ? null : setSheet('tip'))}><Icon name="gift" size={16} color="#B45309" />ให้ทิป</button> : null }
+      case 'hire': return { sub: freeHire ? 'รับงานฟรี' : `แพ็กเกจ${opt?.label ?? ''}`, main: <button className="btn btn-p" onClick={() => (guard() ? null : setSheet('brief'))}>{freeHire ? 'ส่งบรีฟขอรับงานฟรี' : 'ส่งบรีฟขอใบเสนอราคา'}</button>, sec: <button className="btn btn-o btn-sm" onClick={openChat} aria-label="แชตถามก่อน" title="แชตถามก่อน"><Icon name="chat" size={18} color="var(--p)" /></button> }
       default: {
         const second = L === 'sw' && on(spec.trial) ? <button className="btn btn-o btn-sm" onClick={async () => {
           if (guard()) return
@@ -108,9 +118,9 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
           toast(`ส่งตัวทดลอง ${str(spec.trialDays)} ในแชตแล้ว`); nav(`/chat/${tid}`)
         }}><Icon name="play" size={15} color="var(--p)" />ทดลอง</button>
           : L === 'bot' && on(spec.trial) ? <button className="btn btn-o btn-sm" onClick={() => setSheet('trial')}><Icon name="qr" size={16} color="var(--p)" />ลองฟรี</button>
-            : L === 'course' ? <button className="btn btn-o btn-sm" onClick={() => setSheet('lesson')}><Icon name="play" size={15} color="var(--p)" />ตอนแรกฟรี</button>
+            : L === 'course' && freeLessons ? <button className="btn btn-o btn-sm" onClick={() => setSheet('lesson')}><Icon name={ebook ? 'book' : 'play'} size={15} color="var(--p)" />{ebook ? 'อ่านตัวอย่าง' : 'ตอนแรกฟรี'}</button>
               : <button className={s.cartBtn} onClick={() => addToCart(false)} aria-label="เพิ่มลงตะกร้า"><Icon name="cart" size={21} /></button>
-        return { sub: opt?.label ?? '', main: <button className="btn btn-p" onClick={() => addToCart(true)}>{L === 'course' ? 'ซื้อคอร์ส' : 'ซื้อเลย'}</button>, sec: second }
+        return { sub: opt?.label ?? '', main: <button className="btn btn-p" onClick={() => addToCart(true)}>{L === 'course' ? (ebook ? 'ซื้ออีบุ๊ก' : 'ซื้อคอร์ส') : 'ซื้อเลย'}</button>, sec: second }
       }
     }
   })()
@@ -122,15 +132,16 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
         <button className={s.hb} onClick={() => (preview ? null : (window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/'))} aria-label="ย้อนกลับ" style={preview ? { visibility: 'hidden' } : undefined}><Icon name="back" size={22} stroke={2.2} /></button>
         <div className={s.ht}>{p.title}</div>
         <button className={s.hb} onClick={() => setSheet('share')} aria-label="แชร์"><Icon name="share" size={20} /></button>
+        {!preview && !mine && <button className={s.hb} onClick={() => setSheet('report')} aria-label="รายงานผลงานนี้"><Icon name="flag" size={19} /></button>}
         {!preview && <Link to="/cart" className={s.hb} aria-label="ตะกร้า"><Icon name="cart" size={20} />{inCart > 0 && <span className={s.cnt}>{inCart}</span>}</Link>}
       </header>
 
       {/* gallery */}
       <div className={s.hero}>
         <div className={`hscroll ${s.slides}`} onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
-          {gallery.map((g, i) => <Img key={g + i} src={g} className={s.slide} />)}
+          {gallery.map((g, i) => <div key={g + i} className={s.slideW}><Img src={g} className={s.slide} />{marked && <span className={s.wm} data-wm aria-hidden>{Array.from({ length: 6 }, (_, k) => <i key={k}>LUMI · ตัวอย่าง</i>)}</span>}</div>)}
         </div>
-        <div className={s.tyb}><span><Icon name={SPECS[t].icon} size={13} color="#fff" stroke={2.2} />{p.label ?? SPECS[t].name}{L === 'free' ? ' · ฟรี' : ''}</span>{p.mine && <span>ผลงานของคุณ</span>}</div>
+        <div className={s.tyb}><span><Icon name={SPECS[t].icon} size={13} color="#fff" stroke={2.2} />{p.label ?? SPECS[t].name}{L === 'free' || freeHire ? ' · ฟรี' : ''}</span>{marked && <span>ภาพตัวอย่างมีลายน้ำ</span>}{p.mine && <span>ผลงานของคุณ</span>}</div>
         {!preview && <HeartButton productId={p.id} className={s.fav} />}
         {gallery.length > 1 && <div className={s.dots}>{gallery.map((_, i) => <i key={i} className={i === slide ? s.don : ''} />)}</div>}
       </div>
@@ -139,7 +150,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
         <h1 className={s.ttl}>{p.title}</h1>
         <div className={s.rt}><Icon name="star" size={13} stroke={0} fill="#F5A524" /><b>{st.reviews ? st.rating : 'ใหม่'}</b>{st.reviews > 0 && <span>({st.reviews} รีวิว)</span>}<span>·</span><span>{st.soldLabel}</span></div>
         <div className={s.pr}>
-          {L === 'free' ? <span className={s.free}>ฟรี</span> : <>{L === 'hire' && <small>เริ่มต้น</small>}<b>{baht(L === 'hire' ? Math.min(...opts.map((o) => o.price)) : price)}{opt?.suffix ?? ''}</b></>}
+          {L === 'free' || freeHire ? <span className={s.free}>{freeHire ? 'รับงานฟรี' : 'ฟรี'}</span> : <>{L === 'hire' && <small>ราคาเริ่มต้น</small>}<b>{baht(L === 'hire' ? Math.min(...opts.map((o) => o.price)) : price)}{opt?.suffix ?? ''}</b>{L === 'hire' && <small data-quote-note>· ราคาจริงตามใบเสนอราคา</small>}</>}
         </div>
         <p className={s.use}><Icon name="target" size={14} color="var(--mut)" />{p.use}</p>
         <div className={s.hl}>
@@ -175,9 +186,9 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
           <div className={s.st}>สิ่งที่คุณจะได้รับ</div>
           <div className={s.box}>{pc.deliver.map((d, i) => <div key={i} className={s.ok}><span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>{d}</div>)}</div>
           {filesOf(spec.files).length > 0 && (
-            <div className={s.scan}><Icon name="shield" size={22} color="#16A34A" /><div><b>สแกนไวรัสแล้ว ปลอดภัย</b>{filesOf(spec.files).length} ไฟล์ · ตรวจโดย LUMI ก่อนเปิดขาย</div></div>
+            <div className={s.scan}><Icon name="shield" size={22} color="#16A34A" /><div><b>สแกนไวรัสเบื้องต้นแล้ว ไม่พบภัยที่รู้จัก</b>{filesOf(spec.files).length} ไฟล์ · ตรวจอัตโนมัติเบื้องต้น · LUMI สุ่มตรวจและลบได้ถ้าผิดกฎ</div></div>
           )}
-          {L === 'hire' || t === 'hire' ? <div className={s.scan} style={{ background: '#EEF2FF', color: '#3730A3' }}><Icon name="lock" size={22} color="#4F46E5" /><div><b>จ่ายผ่าน LUMI ปลอดภัย</b>เงินพักไว้จนกว่าคุณจะกดรับงาน</div></div> : null}
+          {L !== 'free' && !freeHire && <div className={s.scan} style={{ background: '#EEF2FF', color: '#3730A3' }}><Icon name="lock" size={22} color="#4F46E5" /><div><b>ชำระผ่านผู้ให้บริการชำระเงินที่มีใบอนุญาต</b>{L === 'hire' || t === 'hire' ? 'เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงานถ้าไม่ได้ขอแก้หรือแจ้งปัญหา' : 'ไฟล์มีปัญหาหรือไม่ตรงคำอธิบาย กดแจ้งปัญหา / ขอคืนเงินได้ภายใน 7 วัน ก่อนเงินโอนให้ครีเอเตอร์'}</div></div>}
         </section>
 
         <section data-sec="how">
@@ -191,7 +202,8 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
             <>
               <div className={s.st}>สิทธิ์การใช้งาน</div>
               <table className={s.lic}><thead><tr><th>ใช้ทำ</th><th>ได้ไหม</th></tr></thead>
-                <tbody>{LIC_ROWS.map((r) => <tr key={r}><td>{r}</td><td className={pc.lic!.includes(r) ? s.yes : s.no}>{pc.lic!.includes(r) ? '✓ ได้' : '–'}</td></tr>)}</tbody></table>
+                <tbody>{licRows(t).map((r) => <tr key={r}><td>{r}</td><td className={pc.lic!.includes(r) ? s.yes : s.no}>{pc.lic!.includes(r) ? '✓ ได้' : '–'}</td></tr>)}</tbody></table>
+              <p className="hint" style={{ marginTop: 8 }}>สิทธิ์ใช้งานนี้ไม่ผูกขาด ผู้ขายยังขายให้คนอื่นได้ · งานที่สร้างด้วย AI อาจได้รับความคุ้มครองลิขสิทธิ์ไม่เต็มที่ · ผู้ขายรับรองว่ามีสิทธิ์ขายงานนี้</p>
             </>
           )}
           {(pc.refund || pc.support) && (
@@ -212,6 +224,14 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
 
         <section data-sec="rev">
           <div className={s.st}>รีวิว{st.reviews ? ` (${st.reviews})` : ''}</div>
+          {owned && !preview && (owned.review ? (
+            <div className={s.rv} data-my-review>
+              <div className={s.rvh}><Av src={reviewer(ME).avatar} size={26} />รีวิวของคุณ<span className="pill pill-g" style={{ marginLeft: 6 }}>ซื้อแล้ว</span><button className="btn btn-xs btn-o" style={{ marginLeft: 'auto' }} onClick={() => setMyRev(true)}>แก้ไข</button></div>
+              <Stars v={owned.review.stars} />{owned.review.text && <p>{owned.review.text}</p>}
+            </div>
+          ) : (
+            <button className="list-row" style={{ width: '100%', border: '1px dashed var(--line)', borderRadius: 12, marginBottom: 10 }} onClick={() => setMyRev(true)}><Icon name="star" size={20} color="#F5A524" /><span className="grow">คุณซื้อผลงานนี้แล้ว · เขียนรีวิว<small>ช่วยให้คนอื่นตัดสินใจง่ายขึ้น</small></span><Icon name="chev" size={16} color="var(--mut)" /></button>
+          ))}
           {st.reviews === 0 ? <p className="muted" style={{ fontSize: 13.5 }}>ยังไม่มีรีวิว · รีวิวจะขึ้นเมื่อมีคนซื้อและให้คะแนน</p> : (
             <>
               <div className={s.rvs}><div><div className={s.big}>{st.rating}</div><Stars v={st.rating} /></div>
@@ -242,13 +262,14 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
 
       {!preview && (
         <div className={`bottom-bar ${s.bar}`}>
-          <div className={s.pp}><small>{bar.sub}</small><b style={L === 'free' ? { color: '#16A34A' } : undefined}>{L === 'free' ? 'ฟรี' : `${baht(price)}${opt?.suffix ?? ''}`}</b></div>
+          <div className={s.pp}><small>{bar.sub}</small><b style={L === 'free' || freeHire ? { color: '#16A34A' } : undefined}>{L === 'free' || freeHire ? 'ฟรี' : `${baht(price)}${opt?.suffix ?? ''}`}</b></div>
           {bar.sec}
           {bar.main}
         </div>
       )}
 
       {/* sheets */}
+      {owned && <WriteReviewSheet open={myRev} onClose={() => setMyRev(false)} purchaseId={owned.id} initial={owned.review} />}
       <BriefSheet open={sheet === 'brief'} onClose={() => setSheet(null)} p={p} opts={opts} optId={opt?.id} setOptId={setOptId} />
       <TipSheet open={sheet === 'tip'} onClose={() => setSheet(null)} p={p} initial={tipAmt} />
       <Sheet open={sheet === 'added'} onClose={() => setSheet(null)} title="เพิ่มลงตะกร้าแล้ว" sub={`${p.title} · ${opt?.label ?? ''}`}
@@ -256,7 +277,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
         <div className={s.addedRow}><Img src={gallery[0]} className={s.addedImg} /><div><b className="ell2">{p.title}</b><small className="muted">{opt?.label}</small></div><b>{baht(opt?.price ?? p.price)}</b></div>
       </Sheet>
       <Sheet open={sheet === 'free'} onClose={() => setSheet(null)} title="ได้รับแล้ว 🎉" sub="ไฟล์ส่งเข้าแชตกับครีเอเตอร์ และอยู่ใน โปรไฟล์ › ซื้อแล้ว"
-        footer={<><button className="btn btn-o" style={{ flex: 1 }} onClick={() => { setSheet(null); setSheet('tip') }}>ให้ทิป</button><button className="btn btn-p" style={{ flex: 1 }} onClick={() => { setSheet(null); nav(freeThread ? `/chat/${freeThread}` : '/chat') }}>เปิดไฟล์</button></>}>
+        footer={<>{FEATURES.tips && <button className="btn btn-o" style={{ flex: 1 }} onClick={() => { setSheet(null); setSheet('tip') }}>ให้ทิป</button>}<button className="btn btn-p" style={{ flex: 1 }} onClick={() => { setSheet(null); nav(freeThread ? `/chat/${freeThread}` : '/chat') }}>เปิดไฟล์</button></>}>
         <div className={s.box}>{pc.deliver.slice(0, 4).map((d, i) => <div key={i} className={s.ok}><span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>{d}</div>)}</div>
       </Sheet>
       <Sheet open={sheet === 'trial'} onClose={() => setSheet(null)} title={`ทดลองฟรี ${str(spec.trialDays)}`} sub="สแกนด้วยมือถือเพื่อเปิดในแอป (ตัวอย่าง)">
@@ -264,9 +285,19 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
           <button className="btn btn-s btn-sm" onClick={() => { copyText(str(spec.trialLink)); toast('คัดลอกลิงก์แล้ว') }}><Icon name="copy" size={15} />คัดลอกลิงก์</button>
           <p className="muted" style={{ fontSize: 12.5 }}>ลิงก์ตัวอย่าง ยังไม่ได้เชื่อมบอทจริง</p></div>
       </Sheet>
-      <Sheet open={sheet === 'lesson'} onClose={() => setSheet(null)} title={arr(spec.lessons)[0]?.split(' · ').slice(0, 2).join(' · ') ?? 'ตอนแรกฟรี'} sub="ดูฟรี ไม่ต้องซื้อ">
-        <div className={s.video}><Img src={gallery[0]} className={s.videoImg} /><span className={s.playBig}><Icon name="play" size={30} color="#fff" fill="#fff" /></span><div className={s.vbar}><i /></div></div>
-        <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>ตัวเล่นวิดีโอตัวอย่าง · วิดีโอจริงจะเปิดหลังเชื่อมระบบเก็บไฟล์</p>
+      <Sheet open={sheet === 'lesson'} onClose={() => setSheet(null)} title={arr(spec.lessons)[0]?.split(' · ').slice(0, 2).join(' · ') ?? 'ตอนแรกฟรี'} sub={ebook ? 'อ่านฟรี ไม่ต้องซื้อ' : 'ดูฟรี ไม่ต้องซื้อ'}>
+        {ebook ? <div className={s.box}>{arr(spec.lessons).slice(0, 3).map((l, i) => <div key={i} className={s.ok}><span className="ok-ic"><Icon name="book" size={13} /></span>{l}</div>)}</div>
+          : <div className={s.video}><Img src={gallery[0]} className={s.videoImg} /><span className={s.playBig}><Icon name="play" size={30} color="#fff" fill="#fff" /></span><div className={s.vbar}><i /></div></div>}
+        <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>{ebook ? 'ตัวอ่านตัวอย่าง · หน้าจริงจะเปิดหลังเชื่อมระบบเก็บไฟล์' : 'ตัวเล่นวิดีโอตัวอย่าง · วิดีโอจริงจะเปิดหลังเชื่อมระบบเก็บไฟล์'}</p>
+      </Sheet>
+      <ReportSheet open={sheet === 'report'} onClose={() => setSheet(null)} target="product" id={p.id} />
+      <Sheet open={sheet === 'manage'} onClose={() => setSheet(null)} title="จัดการผลงาน" sub={`${p.title} · ${p.price === 0 ? 'แจกฟรี' : `ขาย ${baht(p.price)}`}`}>
+        <div className="card2" style={{ padding: 0, overflow: 'hidden' }}>
+          <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setSheet(null); nav(`/sell?edit=${p.id}&step=1`) }}><Icon name="edit" size={20} color="var(--p)" /><span className="grow">แก้ไขรายละเอียด<small>ชื่อ ภาพ ไฟล์ และข้อมูลทั้งหมด</small></span><Icon name="chev" size={18} /></button>
+          <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setSheet(null); nav(`/sell?edit=${p.id}&step=3`) }}><Icon name={p.price === 0 || t === 'hire' ? 'tag' : 'gift'} size={20} color="var(--p)" /><span className="grow">{t === 'hire' ? 'เปลี่ยนราคาแพ็กเกจ' : p.price === 0 ? 'เปลี่ยนเป็นขาย (ตั้งราคา)' : 'เปลี่ยนราคา หรือเปลี่ยนเป็นแจกฟรี'}<small>{t === 'hire' ? 'งานจ้างต้องมีราคา · งานที่รับไปแล้วใช้ราคาเดิม' : 'สลับฟรีหรือขายได้ทุกเมื่อ · ผู้ที่ได้ไปแล้วยังใช้ได้ตามเดิม'}</small></span><Icon name="chev" size={18} /></button>
+          <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setSheet(null); nav('/profile?mode=creator') }}><Icon name="store" size={20} color="var(--p)" /><span className="grow">ไปหน้าจัดการร้าน<small>ยอดขาย ร่าง และผลงานทั้งหมด</small></span><Icon name="chev" size={18} /></button>
+          {p.mine && <button className="list-row" style={{ width: '100%', textAlign: 'left', color: '#DC2626' }} onClick={async () => { await sell.unpublish(p.id); setSheet(null); toast('เลิกขายแล้ว · ผู้ที่ซื้อไปแล้วยังเปิดไฟล์ได้'); nav('/profile?mode=creator', { replace: true }) }}><Icon name="trash" size={20} color="#DC2626" /><span className="grow">เลิกขายผลงานนี้<small>ซ่อนจากหน้าร้าน ฟีด และหน้าค้นหา</small></span></button>}
+        </div>
       </Sheet>
       <Sheet open={sheet === 'share'} onClose={() => setSheet(null)} title="แชร์ผลงานนี้">
         <div className={s.shareRow}>
@@ -305,11 +336,11 @@ function BriefSheet({ open, onClose, p, opts, optId, setOptId }: { open: boolean
     <Sheet open={open} onClose={onClose} title="ส่งบรีฟงานจ้าง" sub={`${creatorById(p.creatorId).name} จะส่งใบเสนอราคากลับในแชต`} tall
       footer={<button className="btn btn-p btn-block" disabled={!ok || sending} onClick={async () => {
         setSending(true)
-        const id = await chat.sendBrief(p.creatorId, p.id, needs.map((n, i) => `${n}: ${vals[i] || '-'}`), `แพ็กเกจ${opt?.label ?? ''}`)
+        const id = await chat.sendBrief(p.creatorId, p.id, needs.map((n, i) => `${n}: ${vals[i] || '-'}`), `แพ็กเกจ${opt?.label ?? ''}`, opt?.price)
         onClose(); nav(`/chat/${id}`)
-      }}>{sending ? 'กำลังส่ง…' : ok ? 'ส่งบรีฟ (ยังไม่ต้องจ่าย)' : 'กรอกอย่างน้อย 2 ช่อง'}</button>}>
+      }}>{sending ? 'กำลังส่ง…' : ok ? (p.price === 0 ? 'ส่งบรีฟ (งานฟรี)' : 'ส่งบรีฟ (ยังไม่ต้องจ่าย)') : 'กรอกอย่างน้อย 2 ช่อง'}</button>}>
       <div className="flabel">แพ็กเกจ</div>
-      <div className="chips" style={{ marginBottom: 14 }}>{opts.map((o) => <button key={o.id} className={`chip ${o.id === optId ? 'on-p' : ''}`} onClick={() => setOptId(o.id)}>{o.label} · {baht(o.price)}</button>)}</div>
+      <div className="chips" style={{ marginBottom: 14 }}>{opts.map((o) => <button key={o.id} className={`chip ${o.id === optId ? 'on-p' : ''}`} onClick={() => setOptId(o.id)}>{o.label} · {o.price ? baht(o.price) : 'ฟรี'}</button>)}</div>
       {needs.map((n, i) => (
         <label key={n} className="field"><span className="flabel">{n}</span>
           <textarea className="ta" style={{ minHeight: 64 }} value={vals[i]} onChange={(e) => setVals(vals.map((v, j) => (j === i ? e.target.value : v)))} placeholder="พิมพ์สั้น ๆ ได้เลย" /></label>
@@ -327,7 +358,7 @@ function TipSheet({ open, onClose, p, initial = 50 }: { open: boolean; onClose: 
   const c = creatorById(p.creatorId)
   const ok = amt >= 10 && amt <= 10000
   return (
-    <Sheet open={open} onClose={onClose} title={`ให้ทิป ${c.name}`} sub="ไม่บังคับ · ทิปส่งถึงครีเอเตอร์เต็มจำนวน"
+    <Sheet open={open} onClose={onClose} title={`ให้ทิป ${c.name}`} sub="ไม่บังคับ · ครีเอเตอร์ได้รับทิปหลังหักค่าธรรมเนียมการชำระเงิน"
       footer={<button className="btn btn-p btn-block" disabled={!ok} onClick={async () => {
         const key = await cart.add({ productId: 'tip', price: amt, title: `ทิปให้ ${c.name}`, creatorId: p.creatorId, image: c.avatar, optionLabel: 'ทิปขอบคุณ', direct: true })
         onClose(); nav(`/checkout?keys=${key}`)

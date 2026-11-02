@@ -13,7 +13,7 @@ export function StoriesRow() {
     <div className={`hscroll ${s.row}`}>
       <Link to="/sell" className={s.st}>
         <span className={`${s.ring} ${s.seen}`}><span className={s.add}><Icon name="plus" size={24} color="#6C2BD9" stroke={2.4} /></span></span>
-        <span className={s.name}>ลงผลงาน</span>
+        <span className={s.name}>ลงขาย</span>
       </Link>
       {list.map((st) => {
         const c = creatorById(st.creatorId)

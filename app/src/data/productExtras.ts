@@ -27,14 +27,14 @@ export function optionsOf(p: Product): ProductOption[] {
     case 'sw': return [
       { id: 'one', label: p.label === 'เกม' ? 'ซอร์สโค้ด 1 โปรเจกต์' : '1 เครื่อง', sub: 'ซื้อขาด · อัปเดตฟรี 1 ปี', price: x },
       { id: 'three', label: p.label === 'เกม' ? 'สิทธิ์ทีม (3 คน)' : '3 เครื่อง', sub: 'สำหรับหลายสาขา / หลายคน', price: r10(x * 2.3), best: 'คุ้มสุด' },
-      { id: 'month', label: 'รายเดือน', sub: 'ยกเลิกได้ทุกเมื่อ', price: r10(x / 8), suffix: '/เดือน' }]
+      { id: 'month', label: 'รายเดือน', sub: 'ยกเลิกได้ทุกเมื่อ ใช้ได้ถึงสิ้นรอบที่จ่ายแล้ว', price: r10(x / 8), suffix: '/เดือน' }]
     case 'bot': return [{ id: 'setup', label: 'ติดตั้งให้ + ใช้ 1 เดือน', sub: `ต่อเดือน ฿${r10(x / 6)}`, price: x, best: 'คุ้มสุด' }, { id: 'diy', label: 'ติดตั้งเอง (ไฟล์ + คู่มือ)', sub: 'ทำตามคลิปทีละขั้น', price: r10(x * 0.6) }]
     case 'media': return [{ id: 'social', label: 'ใช้โซเชียล / ส่วนตัว', sub: 'Reels TikTok YouTube ของคุณ', price: x }, { id: 'ads', label: 'โฆษณา + ลูกค้า', sub: 'ยิงแอด ทำงานให้ลูกค้าได้', price: r10(x * 2.5), best: 'คุ้มสุด' }]
     case 'skill': return [{ id: 'one', label: 'ใช้คนเดียว', sub: 'อัปเดตฟรีตามรอบซัพพอร์ต', price: x }, { id: 'team', label: 'ทีม (สูงสุด 5 คน)', sub: 'ติดตั้งให้ทั้งทีมได้', price: r10(x * 3), best: 'คุ้มสุด' }]
     case 'data': return [{ id: 'std', label: 'ใช้ภายในองค์กร', sub: 'วิเคราะห์ ทำแอปของตัวเอง', price: x }, { id: 'ext', label: 'ใช้ในผลิตภัณฑ์/เทรนโมเดล', sub: 'นำไปใส่สินค้าที่ขายได้', price: r10(x * 3), best: 'คุ้มสุด' }]
-    case 'course': return [{ id: 'life', label: 'เรียนได้ตลอดชีพ', sub: 'ทุกตอน + ไฟล์ประกอบ + ใบรับรอง', price: x }]
-    case 'font': return [{ id: 'personal', label: 'สิทธิ์ส่วนตัว', sub: 'งานส่วนตัว การบ้าน', price: x }, { id: 'commercial', label: 'เชิงพาณิชย์', sub: 'โลโก้ ป้ายร้าน สินค้า', price: r10(x * 2.5), best: 'คุ้มสุด' }]
-    case 'hire': return [
+    case 'course': return /อีบุ๊ก/.test(p.label ?? '') ? [{ id: 'life', label: 'อีบุ๊กฉบับเต็ม', sub: 'ไฟล์ PDF + EPUB ดาวน์โหลดเก็บไว้ได้', price: x }] : [{ id: 'life', label: 'คอร์สเต็ม ดูได้ไม่จำกัดเวลา', sub: 'ทุกตอน + ไฟล์ประกอบ · ตราบที่คอร์สยังเปิดบน LUMI', price: x }]
+    case 'font': return [{ id: 'personal', label: 'สิทธิ์ส่วนตัว', sub: 'งานส่วนตัว การบ้าน', price: x }, { id: 'commercial', label: 'เชิงพาณิชย์', sub: 'โฆษณา สินค้า งานธุรกิจ ตามตารางสิทธิ์', price: r10(x * 2.5), best: 'คุ้มสุด' }]
+    case 'hire': return x === 0 ? [{ id: 'free', label: 'งานฟรี', sub: `${p.days ?? 5} วัน · แก้ ${p.revisions ?? 2} ครั้ง · ไม่มีค่าใช้จ่าย`, price: 0 }] : [
       { id: 'basic', label: 'เริ่มต้น', sub: `${p.days ? Math.max(2, p.days - 2) : 3} วัน · แก้ 1 ครั้ง`, price: x },
       { id: 'std', label: 'มาตรฐาน', sub: `${p.days ?? 5} วัน · แก้ 3 ครั้ง`, price: x * 2, best: 'คุ้มสุด' },
       { id: 'pro', label: 'พรีเมียม', sub: `${(p.days ?? 5) + 2} วัน · แก้ ${p.revisions ?? 5} ครั้ง`, price: x * 4 }]

@@ -53,6 +53,7 @@ export function Header() {
     <header className={s.hdr}>
       <div className={`wrap ${s.row}`}>
         <Brand />
+        <span className="sample-pill" title="ผลงาน ราคา และตัวเลขในแอปนี้เป็นข้อมูลตัวอย่าง">ข้อมูลตัวอย่าง</span>
         <nav className={s.desk} aria-label="เมนูหลัก">
           {NAV.filter((n) => n.to !== '/search').map((n) => 'mid' in n
             ? <button key={n.to} className={`${s.dl} ${s.sell}`} onClick={() => setCreate(true)}><Icon name="plus" size={18} stroke={2} />สร้าง</button>
@@ -97,7 +98,6 @@ export function BottomNav() {
   const show = TABBED.includes(pathname)
   return (
     <>
-      {show && <div className="sample-badge" aria-hidden>ข้อมูลตัวอย่าง</div>}
       <nav className={`${s.tabbar} ${show ? '' : s.hide}`} aria-label="เมนูหลัก" aria-hidden={!show}>
         {NAV.map((n) => 'mid' in n ? (
           <button key={n.to} className={s.tab} onClick={() => setCreate(true)} aria-label="สร้าง: ลงขายหรือโพสต์" tabIndex={show ? 0 : -1}>
