@@ -28,6 +28,7 @@
 .sh{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px}
 .sh h2{font-size:16px;font-weight:700;display:flex;align-items:center;gap:6px}
 .sh>span,.sh>button{font-size:12px;color:var(--p);font-weight:600}
+.sh>span{color:var(--mut)}
 .main>section:first-child .sh{margin-top:12px}
 .gh{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:700;margin:22px 0 8px}
 .gh i{width:4px;height:15px;border-radius:3px;display:block}

@@ -108,7 +108,7 @@
 .enF .on{color:#F0508A;background:#FDEBF2}
 .enF button span{display:flex}
 .mis{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:8px;font-size:14px}
-.mis small{display:block;font-size:12px;color:var(--p);font-weight:700}
+.mis small{display:block;font-size:12px;color:var(--mut);font-weight:700}
 .misI{width:30px;height:30px;border-radius:10px;background:#F3ECFF;display:flex;align-items:center;justify-content:center;flex:none}
 /* composer */
 .cTop{display:flex;align-items:center;gap:10px;padding:14px 16px 0}
