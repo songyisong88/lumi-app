@@ -1,7 +1,7 @@
 import type { Asset, Purchase } from './appTypes'
 import type { Product } from './types'
 import { filesOf, on, sellTypeOf, specOf } from './listingSpec'
-import { productById } from './sampleData'
+import { isRemoteId, productById } from './sampleData'
 
 /** Everything a buyer receives for one product/option (used at checkout and as a fallback for seed purchases). */
 export function assetsFor(p: Product, opt: { optionId?: string; optionLabel?: string } = {}, key?: string): Asset[] {
@@ -22,6 +22,8 @@ export function assetsFor(p: Product, opt: { optionId?: string; optionLabel?: st
 /** Assets of a purchase: stored at checkout, derived for older/seed purchases. */
 export function assetsOf(b: Purchase): Asset[] {
   if (b.assets?.length) return b.assets
+  // real purchases list exactly what the server granted (nothing after a refund), never sample files
+  if (isRemoteId(b.id)) return b.assets ?? []
   const p = productById(b.productId)
   if (b.optionLabel === 'งานจ้าง' || !p) return [{ kind: 'file', title: `${b.title.slice(0, 18)}-final.zip`, value: `${b.title.slice(0, 18)}-final.zip`, size: '24 MB' }]
   return assetsFor(p, { optionLabel: b.optionLabel }, b.key)

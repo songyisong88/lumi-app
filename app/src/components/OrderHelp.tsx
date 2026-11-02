@@ -4,6 +4,7 @@ import { Icon } from './Icon'
 import { Sheet, Stars } from './ui'
 import { orders } from '../services/api'
 import { toast } from '../services/toast'
+import { cloudOn } from '../services/cloud'
 
 /** Buyers can report a problem on a digital purchase within this many days (matches the checkout text). */
 export const ISSUE_DAYS = 7
@@ -25,9 +26,9 @@ export function IssueSheet({ open, onClose, purchaseId, threadId, hire = false, 
   const [note, setNote] = useState('')
   useEffect(() => { if (open) { setReason(preset ?? ''); setNote('') } }, [open, preset])
   const send = async () => {
-    await orders.reportIssue({ purchaseId, threadId }, reason, note.trim())
+    try { await orders.reportIssue({ purchaseId, threadId }, reason, note.trim()) } catch (e) { toast((e as Error).message); return }
     onClose()
-    toast('ส่งเรื่องแล้ว · ครีเอเตอร์ต้องตอบภายใน 3 วัน (ตัวอย่าง)')
+    toast(`ส่งเรื่องแล้ว · ครีเอเตอร์ต้องตอบภายใน 3 วัน${cloudOn() ? '' : ' (ตัวอย่าง)'}`)
   }
   return (
     <Sheet open={open} onClose={onClose} title="แจ้งปัญหา / ขอคืนเงิน" sub={hire ? 'ยังไม่โอนเงินให้ครีเอเตอร์ระหว่างตรวจสอบ' : `แจ้งได้ภายใน ${ISSUE_DAYS} วันหลังซื้อ`}
@@ -41,7 +42,7 @@ export function IssueSheet({ open, onClose, purchaseId, threadId, hire = false, 
       <div style={{ marginTop: 12, fontSize: 12.5, lineHeight: 1.55, background: '#F6F4FB', borderRadius: 12, padding: '10px 12px' }}>
         <b style={{ display: 'block', marginBottom: 2 }}>ขั้นตอนหลังส่งเรื่อง</b>
         1. ครีเอเตอร์ตอบหรือแก้ให้ภายใน 3 วัน<br />2. ถ้าไม่ตอบหรือตกลงกันไม่ได้ ทีม LUMI จะตัดสิน<br />3. ถ้าได้คืนเงิน จะคืนเข้าช่องทางที่ชำระ
-        <small style={{ display: 'block', marginTop: 4, color: 'var(--mut)' }}>ตัวอย่าง · ยังไม่ได้ส่งเรื่องถึงครีเอเตอร์จริง</small>
+        {!cloudOn() && <small style={{ display: 'block', marginTop: 4, color: 'var(--mut)' }}>ตัวอย่าง · ยังไม่ได้ส่งเรื่องถึงครีเอเตอร์จริง</small>}
       </div>
     </Sheet>
   )

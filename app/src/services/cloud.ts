@@ -28,6 +28,15 @@ export function thaiError(msg: string, code?: string, hint?: string) {
   if (code === '23505') return 'มีรายการนี้อยู่แล้ว'
   if (/EDIT_NEEDS_REVIEW/.test(msg)) return 'ผลงานที่ขายอยู่ต้องส่งตรวจก่อนเปลี่ยน · ฉบับเดิมยังขายต่อได้'
   if (code === '42501' || /permission|row-level/i.test(msg)) return 'ไม่มีสิทธิ์ทำรายการนี้'
+  // Supabase Auth messages (sign-in, sign-up, password)
+  if (/should be different from the old/i.test(msg)) return 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม'
+  if (/invalid login credentials/i.test(msg)) return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'
+  if (/email not confirmed/i.test(msg)) return 'ยังไม่ได้ยืนยันอีเมล · เปิดลิงก์ในอีเมลก่อน หรือเข้าด้วยรหัสทางอีเมล'
+  if (/token has expired|otp.*(expired|invalid)|invalid.*otp/i.test(msg)) return 'รหัสไม่ถูกต้องหรือหมดอายุ · ขอรหัสใหม่'
+  if (/rate limit|too many|for security purposes/i.test(msg)) return 'ขอบ่อยเกินไป · รอสักครู่แล้วลองใหม่'
+  if (/signups? not allowed|user not found/i.test(msg)) return 'ยังไม่มีบัญชีนี้ · สมัครใหม่ก่อน'
+  if (/already registered/i.test(msg)) return 'อีเมลนี้มีบัญชีแล้ว · เข้าสู่ระบบแทน'
+  if (/password should be at least|weak/i.test(msg)) return 'รหัสผ่านสั้นหรือง่ายเกินไป · อย่างน้อย 8 ตัว'
   if (/fetch|network/i.test(msg)) return 'เชื่อมต่ออินเทอร์เน็ตไม่ได้ ลองใหม่อีกครั้ง'
   return /[\u0E00-\u0E7F]/.test(msg) ? msg : 'ทำรายการไม่สำเร็จ ลองใหม่อีกครั้ง'
 }
@@ -230,10 +239,11 @@ async function purchasesFrom(ents: Row[]): Promise<Purchase[]> {
     if (sec.canvaLink) assets.push({ kind: 'link', title: 'ลิงก์เทมเพลต', value: sec.canvaLink })
     const rv = ((reviews.data ?? []) as Row[]).find((r) => r.product_id === e.product_id)
     const rf = ((refunds.data ?? []) as Row[]).find((r) => r.order_item_id === e.order_item_id)
+    if (e.revoked_at) assets.length = 0 // refunded: access closed (the server refuses download links too)
     return {
       id: e.id, productId: e.product_id, orderNo: i.orders?.order_no ?? '-', optionLabel: i.option_label ?? undefined, at: ms(e.granted_at),
       title: p.title ?? i.title ?? 'ผลงาน', image: publicUrl(p.covers?.[0]), creatorId: p.creator_id, price: (i.unit_price ?? 0) - (i.discount ?? 0),
-      key: e.license_key ?? undefined, threadId: e.thread_id ?? undefined, assets, orderItemId: e.order_item_id ?? undefined,
+      key: e.revoked_at ? undefined : e.license_key ?? undefined, threadId: e.thread_id ?? undefined, assets, orderItemId: e.order_item_id ?? undefined,
       review: rv ? { stars: rv.stars, text: rv.body ?? '', at: ms(rv.created_at) } : undefined, reviewId: rv?.id,
       issue: rf ? { reason: rf.reason, note: rf.note, at: ms(rf.created_at), status: REFUND_TEXT[rf.status] ?? rf.status } : e.revoked_at ? { reason: 'คืนเงินแล้ว', note: '', at: ms(e.revoked_at), status: REFUND_TEXT.refunded } : undefined,
     }

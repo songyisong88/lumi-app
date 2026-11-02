@@ -6,7 +6,9 @@ import { Icon } from '../../components/Icon'
 import { Av, copyText, Img, Sheet, Stars } from '../../components/ui'
 import { licRows, layoutOf, sellTypeOf, specOf, SPECS, str, arr, on, filesOf } from '../../data/listingSpec'
 import { galleryOf, highlightsOf, optionsOf, pageContent, REVIEWS, reviewer, similarOf, statsOf, creatorStats } from '../../data/productExtras'
-import { baht, creatorById, ME } from '../../data/sampleData'
+import { baht, creatorById, isRemoteId, ME } from '../../data/sampleData'
+import { loadReviews } from '../../services/cloud'
+import { ago } from '../../utils/time'
 import type { Product } from '../../data/types'
 import { cart, chat, checkout } from '../../services/api'
 import { getDb, useDb } from '../../services/db'
@@ -49,7 +51,14 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
   const owned = db.purchases.find((x) => x.productId === p.id)
   const [replyTo, setReplyToRaw] = useState<{ key: string; who: string } | null>(null)
   const [replyText, setReplyText] = useState('')
-  const setReplyTo = (x: { key: string; who: string } | null) => { if (x) setReplyText(db.replies?.[x.key] ?? ''); setReplyToRaw(x) }
+  const setReplyTo = (x: { key: string; who: string; text?: string } | null) => { if (x) setReplyText(x.text ?? db.replies?.[x.key] ?? ''); setReplyToRaw(x) }
+  // real listings: real reviews (and creator replies) from the server instead of the sample ones
+  const real = isRemoteId(p.id) && !preview
+  useEffect(() => { if (real) void loadReviews(p.id).catch(() => {}) }, [real, p.id])
+  const cr = real ? (db.cloudReviews?.[p.id] ?? []).filter((r) => !(owned?.review && r.authorId === ME)) : []
+  const all = real ? (db.cloudReviews?.[p.id] ?? []) : []
+  const crAvg = all.length ? Math.round((all.reduce((a, r) => a + r.stars, 0) / all.length) * 10) / 10 : 0
+  const crBars = [5, 4, 3, 2, 1].map((n) => [n, all.length ? Math.round((all.filter((r) => r.stars === n).length / all.length) * 100) : 0])
   const [myRev, setMyRev] = useState(false)
   const mine = p.creatorId === ME
   const [busy, setBusy] = useState(false)
@@ -242,7 +251,20 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
           ) : (
             <button className="list-row" style={{ width: '100%', border: '1px dashed var(--line)', borderRadius: 12, marginBottom: 10 }} onClick={() => setMyRev(true)}><Icon name="star" size={20} color="#F5A524" /><span className="grow">คุณซื้อผลงานนี้แล้ว · เขียนรีวิว<small>ช่วยให้คนอื่นตัดสินใจง่ายขึ้น</small></span><Icon name="chev" size={16} color="var(--mut)" /></button>
           ))}
-          {st.reviews === 0 ? <p className="muted" style={{ fontSize: 13.5 }}>ยังไม่มีรีวิว · รีวิวจะขึ้นเมื่อมีคนซื้อและให้คะแนน</p> : (
+          {real ? (all.length === 0 ? <p className="muted" style={{ fontSize: 13.5 }}>ยังไม่มีรีวิว · รีวิวจะขึ้นเมื่อมีคนซื้อและให้คะแนน</p> : (
+            <>
+              <div className={s.rvs}><div><div className={s.big}>{crAvg}</div><Stars v={crAvg} /></div>
+                <div className={s.bars}>{crBars.map(([n, w]) => <div key={n}>{n}<i><b style={{ transform: `scaleX(${w / 100})` }} /></i></div>)}</div></div>
+              {cr.map((r) => (
+                <div key={r.id} className={s.rv} data-cloud-review>
+                  <div className={s.rvh}><Av src={reviewer(r.authorId).avatar} size={26} />{reviewer(r.authorId).name}<span className="pill pill-g" style={{ marginLeft: 6 }}>ซื้อแล้ว</span><small>{ago(r.at)}</small></div>
+                  <Stars v={r.stars} />{r.text && <p>{r.text}</p>}
+                  {r.reply && <div className={s.rvReply} data-review-reply><b>คำตอบจากครีเอเตอร์</b>{r.reply}</div>}
+                  {mine && <button className={`btn btn-xs btn-s ${s.rvBtn}`} onClick={() => setReplyTo({ key: `review:${r.id}`, who: reviewer(r.authorId).name, text: r.reply ?? '' })} data-reply-review>{r.reply ? 'แก้คำตอบ' : 'ตอบรีวิว'}</button>}
+                </div>
+              ))}
+            </>
+          )) : st.reviews === 0 ? <p className="muted" style={{ fontSize: 13.5 }}>ยังไม่มีรีวิว · รีวิวจะขึ้นเมื่อมีคนซื้อและให้คะแนน</p> : (
             <>
               <div className={s.rvs}><div><div className={s.big}>{st.rating}</div><Stars v={st.rating} /></div>
                 <div className={s.bars}>{[[5, 86], [4, 10], [3, 3], [2, 1], [1, 0]].map(([n, w]) => <div key={n}>{n}<i><b style={{ transform: `scaleX(${w / 100})` }} /></i></div>)}</div></div>
@@ -310,7 +332,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
       <Sheet open={sheet === 'manage'} onClose={() => setSheet(null)} title="จัดการผลงาน" sub={`${p.title} · ${p.price === 0 ? 'แจกฟรี' : `ขาย ${baht(p.price)}`}`}>
         <div className="card2" style={{ padding: 0, overflow: 'hidden' }}>
           <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setSheet(null); nav(`/sell?edit=${p.id}&step=2`) }}><Icon name="edit" size={20} color="var(--p)" /><span className="grow">แก้ไขรายละเอียด<small>ชื่อ ภาพ ไฟล์ และข้อมูลทั้งหมด</small></span><Icon name="chev" size={18} /></button>
-          <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setSheet(null); nav(`/sell?edit=${p.id}&step=3`) }}><Icon name={p.price === 0 || t === 'hire' ? 'tag' : 'gift'} size={20} color="var(--p)" /><span className="grow">{t === 'hire' ? 'เปลี่ยนราคาแพ็กเกจ' : p.price === 0 ? 'เปลี่ยนเป็นขาย (ตั้งราคา)' : 'เปลี่ยนราคา หรือเปลี่ยนเป็นแจกฟรี'}<small>{t === 'hire' ? 'งานจ้างต้องมีราคา · งานที่รับไปแล้วใช้ราคาเดิม' : 'สลับฟรีหรือขายได้ทุกเมื่อ · ผู้ที่ได้ไปแล้วยังใช้ได้ตามเดิม'}</small></span><Icon name="chev" size={18} /></button>
+          {(!FEATURES.launch || t === 'hire') && <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setSheet(null); nav(`/sell?edit=${p.id}&step=3`) }}><Icon name={p.price === 0 || t === 'hire' ? 'tag' : 'gift'} size={20} color="var(--p)" /><span className="grow">{t === 'hire' ? 'เปลี่ยนราคาแพ็กเกจ' : p.price === 0 ? 'เปลี่ยนเป็นขาย (ตั้งราคา)' : 'เปลี่ยนราคา หรือเปลี่ยนเป็นแจกฟรี'}<small>{t === 'hire' ? 'งานจ้างต้องมีราคา · งานที่รับไปแล้วใช้ราคาเดิม' : 'สลับฟรีหรือขายได้ทุกเมื่อ · ผู้ที่ได้ไปแล้วยังใช้ได้ตามเดิม'}</small></span><Icon name="chev" size={18} /></button>}
           <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setSheet(null); nav('/profile?mode=creator') }}><Icon name="store" size={20} color="var(--p)" /><span className="grow">ไปหน้าจัดการร้าน<small>ยอดขาย ร่าง และผลงานทั้งหมด</small></span><Icon name="chev" size={18} /></button>
           {p.mine && <button className="list-row" style={{ width: '100%', textAlign: 'left', color: '#DC2626' }} onClick={async () => { await sell.unpublish(p.id); setSheet(null); toast('เลิกขายแล้ว · ผู้ที่ซื้อไปแล้วยังเปิดไฟล์ได้'); nav('/profile?mode=creator', { replace: true }) }}><Icon name="trash" size={20} color="#DC2626" /><span className="grow">เลิกขายผลงานนี้<small>ซ่อนจากหน้าร้าน ฟีด และหน้าค้นหา</small></span></button>}
         </div>

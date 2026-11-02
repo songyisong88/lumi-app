@@ -68,7 +68,7 @@ export function Sell() {
     if (ed) return ed
     const t = sp.get('type') as SellType | null
     const b = blank()
-    return t && SPECS[t] ? { ...b, type: t, spec: newSpec(t), options: PRICE_OPTS[t].map((x) => ({ ...x })), step: 1 } : b
+    return t && SPECS[t] && ORDER.includes(t) ? { ...b, type: t, spec: newSpec(t), options: PRICE_OPTS[t].map((x) => ({ ...x })), step: 1 } : b
   })
   const [saved, setSaved] = useState<'idle' | 'saving' | 'saved'>('idle')
   // same /sell screen re-targeted (deep link, “ทำต่อ” on another draft, back/forward): load what the URL asks for
@@ -80,7 +80,7 @@ export function Sell() {
     } else if (dId && dId !== d.id) {
       const ex = getDb().drafts.find((x) => x.id === dId)
       if (ex) { published.current = false; setDone(undefined); setD(ex) }
-    } else if (!dId && ty && SPECS[ty] && ty !== d.type) {
+    } else if (!dId && ty && SPECS[ty] && ORDER.includes(ty) && ty !== d.type) {
       published.current = false; setDone(undefined)
       setD({ ...blank(), type: ty, spec: newSpec(ty), options: PRICE_OPTS[ty].map((x) => ({ ...x })), step: 1 })
     }
