@@ -441,7 +441,7 @@ function CheckList({ checks, go, compact }: { checks: ReturnType<typeof checkLis
     <div className={compact ? s.ckC : s.ck}>
       {compact && <b className={s.ckH}>ยังขาด {miss.length} อย่างก่อนลงขาย</b>}
       {list.map((c) => (
-        <button key={c.id} className={`${s.ci} ${c.ok ? s.ciOk : ''}`} onClick={() => !c.ok && go(c.step)}>
+        <button key={c.id} className={`${s.ci} ${c.ok ? s.ciOk : ''}`} onClick={() => go(c.step)}>
           <span className={c.ok ? 'ok-ic' : s.xic}>{c.ok ? <Icon name="check" size={13} stroke={3} /> : '!'}</span>
           <span className="grow">{c.label}{c.note && !c.ok && <small>{c.note}</small>}</span>
           {!c.ok && <span className={s.fix}>ขั้น {STEPS[c.step]} ›</span>}
