@@ -23,7 +23,8 @@
 .tabOn{color:var(--p);font-weight:600}
 .mid{width:50px;height:50px;border-radius:16px;background:var(--grad);display:flex;align-items:center;justify-content:center;margin-top:-16px;box-shadow:0 10px 22px rgba(193,58,224,.35)}
 @media(min-width:1024px){.tabbar{display:none}}
-@media(max-width:359px){.brand small{display:none}.act{gap:6px}.ib{width:38px;height:38px}}
+@media(max-width:399px){.row{gap:8px}.brand{gap:8px}.act{gap:6px}.ib{width:38px;height:38px}}
+@media(max-width:359px){.brand small{display:none}.act{gap:4px}.ib{width:34px;height:34px}}
 .hide{transform:translate3d(0,110%,0);pointer-events:none}
 .ti{position:relative;display:block}
 .tdot{position:absolute;top:-1px;right:-3px;width:8px;height:8px;border-radius:50%;background:var(--pink);border:2px solid #fff}

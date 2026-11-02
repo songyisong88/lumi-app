@@ -1,10 +1,10 @@
-@font-face{font-family:Prompt;font-weight:400;font-display:swap;src:url(/fonts/Prompt-Regular.ttf)}
-@font-face{font-family:Prompt;font-weight:500;font-display:swap;src:url(/fonts/Prompt-Medium.ttf)}
-@font-face{font-family:Prompt;font-weight:600;font-display:swap;src:url(/fonts/Prompt-SemiBold.ttf)}
-@font-face{font-family:Prompt;font-weight:700;font-display:swap;src:url(/fonts/Prompt-Bold.ttf)}
+@font-face{font-family:Prompt;font-weight:400;font-display:swap;src:url(/fonts/Prompt-Regular.woff2) format("woff2")}
+@font-face{font-family:Prompt;font-weight:500;font-display:swap;src:url(/fonts/Prompt-Medium.woff2) format("woff2")}
+@font-face{font-family:Prompt;font-weight:600;font-display:swap;src:url(/fonts/Prompt-SemiBold.woff2) format("woff2")}
+@font-face{font-family:Prompt;font-weight:700;font-display:swap;src:url(/fonts/Prompt-Bold.woff2) format("woff2")}
 :root{
   --p:#6C2BD9;--grad:linear-gradient(100deg,#7B2FF2 0%,#C13AE0 55%,#F0508A 100%);
-  --ink:#16132B;--ink2:#3A3654;--mut:#8A86A0;--line:#ECEAF3;--soft:#F4F2F9;--soft2:#F6F1FF;
+  --ink:#16132B;--ink2:#3A3654;--mut:#6B6781;--mute:var(--mut);--line:#ECEAF3;--soft:#F4F2F9;--soft2:#F6F1FF;
   --green:#16A34A;--pink:#F0508A;
   --tabbar-h:72px;--desk:1024px;
 }
@@ -22,3 +22,4 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .hscroll{display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .hscroll::-webkit-scrollbar{display:none}
 .sample-pill{flex:none;align-self:center;font-size:10.5px;font-weight:600;line-height:1;color:#B45309;background:#FFF4DB;border:1px solid #FCE3A6;border-radius:9px;padding:4px 7px;white-space:nowrap}
+.route-wait{min-height:100dvh}

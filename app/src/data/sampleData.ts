@@ -132,6 +132,15 @@ export function unregisterProduct(id: string) {
   if (i >= 0) ALL_PRODUCTS.splice(i, 1)
 }
 /** File names resolve to public/img; data/blob URLs (local uploads) pass through. */
-export const imgUrl = (file: string) => (/^(data:|blob:|https?:)/.test(file) ? file : `${import.meta.env.BASE_URL}img/${file}`)
+const EXT = /^(data:|blob:|https?:)/
+/** Bundled sample images ship as WebP: <name>.webp (≤800 px wide) and <name>-400.webp; avatars only at 160 px.
+ *  Data keeps the original .jpg names, so stored drafts/DB stay valid. `small` picks the 400 px file. */
+export const imgUrl = (file: string, small = false) => {
+  if (EXT.test(file)) return file
+  const n = file.replace(/\.(jpe?g|png|webp)$/i, '')
+  return `${import.meta.env.BASE_URL}img/${n}${small && !n.startsWith('av_') ? '-400' : ''}.webp`
+}
+/** srcset for <img>: 400w + 800w (none for avatars and uploaded data/blob images). */
+export const imgSrcSet = (file: string) => (EXT.test(file) || file.startsWith('av_') ? undefined : `${imgUrl(file, true)} 400w, ${imgUrl(file)} 800w`)
 export const baht = (n: number) => `฿${n.toLocaleString('th-TH')}`
 export const formatPrice = (p: Product) => (p.price === 0 ? 'ฟรี' : `฿${p.price.toLocaleString('th-TH')}${p.priceSuffix ?? ''}`)

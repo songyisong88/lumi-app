@@ -14,7 +14,7 @@ import { ago } from '../../utils/time'
 import s from './Community.module.css'
 
 export const TAG_COLOR: Record<string, [string, string]> = {
-  'โชว์ผลงาน': ['#6C2BD9', '#F3ECFF'], 'ความรู้': ['#0E9384', '#E2F6F2'], 'เบื้องหลัง': ['#2563EB', '#EAF1FF'], 'ถาม-ตอบ': ['#B45309', '#FFF4DB'], 'แจกฟรี': ['#15803D', '#E5F8EC'],
+  'โชว์ผลงาน': ['#6C2BD9', '#F3ECFF'], 'ความรู้': ['#0B7A6E', '#E2F6F2'], 'เบื้องหลัง': ['#2563EB', '#EAF1FF'], 'ถาม-ตอบ': ['#B45309', '#FFF4DB'], 'แจกฟรี': ['#15803D', '#E5F8EC'],
 }
 const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace('.0', '')}K` : String(n))
 
@@ -51,7 +51,7 @@ export function PostCard({ p, full, i = 0 }: { p: Post; full?: boolean; i?: numb
       </div>
       {p.images.length > 0 && (
         <div className={`${s.imgs} ${s['n' + Math.min(p.images.length, 3)]}`} onClick={open}>
-          {p.images.slice(0, 3).map((x) => <Img key={x} src={x} />)}
+          {p.images.slice(0, 3).map((x) => <Img key={x} src={x} sizes={p.images.length > 1 ? '50vw' : '100vw'} />)}
         </div>
       )}
       {p.code && (

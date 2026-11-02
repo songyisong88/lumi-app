@@ -5,7 +5,7 @@ import { copyText, Img } from '../../components/ui'
 import { toast } from '../../services/toast'
 import { arr, filesOf, licRows, on, str, type Spec } from '../../data/listingSpec'
 import { galleryOf } from '../../data/productExtras'
-import { baht } from '../../data/sampleData'
+import { baht, imgUrl } from '../../data/sampleData'
 import type { DetailKind, Product, ProductOption } from '../../data/types'
 import { FEATURES } from '../../config'
 import s from './Product.module.css'
@@ -94,7 +94,7 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
               <input className={s.spcIn} value={fontText} onChange={(e) => setFontText(e.target.value)} placeholder="พิมพ์ชื่อร้านคุณเพื่อลองฟอนต์…" /></div>
           </> : <>
             <div className={s.st}>ในชุดนี้มี {str(spec.count)}</div>
-            <div className={s.port}>{['0 0', '50% 0', '100% 0', '0 100%'].map((x) => <div key={x} style={{ backgroundImage: `url(${import.meta.env.BASE_URL}img/${g[0]})`, backgroundSize: '300%', backgroundPosition: x }} />)}</div>
+            <div className={s.port}>{['0 0', '50% 0', '100% 0', '0 100%'].map((x) => <div key={x} style={{ backgroundImage: `url(${imgUrl(g[0])})`, backgroundSize: '300%', backgroundPosition: x }} />)}</div>
           </>}
           {opts.length > 1 && <>
             <div className={s.st}>ตารางสิทธิ์ตามแบบที่ซื้อ</div>
@@ -146,7 +146,7 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
             <div className={s.wave}><button className={s.wplay} aria-label="เล่นตัวอย่าง"><Icon name="play" size={18} color="#fff" fill="#fff" /></button>
               <div className={s.wbars}>{Array.from({ length: 42 }, (_, i) => <i key={i} style={{ transform: `scaleY(${0.25 + Math.abs(Math.sin(i * 0.55)) * 0.75})` }} />)}</div><small>0:30</small></div>
           ) : (
-            <div className={s.video}><Img src={g[0]} className={s.videoImg} /><span className={s.playBig}><Icon name="play" size={30} color="#fff" fill="#fff" /></span><span className={s.wm}>ตัวอย่างมีลายน้ำ · ไฟล์จริงไม่มี</span></div>
+            <div className={s.video}><Img src={g[0]} className={s.videoImg} sizes="100vw" /><span className={s.playBig}><Icon name="play" size={30} color="#fff" fill="#fff" /></span><span className={s.wm}>ตัวอย่างมีลายน้ำ · ไฟล์จริงไม่มี</span></div>
           )}
           <div className={s.scan} style={{ background: '#F5EBFF', color: '#6B21A8' }}><Icon name="shield" size={22} color="#9333EA" /><div><b>ผู้ขายรับรองว่าไม่ได้โคลนเสียงหรือหน้าคนจริง</b>สร้างด้วย {str(spec.aiTool)} · พบการละเมิด กดรายงานได้</div></div>
           <div className={s.st}>สิทธิ์เพลง / เสียง</div>

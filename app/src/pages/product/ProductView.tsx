@@ -131,13 +131,13 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
         <div className={s.ht}>{p.title}</div>
         <button className={s.hb} onClick={() => setSheet('share')} aria-label="แชร์"><Icon name="share" size={20} /></button>
         {!preview && !mine && <button className={s.hb} onClick={() => setSheet('report')} aria-label="รายงานผลงานนี้"><Icon name="flag" size={19} /></button>}
-        {!preview && <Link to="/cart" className={s.hb} aria-label="ตะกร้า"><Icon name="cart" size={20} />{inCart > 0 && <span className={s.cnt}>{inCart}</span>}</Link>}
+        {!preview && <Link to="/cart" className={s.hb} aria-label={inCart > 0 ? `ตะกร้า ${inCart} ชิ้น` : 'ตะกร้า'}><Icon name="cart" size={20} />{inCart > 0 && <span className={s.cnt}>{inCart}</span>}</Link>}
       </header>
 
       {/* gallery */}
       <div className={s.hero}>
         <div className={`hscroll ${s.slides}`} onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
-          {gallery.map((g, i) => <div key={g + i} className={s.slideW}><Img src={g} className={s.slide} />{marked && <span className={s.wm} data-wm aria-hidden>{Array.from({ length: 6 }, (_, k) => <i key={k}>LUMI · ตัวอย่าง</i>)}</span>}</div>)}
+          {gallery.map((g, i) => <div key={g + i} className={s.slideW}><Img src={g} className={s.slide} sizes="100vw" eager={i === 0} />{marked && <span className={s.wm} data-wm aria-hidden>{Array.from({ length: 6 }, (_, k) => <i key={k}>LUMI · ตัวอย่าง</i>)}</span>}</div>)}
         </div>
         <div className={s.tyb}><span><Icon name={SPECS[t].icon} size={13} color="#fff" stroke={2.2} />{p.label ?? SPECS[t].name}{L === 'free' || freeHire ? ' · ฟรี' : ''}</span>{marked && <span>ภาพตัวอย่างมีลายน้ำ</span>}{p.mine && <span>ผลงานของคุณ</span>}</div>
         {!preview && <HeartButton productId={p.id} className={s.fav} />}
@@ -286,7 +286,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
       </Sheet>
       <Sheet open={sheet === 'lesson'} onClose={() => setSheet(null)} title={arr(spec.lessons)[0]?.split(' · ').slice(0, 2).join(' · ') ?? 'ตอนแรกฟรี'} sub={ebook ? 'อ่านฟรี ไม่ต้องซื้อ' : 'ดูฟรี ไม่ต้องซื้อ'}>
         {ebook ? <div className={s.box}>{arr(spec.lessons).slice(0, 3).map((l, i) => <div key={i} className={s.ok}><span className="ok-ic"><Icon name="book" size={13} /></span>{l}</div>)}</div>
-          : <div className={s.video}><Img src={gallery[0]} className={s.videoImg} /><span className={s.playBig}><Icon name="play" size={30} color="#fff" fill="#fff" /></span><div className={s.vbar}><i /></div></div>}
+          : <div className={s.video}><Img src={gallery[0]} className={s.videoImg} sizes="100vw" /><span className={s.playBig}><Icon name="play" size={30} color="#fff" fill="#fff" /></span><div className={s.vbar}><i /></div></div>}
         <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>{ebook ? 'ตัวอ่านตัวอย่าง · หน้าจริงจะเปิดหลังเชื่อมระบบเก็บไฟล์' : 'ตัวเล่นวิดีโอตัวอย่าง · วิดีโอจริงจะเปิดหลังเชื่อมระบบเก็บไฟล์'}</p>
       </Sheet>
       <ReportSheet open={sheet === 'report'} onClose={() => setSheet(null)} target="product" id={p.id} />

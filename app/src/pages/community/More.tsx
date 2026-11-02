@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Av, Empty, Img, SampleNote, TopBar } from '../../components/ui'
 import { ROOMS } from '../../data/appSeed'
-import { ME, creatorById } from '../../data/sampleData'
+import { ME, creatorById, imgUrl } from '../../data/sampleData'
 import { CHALLENGE, LEADERBOARD, MY_RANK, challengeEnd } from '../../data/searchData'
 import { community } from '../../services/api'
 import { update, useDb } from '../../services/db'
@@ -87,7 +87,7 @@ export function Room() {
   return (
     <div className="page">
       <TopBar title={r.name} sub={`${r.members.toLocaleString('th-TH')} สมาชิก`} />
-      <div className={s.rcov} style={{ backgroundImage: `url(${import.meta.env.BASE_URL}img/${r.cover})` }}><span className={s.ric} style={{ background: r.bg }}><Icon name={r.icon} size={26} color={r.color} /></span></div>
+      <div className={s.rcov} style={{ backgroundImage: `url(${imgUrl(r.cover, true)})` }}><span className={s.ric} style={{ background: r.bg }}><Icon name={r.icon} size={26} color={r.color} /></span></div>
       <div className="narrow">
         <div style={{ padding: '12px 16px 0' }}>
           <h1 style={{ fontSize: 20 }}>{r.name}</h1>

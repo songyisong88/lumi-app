@@ -94,7 +94,7 @@ export function Sell() {
       || JSON.stringify(d.spec) !== JSON.stringify(SPECS[d.type].defaults))
     if (!exists && !touched && !d.publishedId) { setSaved('idle'); return }
     setSaved('saving')
-    const h = setTimeout(() => { if (published.current) return; sell.saveDraft(d).then(() => setSaved('saved')); if (!draftId) setSp({ draft: d.id }, { replace: true }) }, 600)
+    const h = setTimeout(() => { if (published.current) return; sell.saveDraft(d).then(() => setSaved('saved')); if (!draftId && /^#\/sell(\?|$)/.test(window.location.hash)) setSp({ draft: d.id }, { replace: true }) }, 600) // never pull the user back if they already left /sell
     return () => clearTimeout(h)
   }, [d]) // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -9,7 +9,7 @@ import { ago, dayLabel } from '../../utils/time'
 import s from './Shop.module.css'
 
 const KIND: Record<Notif['kind'], [string, string, string]> = {
-  order: ['receipt', '#2563EB', '#EAF1FF'], chat: ['chat', '#6C2BD9', '#F3ECFF'], like: ['heart', '#F0508A', '#FDEBF2'], follow: ['user', '#0E9384', '#E2F6F2'],
+  order: ['receipt', '#2563EB', '#EAF1FF'], chat: ['chat', '#6C2BD9', '#F3ECFF'], like: ['heart', '#F0508A', '#FDEBF2'], follow: ['user', '#0B7A6E', '#E2F6F2'],
   system: ['sparkle', '#B45309', '#FFF4DB'], community: ['trophy', '#E0620B', '#FFF0E3'], sale: ['coin', '#15803D', '#E5F8EC'],
 }
 type F = 'all' | 'order' | 'social'

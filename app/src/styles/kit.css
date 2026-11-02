@@ -73,7 +73,7 @@
 .row{display:flex;align-items:center;gap:12px}
 .list-row{display:flex;align-items:center;gap:12px;padding:13px 16px;background:#fff;width:100%;text-align:left}
 .list-row+.list-row{border-top:1px solid var(--line)}
-.list-row .grow{flex:1;min-width:0}
+.grow{flex:1;min-width:0}
 .list-row small{display:block;color:var(--mut);font-size:12.5px}
 .muted{color:var(--mut)}
 .grad-t{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}

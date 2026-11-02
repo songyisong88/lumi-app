@@ -11,7 +11,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['fonts/*.ttf', 'icon-192.png', 'icon-512.png'],
+      includeAssets: ['fonts/*.woff2', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'LUMI ตลาดงานครีเอเตอร์ AI',
         short_name: 'LUMI',
@@ -29,7 +29,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ttf,png,svg}'],
+        globPatterns: ['**/*.{js,css,html,woff2,png,svg}'],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith(BASE + 'img/'),

@@ -29,12 +29,12 @@
 .who{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .free{margin-left:auto;font-size:11px;font-weight:700;color:#fff;background:var(--green);border-radius:8px;padding:1px 8px;flex:none}
 .plats{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.plats span{font-size:10px;font-weight:600;color:#0E9384;background:#E3F7F4;border-radius:5px;padding:1px 6px}
+.plats span{font-size:10px;font-weight:600;color:#0B7A6E;background:#E3F7F4;border-radius:5px;padding:1px 6px}
 .tfoot{display:flex;align-items:center;justify-content:space-between;margin-top:7px;gap:6px;min-width:0}
 .wrapRow{flex-wrap:wrap;row-gap:6px}
 .wrapRow .cfi{flex:1 1 60px}
 .rt{white-space:nowrap;display:flex;align-items:center;gap:3px;font-size:10.5px;color:var(--mut)}
-.try{position:relative;z-index:2;display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 9px;border-radius:9px;border:1.5px solid #0E9384;color:#0E9384;font-size:11.5px;font-weight:600;white-space:nowrap;flex:none;max-width:100%}
+.try{position:relative;z-index:2;display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 9px;border-radius:9px;border:1.5px solid #0B7A6E;color:#0B7A6E;font-size:11.5px;font-weight:600;white-space:nowrap;flex:none;max-width:100%}
 .g{border-color:#05A84B;color:#05A84B}
 .svm{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:10.5px;color:#D6336C;font-weight:500}
 .svm span{white-space:nowrap;display:flex;align-items:center;gap:3px;background:#FDEBF2;border-radius:6px;padding:1px 6px}

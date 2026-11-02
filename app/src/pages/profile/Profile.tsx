@@ -9,7 +9,7 @@ import { ISSUE_DAYS, IssueSheet, WriteReviewSheet, issueOpen } from '../../compo
 import { Av, Empty, Img, SampleNote, Seg, Sheet, Stars, TopBar } from '../../components/ui'
 import { completion, SPECS } from '../../data/listingSpec'
 import { creatorStats, heroOf, statsOf } from '../../data/productExtras'
-import { ALL_PRODUCTS, CREATORS, ME, baht, creatorById, isLive } from '../../data/sampleData'
+import { ALL_PRODUCTS, CREATORS, ME, baht, creatorById, imgUrl, isLive } from '../../data/sampleData'
 import { chat, resetAll } from '../../services/api'
 import { useDb } from '../../services/db'
 import { useFavorites } from '../../services/FavoritesContext'
@@ -211,7 +211,7 @@ export function CreatorPage() {
   return (
     <div className="page">
       <TopBar title={c.name} sub={`${works.length} ผลงาน`} />
-      <div className={s.cover} style={{ backgroundImage: works[0] ? `url(${import.meta.env.BASE_URL}img/${heroOf(works[0])})` : undefined }} />
+      <div className={s.cover} style={{ backgroundImage: works[0] ? `url(${imgUrl(heroOf(works[0]))})` : undefined }} />
       <div className="narrow">
         <div className={s.ch}>
           <Av src={c.avatar} size={84} ring />

@@ -74,7 +74,7 @@ function PopularCats({ onPick, onAll }: { onPick: (k: CatKey) => void; onAll: ()
           const c = CATEGORIES[k]
           return (
             <button key={k} data-cat={k} className={`${s.cp} rise press`} style={{ '--i': i } as React.CSSProperties} onClick={() => onPick(k)}>
-              <span className={s.cpt}><span className={`${s.cth} ${c.flip ? s.flip : ''}`} style={{ backgroundImage: `url(${imgUrl(c.image)})` }} /><b>{SHORT[k] ?? c.name}</b></span>
+              <span className={s.cpt}><span className={`${s.cth} ${c.flip ? s.flip : ''}`} style={{ backgroundImage: `url(${imgUrl(c.image, true)})` }} /><b>{SHORT[k] ?? c.name}</b></span>
               <small>{c.desc}</small>
             </button>
           )
@@ -109,7 +109,7 @@ function AllCatsSheet({ open, onClose, onPick }: { open: boolean; onClose: () =>
             const c = CATEGORIES[k]
             return (
               <button key={k} data-sheetcat={k} className={s.brw} onClick={() => onPick(k)}>
-                <span className={`${s.bth} ${c.flip ? s.flip : ''}`} style={{ backgroundImage: `url(${imgUrl(c.image)})` }} />
+                <span className={`${s.bth} ${c.flip ? s.flip : ''}`} style={{ backgroundImage: `url(${imgUrl(c.image, true)})` }} />
                 <span className={s.brt}><b>{c.name}{c.isNew && <span className={s.nwb}>ใหม่</span>}</b><small>{c.desc}</small></span>
                 <em>{c.count}</em>
                 <Icon name="chev" size={16} color="#B4AFC8" stroke={2.2} />
@@ -137,7 +137,7 @@ function TrendCarousel({ onPick }: { onPick: (q: string) => void }) {
       <SectionHead title={<><Icon name="trend" size={17} color="#7C3AED" stroke={2.4} />เทรนด์ช่วงนี้</>} />
       <div className={s.car} ref={ref} onScroll={onScroll}>
         {TRENDS.map((t, i) => (
-          <button key={t.title} className={s.trd} style={{ backgroundImage: `url(${imgUrl(t.image)})` }} onClick={() => onPick(t.q)}>
+          <button key={t.title} className={s.trd} style={{ backgroundImage: `url(${imgUrl(t.image, true)})` }} onClick={() => onPick(t.q)}>
             <span className={s.rk}>เทรนด์ #{i + 1}</span>
             <span className={s.tin}>
               <b>{t.title}</b>

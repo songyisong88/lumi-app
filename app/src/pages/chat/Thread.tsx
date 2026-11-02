@@ -217,9 +217,9 @@ function Bubble({ m, t, fresh, onPay, onReview, onRevise }: { m: Message; t: T; 
   const time = <span className={s.tm}>{clock(m.at)}</span>
   switch (m.kind) {
     case 'typing': return <div className={`${s.b} ${s.them} bubble-in`}><div className={s.typing}><i /><i /><i /></div></div>
-    case 'system': return <div className={`${s.sys} ${fresh ? 'bubble-in' : ''}`}><Icon name="shield" size={13} color="#15803D" />{m.text}{m.link && <Link to={m.link} className={s.sysLink} data-sys-link>{m.linkLabel ?? 'เปิด'} ›</Link>}</div>
+    case 'system': return <div className={`${s.sys} ${fresh ? 'bubble-in' : ''}`}><Icon name="shield" size={13} color="#15803D" /><span className="grow">{m.text}{m.link && <Link to={m.link} className={s.sysLink} data-sys-link>{m.linkLabel ?? 'เปิด'} ›</Link>}</span></div>
     case 'sticker': return <div className={cls}><div className={s.sticker}>{m.text}</div>{time}</div>
-    case 'text': return <div className={cls}>{m.image && <Img src={m.image} className={s.pic} />}{m.text && <div className={s.tx}>{m.text}</div>}{time}</div>
+    case 'text': return <div className={cls}>{m.image && <Img src={m.image} className={s.pic} sizes="75vw" />}{m.text && <div className={s.tx}>{m.text}</div>}{time}</div>
     case 'product': {
       const p = productById(m.productId ?? '')
       if (!p) return null
@@ -244,12 +244,12 @@ function Bubble({ m, t, fresh, onPay, onReview, onRevise }: { m: Message; t: T; 
       )
     }
     case 'progress': return (
-      <div className={cls}><div className={s.card}><div className={s.ch}><Icon name="clock" size={16} color="#2563EB" />{m.title}</div>{m.image && <Img src={m.image} className={s.pic} />}<p className={s.ctx}>{m.text}</p>
+      <div className={cls}><div className={s.card}><div className={s.ch}><Icon name="clock" size={16} color="#2563EB" />{m.title}</div>{m.image && <Img src={m.image} className={s.pic} sizes="75vw" />}<p className={s.ctx}>{m.text}</p>
         <div className={s.pbar}><i style={{ transform: `scaleX(${(m.pct ?? 0) / 100})` }} /></div><small className={s.ps}>เสร็จแล้ว {m.pct}%</small></div>{time}</div>
     )
     case 'delivery': return (
       <div className={cls}><div className={`${s.card} ${s.dlv}`}><div className={s.ch}><Icon name="box" size={16} color="#B45309" />{m.title}</div>
-        <div className={s.wmw}><Img src={m.image} className={s.pic} />{m.status !== 'accepted' && <span className={s.wm}>LUMI · ตัวอย่างมีลายน้ำ</span>}</div>
+        <div className={s.wmw}><Img src={m.image} className={s.pic} sizes="75vw" />{m.status !== 'accepted' && <span className={s.wm}>LUMI · ตัวอย่างมีลายน้ำ</span>}</div>
         <p className={s.ctx}>{m.text}</p>
         {m.status === 'pending' && !mine ? <>
           <small className={s.ps}>ขอแก้ได้อีก {m.left} ครั้ง · ตรวจงานภายใน {m.extended ? '6 วัน (ขยายแล้ว)' : '3 วัน'}{!m.extended && <> · <button className={s.lnk} onClick={() => orders.extendReview(t.id, m.id)}>ขอเวลาตรวจเพิ่ม 3 วัน</button></>}</small>

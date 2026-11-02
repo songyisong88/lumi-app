@@ -3,21 +3,41 @@ import { BottomNav } from './components/Header'
 import { Stage } from './components/Stage'
 import { Empty, Toaster } from './components/ui'
 import { FavoritesProvider } from './services/FavoritesContext'
-import { Favorites } from './pages/Favorites'
 import { Home } from './pages/Home'
-import { Search } from './pages/Search'
-import { StoryViewer } from './pages/StoryViewer'
-import { ProductDetail } from './pages/product/ProductDetail'
-import { Cart, Checkout } from './pages/shop/Cart'
-import { Notifications } from './pages/shop/Notifications'
-import { Inbox } from './pages/chat/Inbox'
-import { Thread } from './pages/chat/Thread'
-import { CreatorPage, Profile } from './pages/profile/Profile'
-import { Community } from './pages/community/Community'
-import { Activities, PostDetail, Room } from './pages/community/More'
-import { Compose } from './pages/community/Compose'
-import { Drafts, Sell } from './pages/sell/Sell'
-import { Library, LibraryItem } from './pages/library/Library'
+import { lazy, Suspense, type ComponentType } from 'react'
+
+/** Route-level code splitting: Home ships in the main bundle, every other page is its own chunk.
+ *  All chunks are prefetched once the browser is idle, so later navigations never wait. */
+const loaders: (() => Promise<unknown>)[] = []
+function lz<M extends Record<string, unknown>>(load: () => Promise<M>, name: keyof M) {
+  loaders.push(load)
+  return lazy(async () => ({ default: (await load())[name] as ComponentType }))
+}
+const Search = lz(() => import('./pages/Search'), 'Search')
+const Favorites = lz(() => import('./pages/Favorites'), 'Favorites')
+const StoryViewer = lz(() => import('./pages/StoryViewer'), 'StoryViewer')
+const ProductDetail = lz(() => import('./pages/product/ProductDetail'), 'ProductDetail')
+const Cart = lz(() => import('./pages/shop/Cart'), 'Cart')
+const Checkout = lz(() => import('./pages/shop/Cart'), 'Checkout')
+const Notifications = lz(() => import('./pages/shop/Notifications'), 'Notifications')
+const Inbox = lz(() => import('./pages/chat/Inbox'), 'Inbox')
+const Thread = lz(() => import('./pages/chat/Thread'), 'Thread')
+const Profile = lz(() => import('./pages/profile/Profile'), 'Profile')
+const CreatorPage = lz(() => import('./pages/profile/Profile'), 'CreatorPage')
+const Community = lz(() => import('./pages/community/Community'), 'Community')
+const Activities = lz(() => import('./pages/community/More'), 'Activities')
+const PostDetail = lz(() => import('./pages/community/More'), 'PostDetail')
+const Room = lz(() => import('./pages/community/More'), 'Room')
+const Compose = lz(() => import('./pages/community/Compose'), 'Compose')
+const Sell = lz(() => import('./pages/sell/Sell'), 'Sell')
+const Drafts = lz(() => import('./pages/sell/Sell'), 'Drafts')
+const Library = lz(() => import('./pages/library/Library'), 'Library')
+const LibraryItem = lz(() => import('./pages/library/Library'), 'LibraryItem')
+if (typeof window !== 'undefined') {
+  const prefetch = () => loaders.forEach((l) => void l().catch(() => {}))
+  const idle = (window as Window & { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1200))
+  if (document.readyState === 'complete') idle(prefetch); else window.addEventListener('load', () => idle(prefetch), { once: true })
+}
 
 function NotFound() {
   return <div style={{ paddingTop: 80 }}><Empty icon="search" title="ไม่พบหน้านี้" text="ลิงก์อาจผิดหรือหน้านี้ถูกย้ายแล้ว" action={<Link to="/" className="btn btn-p btn-sm">กลับหน้าแรก</Link>} /></div>
@@ -29,6 +49,7 @@ export default function App() {
     <FavoritesProvider>
       <HashRouter>
         <Stage render={(loc) => (
+          <Suspense fallback={<div className="route-wait" aria-busy="true" />}>
           <Routes location={loc}>
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
@@ -53,6 +74,7 @@ export default function App() {
             <Route path="/sell/drafts" element={<Drafts />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         )} />
         <BottomNav />
         <Toaster />

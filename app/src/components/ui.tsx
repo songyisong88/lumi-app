@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { imgUrl } from '../data/sampleData'
+import { imgSrcSet, imgUrl } from '../data/sampleData'
 import { Icon } from './Icon'
 
 /* ---------- Bottom sheet: spring in, drag handle / swipe down to dismiss ---------- */
@@ -75,13 +75,13 @@ export function Sheet({ open, onClose, title, sub, children, footer, tall }: {
 }
 
 /* ---------- Image with shimmer skeleton + fade-in ---------- */
-export function Img({ src, alt = '', className, style, fit = 'cover', ratio }: { src?: string; alt?: string; className?: string; style?: CSSProperties; fit?: 'cover' | 'contain'; ratio?: string }) {
+export function Img({ src, alt = '', className, style, fit = 'cover', ratio, sizes = '50vw', eager }: { src?: string; alt?: string; className?: string; style?: CSSProperties; fit?: 'cover' | 'contain'; ratio?: string; sizes?: string; eager?: boolean }) {
   const [ok, setOk] = useState(false)
   const url = src ? imgUrl(src) : ''
   return (
     <span className={`img-box ${ok ? '' : 'sk'} ${className ?? ''}`} style={{ aspectRatio: ratio, ...style }}>
       {url && (
-        <img src={url} alt={alt} loading="lazy" decoding="async" className={`img-fade ${ok ? 'is-in' : ''}`} style={{ objectFit: fit }}
+        <img src={url} srcSet={src ? imgSrcSet(src) : undefined} sizes={sizes} alt={alt} loading={eager ? 'eager' : 'lazy'} fetchPriority={eager ? 'high' : undefined} decoding="async" className={`img-fade ${ok ? 'is-in' : ''}`} style={{ objectFit: fit }}
           ref={(i) => { if (i?.complete && i.naturalWidth && !ok) setOk(true) }} onLoad={() => setOk(true)} onError={() => setOk(true)} />
       )}
     </span>

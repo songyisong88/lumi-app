@@ -40,9 +40,9 @@ export function HeaderActions({ search = true }: { search?: boolean }) {
   return (
     <div className={s.act}>
       {search && <Link to="/search" className={`${s.ib} ${s.deskOnly}`} aria-label="ค้นหา"><Icon name="search" size={20} /></Link>}
-      <Link to="/chat" className={s.ib} aria-label={`แชต${b.chat ? ` ยังไม่อ่าน ${b.chat}` : ''}`}><Icon name="chat" size={20} />{b.chat > 0 && <span className={s.cnt} style={{ background: 'var(--pink)' }}>{b.chat > 9 ? '9+' : b.chat}</span>}</Link>
+      <Link to="/chat" className={s.ib} aria-label={`แชต${b.chat ? ` ยังไม่อ่าน ${b.chat > 9 ? '9+' : b.chat}` : ''}`}><Icon name="chat" size={20} />{b.chat > 0 && <span className={s.cnt} style={{ background: 'var(--pink)' }}>{b.chat > 9 ? '9+' : b.chat}</span>}</Link>
       <Link to="/notifications" className={s.ib} aria-label="แจ้งเตือน"><Icon name="bell" size={20} />{b.notif > 0 && <span className={s.dot} />}</Link>
-      <Link to="/cart" className={s.ib} aria-label="ตะกร้า"><Icon name="cart" size={20} />{b.cart > 0 && <span className={s.cnt}>{b.cart}</span>}</Link>
+      <Link to="/cart" className={s.ib} aria-label={b.cart > 0 ? `ตะกร้า ${b.cart} ชิ้น` : 'ตะกร้า'}><Icon name="cart" size={20} />{b.cart > 0 && <span className={s.cnt}>{b.cart}</span>}</Link>
     </div>
   )
 }

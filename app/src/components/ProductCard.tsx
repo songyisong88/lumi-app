@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { creatorById, imgUrl } from '../data/sampleData'
+import { creatorById, imgSrcSet, imgUrl } from '../data/sampleData'
 import { typeOf } from '../data/listingSpec'
 import type { Product } from '../data/types'
 import { HeartButton } from './HeartButton'
@@ -45,7 +45,7 @@ function Media({ p }: { p: Product }) {
     case 'template':
       return (
         <div className={s.pm} style={{ ...style, background: '#EAF1FF' }}>
-          <div className={s.paper} style={{ backgroundImage: `url(${imgUrl(p.image!.src)})` }} />
+          <div className={s.paper} style={{ backgroundImage: `url(${imgUrl(p.image!.src, true)})` }} />
           <div className={s.files}>{p.files?.map((f) => <span key={f}>{f}</span>)}</div>
           <span className={s.preview}><Icon name="eye" size={13} color="#2563EB" stroke={2.2} />ดูตัวอย่าง</span>
         </div>
@@ -53,7 +53,7 @@ function Media({ p }: { p: Product }) {
     default:
       return (
         <div className={`${s.pm} sk`} style={style}>
-          <img src={imgUrl(p.image!.src)} alt="" loading="lazy" decoding="async" width={p.image!.w} height={p.image!.h} className="img-fade"
+          <img src={imgUrl(p.image!.src, true)} srcSet={imgSrcSet(p.image!.src)} sizes="(min-width: 600px) 300px, 50vw" alt="" loading="lazy" decoding="async" width={p.image!.w} height={p.image!.h} className="img-fade"
             ref={(i) => { if (i?.complete && i.naturalWidth) { i.classList.add('is-in'); i.parentElement?.classList.remove('sk') } }}
             onLoad={(e) => { e.currentTarget.classList.add('is-in'); e.currentTarget.parentElement?.classList.remove('sk') }} />
           {p.video && <span className={s.play}><Icon name="play" size={16} color="#E0620B" fill="#E0620B" /></span>}
@@ -71,7 +71,7 @@ function Footer({ p }: { p: Product }) {
         <div className={s.plats}>{p.platforms?.map((x) => <span key={x}>{x}</span>)}</div>
         <div className={s.tfoot}>
           <span className={s.rt}><Icon name="star" size={11} color="#F5A524" fill="#F5A524" />{p.rating} รีวิว</span>
-          <span className={s.try}><Icon name="play" size={11} color="#0E9384" fill="#0E9384" stroke={2.4} />ลองใช้</span>
+          <span className={s.try}><Icon name="play" size={11} color="#0B7A6E" fill="#0B7A6E" stroke={2.4} />ลองใช้</span>
         </div>
       </>
     )
