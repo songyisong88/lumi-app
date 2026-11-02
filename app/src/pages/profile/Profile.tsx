@@ -3,6 +3,8 @@ import { FollowButton } from '../../components/FollowButton'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { HeaderActions } from '../../components/Header'
 import { Icon } from '../../components/Icon'
+import { isCloud } from '../../services/session'
+import { FEATURES } from '../../config'
 import { MasonryFeed } from '../../components/MasonryFeed'
 import { ReportButton } from '../../components/Report'
 import { ISSUE_DAYS, IssueSheet, WriteReviewSheet, issueOpen } from '../../components/OrderHelp'
@@ -165,8 +167,8 @@ export function Profile() {
             <div className="sec-h">บัญชี</div>
             <div className="card2" style={{ padding: 0, overflow: 'hidden' }}>
               {[['user', 'ตั้งค่าบัญชี', 'ชื่อ อีเมล รหัสผ่าน'], ['wallet', 'บัญชีรับเงินและการชำระเงิน', 'ยังไม่ได้เชื่อม'], ['bell', 'การแจ้งเตือน', ''], ['lock', 'ความเป็นส่วนตัวและความปลอดภัย', ''], ['chat', 'ช่วยเหลือและติดต่อ LUMI', '']].map(([ic, t, sub]) => (
-                <button key={t} className="list-row" onClick={() => (ic === 'bell' ? nav('/notifications') : toast(`${t} จะเปิดใช้เร็ว ๆ นี้`))}>
-                  <Icon name={ic} size={20} color="var(--ink2)" /><span className="grow">{t}{sub && <small>{sub}</small>}</span>{ic !== 'bell' && <span className="pill">เร็ว ๆ นี้</span>}<Icon name="chev" size={16} color="var(--mut)" />
+                <button key={t} className="list-row" onClick={() => (ic === 'bell' ? nav('/notifications') : FEATURES.accounts && ic === 'user' ? nav(isCloud() ? '/account' : '/account/login') : toast(`${t} จะเปิดใช้เร็ว ๆ นี้`))}>
+                  <Icon name={ic} size={20} color="var(--ink2)" /><span className="grow">{t}{sub && <small>{sub}</small>}</span>{ic !== 'bell' && !(FEATURES.accounts && ic === 'user') && <span className="pill">เร็ว ๆ นี้</span>}<Icon name="chev" size={16} color="var(--mut)" />
                 </button>
               ))}
             </div>
@@ -189,7 +191,9 @@ export function Profile() {
       <IssueSheet open={act?.sheet === 'issue'} onClose={() => setAct(null)} purchaseId={act?.id} />
       {actB && <WriteReviewSheet open={act?.sheet === 'review'} onClose={() => setAct(null)} purchaseId={actB.id} initial={actB.review} />}
       <Sheet open={settings} onClose={() => setSettings(false)} title="ตั้งค่า">
-        <div className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }}><Icon name="user" size={20} /><span className="grow">บัญชีและการเข้าสู่ระบบ<small>สมัคร เข้าสู่ระบบ ใบเสร็จทางอีเมล และขอลบบัญชี จะเปิดพร้อมระบบบัญชีจริง</small></span><span className="pill">เร็ว ๆ นี้</span></div>
+        {FEATURES.accounts
+          ? <button className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }} onClick={() => { setSettings(false); nav(isCloud() ? '/account' : '/account/login') }}><Icon name="user" size={20} /><span className="grow">บัญชีและการเข้าสู่ระบบ<small>{isCloud() ? 'โปรไฟล์ อีเมล รหัสผ่าน และขอลบบัญชี' : 'สมัคร หรือเข้าสู่ระบบด้วยอีเมล'}</small></span><Icon name="chev" size={16} color="var(--mut)" /></button>
+          : <div className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }}><Icon name="user" size={20} /><span className="grow">บัญชีและการเข้าสู่ระบบ<small>สมัคร เข้าสู่ระบบ ใบเสร็จทางอีเมล และขอลบบัญชี จะเปิดพร้อมระบบบัญชีจริง</small></span><span className="pill">เร็ว ๆ นี้</span></div>}
         <button className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }} onClick={() => { resetAll(); setSettings(false); toast('รีเซ็ตข้อมูลตัวอย่างแล้ว') }}><Icon name="refresh" size={20} />รีเซ็ตข้อมูลตัวอย่างทั้งหมด<small style={{ marginLeft: 'auto' }}>ตะกร้า แชต ร่าง</small></button>
         <p className="hint">ใช้ตอนอยากเริ่มทดลองใหม่ ข้อมูลทั้งหมดอยู่ในเครื่องนี้ ไม่ได้ส่งไปที่ไหน</p>
       </Sheet>

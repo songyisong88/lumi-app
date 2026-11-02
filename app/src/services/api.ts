@@ -8,12 +8,15 @@ import type { CartItem, Comment, DB, Message, Order, Post, Purchase, Thread } fr
 import { HIRE_STEPS } from '../data/appTypes'
 import type { ListingDraft } from '../data/listingSpec'
 import { SPECS, checkListing, on, sellTypeOf, specOf } from '../data/listingSpec'
-import { ME, creatorById, productById, unregisterProduct } from '../data/sampleData'
+import { ME, creatorById, isRemoteId, productById, unregisterProduct } from '../data/sampleData'
 import { creatorStats } from '../data/productExtras'
 import type { Product } from '../data/types'
 import { getDb, resetDb, uid, update } from './db'
 import { FEATURES } from '../config'
 import { assetsFor } from '../data/library'
+import * as K from './cloudApi'
+import { CloudError, cloudOn, deleteServerDraft, publishListing, unpublishListing } from './cloud'
+import { getSession } from './session'
 
 export interface FollowService { toggle(creatorId: string): Promise<boolean> }
 export interface CartService { add(item: Omit<CartItem, 'key'>): Promise<string>; remove(key: string): Promise<void> }
@@ -541,20 +544,127 @@ function autoReview(id: string, ms: number) {
 }
 // pending listings from an earlier visit finish their (demo) review after a reload
 for (const p of getDb().published) {
+  if (isRemoteId(p.id)) continue // real listings are reviewed on the server
   if (p.mod?.status === 'pending') autoReview(p.id, p.mod.at + REVIEW_MS - Date.now())
   else if (p.rev?.status === 'pending') autoReview(p.id, p.rev.at + REVIEW_MS - Date.now())
 }
 
-export const follows: FollowService = new LocalFollows()
+// ---------- routing: demo/sample → Local*, signed-in real account + server rows → cloudApi
+/** true when a real account is signed in and every given id is a server row */
+const live = (...ids: (string | undefined)[]) => cloudOn() && ids.every((id) => !id || isRemoteId(id))
+/** guests (accounts flag on, not signed in) must sign in before writing */
+function gate() {
+  if (FEATURES.accounts && getSession().mode === 'guest') {
+    window.location.hash = '#/account/login'
+    throw new CloudError('เข้าสู่ระบบก่อนนะ')
+  }
+}
+const L = { follows: new LocalFollows(), checkout: new LocalCheckout(), chat: new LocalChat(), community: new LocalCommunity(), notifs: new LocalNotifs(), orders: new LocalOrders(), sell: new LocalSell() }
+
+export const follows: FollowService = { toggle: (id) => { gate(); return live(id) ? K.toggleFollow(id) : L.follows.toggle(id) } }
 export const cart: CartService = new LocalCart()
-export const checkout: CheckoutService = new LocalCheckout()
-export const chat: ChatService = new LocalChat()
-export const community: CommunityService = new LocalCommunity()
-export const notifications: NotificationService = new LocalNotifs()
-export const orders: OrderService = new LocalOrders()
-export const sell: SellService = new LocalSell()
-/** Creator's public reply under a buyer review (demo: stored locally). Empty text removes it. */
+export const checkout: CheckoutService = {
+  async place(keys, method, coupon) {
+    gate()
+    const items = getDb().cart.filter((c) => keys.includes(c.key))
+    if (!live(...items.map((i) => (i.offerThreadId ? i.offerThreadId : i.productId === 'tip' ? i.creatorId : i.productId)))) return L.checkout.place(keys, method, coupon)
+    const o = await K.checkout(items, method, coupon)
+    update((d) => { d.cart = d.cart.filter((c) => !keys.includes(c.key)); d.orders.unshift(o) })
+    return o
+  },
+}
+export const chat: ChatService = {
+  openWith: (p, prod) => { gate(); return live(p, prod) ? K.openChat(p, prod) : L.chat.openWith(p, prod) },
+  send: (t, text) => (live(t) ? K.sendText(t, text) : L.chat.send(t, text)),
+  sendCard: (t, msg, from) => (live(t) && from !== 'them' ? K.sendCard(t, msg) : L.chat.sendCard(t, msg, from)),
+  sendBrief: (c, p, brief, pkg, amount) => { gate(); return live(c, p) ? K.sendBrief(c, p, brief, pkg) : L.chat.sendBrief(c, p, brief, pkg, amount) },
+  acceptOffer: (t, m) => (live(t) ? K.acceptOffer(t, m) : L.chat.acceptOffer(t, m)),
+  payOffer: (t, m) => L.chat.payOffer(t, m),
+  acceptDelivery: (t, m, stars, review) => (live(t) ? K.acceptDelivery(t, stars, review) : L.chat.acceptDelivery(t, m, stars, review)),
+  requestRevision: (t, m, note) => (live(t) ? K.requestRevision(t, note) : L.chat.requestRevision(t, m, note)),
+  deliverToCustomer: (t) => (live(t) ? K.sendCard(t, { kind: 'file', fileName: 'ไฟล์งาน', text: 'ส่งไฟล์งานแล้ว' }) : L.chat.deliverToCustomer(t)),
+  markRead: (t) => (live(t) ? K.markRead(t) : L.chat.markRead(t)),
+  setFlag: (t, f) => (live(t) ? K.setFlag(t, f) : L.chat.setFlag(t, f)),
+}
+export interface CommunityEdits {
+  editPost(id: string, patch: { text?: string; tag?: Post['tag'] }): Promise<void>
+  deletePost(id: string): Promise<void>
+  editComment(id: string, text: string): Promise<void>
+  deleteComment(id: string): Promise<void>
+}
+export const community: CommunityService & CommunityEdits = {
+  like: (id) => { gate(); return live(id) ? K.likePost(id) : L.community.like(id) },
+  save: (id) => { gate(); return live(id) ? K.savePost(id) : L.community.save(id) },
+  share: (id) => L.community.share(id),
+  comment: (id, text, replyTo) => { gate(); return live(id) ? K.addComment(id, text, replyTo) : L.community.comment(id, text, replyTo) },
+  likeComment: (id) => { gate(); return live(id) ? K.likeComment(id) : L.community.likeComment(id) },
+  create: (p) => { gate(); return cloudOn() ? K.createPost(p) : L.community.create(p) },
+  join: (id) => { gate(); return cloudOn() ? K.joinRoom(id) : L.community.join(id) },
+  vote: (id) => L.community.vote(id),
+  // own posts/comments (screens for these are behind FEATURES.accounts until approved)
+  editPost: async (id, patch) => {
+    if (live(id)) return K.editPost(id, patch)
+    update((d) => { const p = d.posts.find((x) => x.id === id && x.authorId === ME); if (p) { if (patch.text != null) p.text = patch.text; if (patch.tag) p.tag = patch.tag } })
+  },
+  deletePost: async (id) => {
+    if (live(id)) return K.deletePost(id)
+    update((d) => { if (!d.posts.some((x) => x.id === id && x.authorId === ME)) return; d.posts = d.posts.filter((x) => x.id !== id); d.comments = d.comments.filter((c) => c.postId !== id) })
+  },
+  editComment: async (id, text) => {
+    if (live(id)) return K.editComment(id, text)
+    update((d) => { const c = d.comments.find((x) => x.id === id && x.authorId === ME); if (c) c.text = text })
+  },
+  deleteComment: async (id) => {
+    if (live(id)) return K.deleteComment(id)
+    update((d) => {
+      const c = d.comments.find((x) => x.id === id && x.authorId === ME); if (!c) return
+      d.comments = d.comments.filter((x) => x.id !== id)
+      const p = d.posts.find((x) => x.id === c.postId); if (p) p.comments = Math.max(0, p.comments - 1)
+    })
+  },
+}
+export const notifications: NotificationService = {
+  read: (id) => (live(id) ? K.readNotif(id) : L.notifs.read(id)),
+  readAll: async () => { await L.notifs.readAll(); if (cloudOn()) await K.readAllNotifs() },
+}
+export const orders: OrderService & { answerRefund(refundId: string, refund: boolean, note?: string): Promise<void> } = {
+  reportIssue: (t, reason, note) => (live(t.purchaseId ?? t.threadId) ? K.reportIssue(t.purchaseId, t.threadId, reason, note) : L.orders.reportIssue(t, reason, note)),
+  review: (id, stars, text) => (live(id) ? K.writeReview(id, stars, text) : L.orders.review(id, stars, text)),
+  extendReview: (t, m) => L.orders.extendReview(t, m),
+  answerRefund: async (id, refund, note) => {
+    if (live(id)) return K.answerRefund(id, refund, note)
+    update((d) => { const s = d.sales?.find((x) => x.refund?.id === id); if (s?.refund) { s.refund.status = refund ? 'refunded' : 'escalated'; s.refund.note = note ?? s.refund.note; if (refund) s.payout = 'refunded' } })
+  },
+}
+export const sell: SellService = {
+  saveDraft: (d) => L.sell.saveDraft(d),
+  deleteDraft: async (id) => { await L.sell.deleteDraft(id); if (cloudOn()) await deleteServerDraft(id) },
+  publish: async (dr, share, notify) => {
+    if (!cloudOn()) return L.sell.publish(dr, share, notify)
+    if (checkListing(dr).some((c) => !c.ok)) throw new Error('listing incomplete')
+    const pid = await publishListing(dr, share, notify, false)
+    update((d) => { d.drafts = d.drafts.filter((x) => x.id !== dr.id) })
+    return pid
+  },
+  unpublish: (id) => (live(id) ? unpublishListing(id) : L.sell.unpublish(id)),
+  review: (id, pass, reason) => (live(id) ? Promise.resolve() : L.sell.review(id, pass, reason)),
+}
+/** Stories (24 h). Posting screens are behind FEATURES.accounts until approved. */
+export const stories = {
+  post: (file: Blob, kind: 'image' | 'video', caption: string, productId?: string) => { gate(); return K.postStory(file, kind, caption, productId) },
+  remove: (id: string) => (live(id) ? K.deleteStory(id) : Promise.resolve(update((d) => { d.stories = (d.stories ?? []).filter((x) => x.id !== id) }))),
+  view: (id: string) => (live(id) ? K.viewStory(id) : Promise.resolve()),
+}
+/** Account settings (real accounts only). */
+export const account = {
+  saveProfile: K.saveProfile, becomeCreator: K.becomeCreator, changeEmail: K.changeEmail, changePassword: K.changePassword,
+  requestDeletion: K.requestAccountDeletion, cancelDeletion: K.cancelAccountDeletion, requests: K.myAccountRequests,
+}
+/** Library: a purchased file. Real files get a 10-minute link from get-download; sample files stay simulated. */
+export async function fileLink(assetValue: string) { return assetValue.startsWith('cloud:') ? K.downloadUrl(assetValue) : null }
+/** Creator's public reply under a buyer review (demo: stored locally; real reviews: key `review:<id>`). Empty text removes it. */
 export async function replyToReview(key: string, text: string) {
+  if (key.startsWith('review:') && cloudOn()) return K.replyReview(key.slice(7), text)
   update((d) => {
     const r = { ...(d.replies ?? {}) }
     if (text.trim()) r[key] = text.trim().slice(0, 500)

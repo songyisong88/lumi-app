@@ -66,6 +66,11 @@ export function highlightsOf(p: Product): [string, string, string][] {
 }
 
 export function statsOf(p: Product) {
+  if (p.real) {
+    const L0 = layoutOf(p), r = p.real
+    const soldLabel = p.mod?.status === 'pending' ? 'รอตรวจ' : p.mod?.status === 'rejected' ? 'ยังไม่ขึ้นขาย' : r.sales === 0 ? 'เพิ่งลงขาย' : L0 === 'free' ? `โหลดแล้ว ${k(r.sales)}` : L0 === 'hire' ? `จ้างแล้ว ${r.sales} งาน` : `ขายแล้ว ${k(r.sales)}`
+    return { rating: Math.round(r.rating * 10) / 10, reviews: r.reviews, soldLabel, likes: r.likes }
+  }
   const n = parseInt(p.id.replace(/\D/g, '') || '7') + (p.id.startsWith('n') ? 24 : 0) // n01 must not mirror p01
   const rating = p.rating ?? Math.min(5, 4.6 + (n % 4) / 10)
   const reviews = 20 + ((n * 37) % 280)
@@ -81,7 +86,8 @@ export function creatorStats(id: string, followedByMe = false) {
   const works = ALL_PRODUCTS.filter((p) => p.creatorId === id && isLive(p))
   const rated = works.filter((p) => !p.mine)
   const rating = rated.length ? Math.round((rated.reduce((a, p) => a + statsOf(p).rating, 0) / rated.length) * 10) / 10 : 0
-  const followers = (FOLLOWERS[id] ?? 0) + (followedByMe ? 1 : 0)
+  const remote = creatorById(id).followers
+  const followers = remote ?? (FOLLOWERS[id] ?? 0) + (followedByMe ? 1 : 0)
   return { works: works.length, rating, followers, followersLabel: k(followers) }
 }
 const k = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n))

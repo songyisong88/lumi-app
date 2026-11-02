@@ -6,9 +6,13 @@
 import { useSyncExternalStore } from 'react'
 import { seed } from '../data/appSeed'
 import type { DB } from '../data/appTypes'
-import { registerProducts } from '../data/sampleData'
+import { registerProducts, unregisterProduct } from '../data/sampleData'
 
-const KEY = 'lumi_app_db'
+const DEMO_KEY = 'lumi_app_db'
+/** Demo mode keeps the sample persona's data under DEMO_KEY. A signed-in account gets its own
+ *  local cache (lumi_cloud_db:<uid>) that cloud.ts fills from Supabase. */
+let KEY = DEMO_KEY
+let seedFn: () => DB = seed
 // bump when the seed or stored shapes change; older local data is replaced by the new seed
 const VERSION = 6
 type Listener = () => void
@@ -22,7 +26,7 @@ function load(): DB {
       if (d && d.v === VERSION) return d
     }
   } catch { /* corrupted: fall back to seed */ }
-  return { ...seed(), v: VERSION }
+  return { ...seedFn(), v: VERSION }
 }
 
 let state: DB = load()
@@ -45,9 +49,20 @@ export function update(fn: (d: DB) => DB | void) {
 
 export function resetDb() {
   localStorage.removeItem(KEY)
-  state = { ...seed(), v: VERSION }
+  state = { ...seedFn(), v: VERSION }
   listeners.forEach((l) => l())
 }
+
+/** Point the store at another local document (demo persona or a signed-in account). */
+export function switchDb(key: string | null, makeSeed?: () => DB) {
+  for (const p of state.published) unregisterProduct(p.id) // the previous account's works leave the catalog
+  KEY = key ?? DEMO_KEY
+  seedFn = makeSeed ?? seed
+  state = load()
+  registerProducts(state.published)
+  listeners.forEach((l) => l())
+}
+export const dbKey = () => KEY
 
 const subscribe = (l: Listener) => {
   listeners.add(l)

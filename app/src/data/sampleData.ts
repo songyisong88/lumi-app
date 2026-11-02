@@ -31,8 +31,15 @@ export const CREATORS: Creator[] = [
   { id: 'somjai', name: 'คุณสมใจ', avatar: 'av_somjai.jpg' },
 ]
 
-/** The signed-in sample user (โปรไฟล์ / ชุมชน). */
-export const ME = 'fasai'
+/** The signed-in user: the sample creator 'fasai' in demo mode, the account id (uuid) when signed in.
+ *  `let` + ES live bindings: every import sees the new value after setMe(). */
+export let ME = 'fasai'
+export function setMe(id: string) { ME = id }
+
+/** Real accounts (Supabase profiles) seen this session, so creatorById works for them too. */
+const REMOTE_CREATORS = new Map<string, Creator>()
+export function registerCreators(list: Creator[]) { for (const c of list) REMOTE_CREATORS.set(c.id, c) }
+export const isRemoteId = (id?: string) => !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
 
 const img = (src: string, w: number, h: number) => ({ src, w, h })
 
@@ -116,7 +123,9 @@ export const QUICK_FILTERS: { id: string; label: string; match: (p: Product) => 
 /** Only reviewed (or sample) works show in the home feed, search and similar lists. */
 export const isLive = (p: Product) => !p.mod || p.mod.status === 'live'
 
-export const creatorById = (id: string) => CREATORS.find((c) => c.id === id)!
+const UNKNOWN = (id: string): Creator => ({ id, name: 'ผู้ใช้ LUMI', avatar: 'av_somjai.jpg' })
+export const creatorById = (id: string): Creator => CREATORS.find((c) => c.id === id) ?? REMOTE_CREATORS.get(id) ?? UNKNOWN(id)
+export const remoteCreator = (id: string) => REMOTE_CREATORS.get(id)
 export const productById = (id: string) => ALL_PRODUCTS.find((p) => p.id === id)
 /** Add works published locally (sell wizard) to the catalog used by lookups and search. */
 export function registerProducts(list: Product[]) {

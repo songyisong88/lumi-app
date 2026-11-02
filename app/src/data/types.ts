@@ -8,6 +8,10 @@ export interface Creator {
   id: string
   name: string
   avatar: string // file name in public/img
+  /** Real accounts only (Supabase profile). */
+  followers?: number
+  bio?: string
+  handle?: string
 }
 
 export interface Product {
@@ -60,6 +64,8 @@ export interface Product {
   mod?: { status: 'pending' | 'live' | 'rejected'; reason?: string; at: number; share?: boolean }
   /** An edit of a live listing waiting for review. Buyers keep seeing this (old) version until it passes. */
   rev?: { status: 'pending' | 'rejected'; reason?: string; at: number; next: Product }
+  /** Listings from real accounts (Supabase): real counts instead of the sample numbers. */
+  real?: { reviews: number; rating: number; sales: number; likes: number }
 }
 
 /** The 8 product-page layouts (approved product-b). */

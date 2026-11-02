@@ -5,6 +5,7 @@ import { Empty, Toaster } from './components/ui'
 import { FavoritesProvider } from './services/FavoritesContext'
 import { Home } from './pages/Home'
 import { lazy, Suspense, type ComponentType } from 'react'
+import { FEATURES } from './config'
 
 /** Route-level code splitting: Home ships in the main bundle, every other page is its own chunk.
  *  All chunks are prefetched once the browser is idle, so later navigations never wait. */
@@ -33,6 +34,12 @@ const Sell = lz(() => import('./pages/sell/Sell'), 'Sell')
 const Drafts = lz(() => import('./pages/sell/Sell'), 'Drafts')
 const Library = lz(() => import('./pages/library/Library'), 'Library')
 const LibraryItem = lz(() => import('./pages/library/Library'), 'LibraryItem')
+// real-account screens: only routed when FEATURES.accounts is on (off in the live build until approved)
+const SignIn = lz(() => import('./pages/account/Account'), 'SignIn')
+const NewPassword = lz(() => import('./pages/account/Account'), 'NewPassword')
+const AccountSettings = lz(() => import('./pages/account/Account'), 'AccountSettings')
+const ShopOrders = lz(() => import('./pages/account/Account'), 'ShopOrders')
+const NewStory = lz(() => import('./pages/account/Account'), 'NewStory')
 if (typeof window !== 'undefined') {
   const prefetch = () => loaders.forEach((l) => void l().catch(() => {}))
   const idle = (window as Window & { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1200))
@@ -70,6 +77,13 @@ export default function App() {
             <Route path="/community/post/:id" element={<PostDetail />} />
             <Route path="/community/room/:id" element={<Room />} />
             <Route path="/community/activities" element={<Activities />} />
+            {FEATURES.accounts && <>
+              <Route path="/account/login" element={<SignIn />} />
+              <Route path="/account/password" element={<NewPassword />} />
+              <Route path="/account" element={<AccountSettings />} />
+              <Route path="/shop/orders" element={<ShopOrders />} />
+              <Route path="/story/new" element={<NewStory />} />
+            </>}
             <Route path="/sell" element={<Sell />} />
             <Route path="/sell/drafts" element={<Drafts />} />
             <Route path="*" element={<NotFound />} />

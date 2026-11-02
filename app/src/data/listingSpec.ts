@@ -1,3 +1,4 @@
+import { FEATURES } from '../config'
 /**
  * Listing spec: what each product type MUST tell the buyer.
  * One source of truth for (1) the sell wizard fields, (2) the pre-publish auto-check,
@@ -12,7 +13,7 @@ export type Spec = Record<string, SpecValue | undefined>
 export type Step = 'files' | 'details' | 'price' | 'license'
 export type FieldKind = 'text' | 'textarea' | 'chips' | 'multi' | 'toggle' | 'list' | 'files'
 
-export interface UploadedFile { name: string; size: string; scan: 'scan' | 'ok' | 'fail'; pct?: number }
+export interface UploadedFile { name: string; size: string; scan: 'scan' | 'ok' | 'fail'; pct?: number; /** Supabase product_files id (real accounts). */ fileId?: string; reason?: string }
 
 export interface Field {
   id: string
@@ -179,7 +180,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
   course: {
     key: 'course', name: 'คอร์สและอีบุ๊ก', sub: 'บทเรียนวิดีโอ ไฟล์ประกอบ', icon: 'cap', color: '#C2410C', bg: '#FFF0E3', layout: 'course',
     fields: [
-      { id: 'sub', label: 'รูปแบบ', kind: 'chips', step: 'files', options: ['คอร์สวิดีโอ', 'อีบุ๊ก'], required: true },
+      { id: 'sub', label: 'รูปแบบ', kind: 'chips', step: 'files', options: FEATURES.launch ? ['อีบุ๊ก'] : ['คอร์สวิดีโอ', 'อีบุ๊ก'], required: true },
       { id: 'lessons', label: 'สารบัญ (ชื่อตอนหรือบท · ความยาว)', kind: 'list', step: 'files', required: true, min: 2, placeholder: 'เช่น ตอนที่ 1 · ปูพื้น AI ทำภาพสินค้า · 09:30' },
       { ...FILES('ไฟล์เนื้อหา', 'คอร์สวิดีโอ: อัปวิดีโอทุกตอน (หรือรวมเป็น ZIP) · อีบุ๊ก: ไฟล์ PDF หรือ EPUB · แนบไฟล์ประกอบ PDF ZIP ได้'), label: 'ไฟล์เนื้อหา (วิดีโอ / อีบุ๊ก)' },
       { id: 'freeLessons', label: 'เปิดให้ดูหรืออ่านฟรีกี่ตอน', kind: 'chips', step: 'files', options: ['ไม่มี', '1 ตอน', '2 ตอน', '3 ตอน'], required: true },
@@ -315,7 +316,13 @@ const UP: Partial<Record<SellType, { exts: string[]; maxMB: number }>> = {
 }
 export const MAX_FILES = 20
 const VIDEO_EXTS = ['mp4', 'mov', 'webm', 'm4v']
+/** 1.9 GB per file at launch (server: product_files_size). */
+export const LAUNCH_MAX_MB = 1945
 export function uploadRule(t: SellType | null, s?: Spec, fieldId = 'files') {
+  const r = uploadRuleRaw(t, s, fieldId)
+  return FEATURES.launch && r.maxMB > LAUNCH_MAX_MB ? { ...r, maxMB: LAUNCH_MAX_MB } : r
+}
+function uploadRuleRaw(t: SellType | null, s: Spec | undefined, fieldId: string) {
   if (t === 'data' && fieldId === 'sample') return { exts: ['csv', 'json', 'jsonl', 'xlsx', 'txt'], maxMB: 10 }
   if (t === 'course') return str(s?.sub) === 'อีบุ๊ก' ? { exts: ['pdf', 'epub', 'zip'], maxMB: 200 } : { exts: [...VIDEO_EXTS, 'pdf', 'zip'], maxMB: 4096 }
   return (t && UP[t]) || { exts: [] as string[], maxMB: 500 }

@@ -20,7 +20,8 @@ import { useModStatus } from '../../components/ModStatus'
 import s from './Sell.module.css'
 
 const STEPS = ['ประเภท', 'ไฟล์', 'รายละเอียด', 'ราคา', 'สิทธิ์', 'ตัวอย่าง']
-const ORDER = SELL_TYPE_ORDER
+/** launch: the “data” type is closed (server: TYPE_CLOSED) */
+const ORDER = FEATURES.launch ? SELL_TYPE_ORDER.filter((t) => t !== 'data') : SELL_TYPE_ORDER
 const FEE = 0.1
 type Opt = ListingDraft['options'][number]
 const SAMPLE_COVERS: Record<SellType, string[]> = {
@@ -307,14 +308,16 @@ function StepPrice({ d, patch, set }: { d: ListingDraft; patch: (p: Partial<List
     // images: the “ภาพ + พรอมต์” option and “ขายพรอมต์ด้วย” are the same choice
     if (d.type === 'img' && isPromptOpt(opts.find((x) => x.id === id)) && p.on !== undefined) set('sellPrompt', p.on)
   }
+  // launch: free items only for now (server: PAID_SALES_LATER)
+  useEffect(() => { if (FEATURES.launch && d.type !== 'hire' && !d.free) patch({ free: true }) }, [d.type, d.free]) // eslint-disable-line react-hooks/exhaustive-deps
   const setP: SetSpec = (id, v) => {
     set(id, v)
     if (d.type === 'img' && id === 'sellPrompt' && typeof v === 'boolean' && !d.free) patch({ options: opts.map((x) => (isPromptOpt(x) ? { ...x, on: v } : x)) })
   }
   return <>
     <H t="ตั้งราคาและแบบที่ขาย" s="เปิดเฉพาะแบบที่อยากขาย ผู้ซื้อเลือกเองบนหน้าผลงาน" />
-    {d.type === 'hire' ? <p className="hint" style={{ marginTop: 0 }}>งานจ้างต้องตั้งราคาอย่างน้อย 1 แพ็กเกจ · ผู้จ้างจ่ายเมื่อรับข้อเสนอ · เงินโอนให้คุณเมื่อผู้จ้างกดรับงาน หรือครบ 3 วันหลังส่งงาน</p> : <div className={`${s.bx} ${d.free ? s.freeOn : ''}`}>
-      <Row icon="gift" c="#16A34A" bg="#E5F8EC" t="แจกฟรี" sub="ผู้ใช้กดรับได้เลย ยังต้องกรอกข้อมูลให้ครบเหมือนของขาย · สลับกลับเป็นขายได้ทุกเมื่อ" on={d.free} set={(v) => patch({ free: v })} />
+    {d.type === 'hire' ? <p className="hint" style={{ marginTop: 0 }}>{FEATURES.launch ? 'ช่วงเปิดตัว: ผู้จ้างทักแชตและตกลงงานกันก่อน · การชำระเงินผ่าน LUMI จะเปิดภายหลัง · ราคาแพ็กเกจใช้แสดงเป็นราคาเริ่มต้น' : 'งานจ้างต้องตั้งราคาอย่างน้อย 1 แพ็กเกจ · ผู้จ้างจ่ายเมื่อรับข้อเสนอ · เงินโอนให้คุณเมื่อผู้จ้างกดรับงาน หรือครบ 3 วันหลังส่งงาน'}</p> : <div className={`${s.bx} ${d.free ? s.freeOn : ''}`}>
+      <Row icon="gift" c="#16A34A" bg="#E5F8EC" t="แจกฟรี" sub={FEATURES.launch ? 'ช่วงเปิดตัวลงได้เฉพาะผลงานฟรี · การขายแบบชำระเงินจะเปิดภายหลัง' : 'ผู้ใช้กดรับได้เลย ยังต้องกรอกข้อมูลให้ครบเหมือนของขาย · สลับกลับเป็นขายได้ทุกเมื่อ'} on={d.free} set={(v) => (FEATURES.launch ? undefined : patch({ free: v }))} />
       {d.free && FEATURES.tips && <Row icon="coin" c="#B45309" bg="#FFF4DB" t="เปิดรับทิป" sub="ผู้ใช้ให้ทิปได้ตามใจ" on={d.tips} set={(v) => patch({ tips: v })} />}
     </div>}
     {(!d.free || d.type === 'hire') && <>

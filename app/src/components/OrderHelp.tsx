@@ -1,3 +1,4 @@
+import { FEATURES } from '../config'
 import { useEffect, useState } from 'react'
 import { Icon } from './Icon'
 import { Sheet, Stars } from './ui'
@@ -9,6 +10,8 @@ export const ISSUE_DAYS = 7
 const DAY = 86400000
 export const issueOpen = (at: number) => Date.now() - at < ISSUE_DAYS * DAY
 
+/** launch rule: after a download only these reasons can be refunded (server: refund_rules) */
+const AFTER_DOWNLOAD = ['ไฟล์เปิดไม่ได้ หรือเสีย', 'ไม่ตรงกับคำอธิบายหรือภาพตัวอย่าง']
 const REASONS = {
   file: ['ไฟล์เปิดไม่ได้ หรือเสีย', 'ไม่ตรงกับคำอธิบายหรือภาพตัวอย่าง', 'คีย์หรือลิงก์ใช้ไม่ได้', 'ไฟล์ไม่ครบตามรายการ', 'ซื้อซ้ำ หรือกดผิด', 'อื่น ๆ'],
   hire: ['ส่งงานช้าเกินกำหนด · ขอยกเลิกและคืนเงิน', 'งานไม่ตรงบรีฟหรือใบเสนอราคา', 'ครีเอเตอร์ไม่ตอบแชต', 'อื่น ๆ'],
@@ -32,6 +35,7 @@ export function IssueSheet({ open, onClose, purchaseId, threadId, hire = false, 
       <div className="chips" role="radiogroup" aria-label="ปัญหาที่พบ">
         {REASONS[hire ? 'hire' : 'file'].map((r) => <button key={r} role="radio" aria-checked={reason === r} className={`chip ${reason === r ? 'on' : ''}`} onClick={() => setReason(r)}>{r}</button>)}
       </div>
+      {FEATURES.launch && !hire && <p className="hint" style={{ marginTop: 10 }}>หลังดาวน์โหลดแล้ว คืนเงินได้เฉพาะกรณี{AFTER_DOWNLOAD.map((r) => `“${r}”`).join(' หรือ ')} · เปลี่ยนใจหลังดาวน์โหลดคืนเงินไม่ได้</p>}
       <label className="field" style={{ marginTop: 14 }}><span className="flabel">เล่ารายละเอียด{reason === 'อื่น ๆ' ? '' : ' (ไม่บังคับ)'}</span>
         <textarea className="ta" rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น เปิดด้วยโปรแกรมอะไรแล้วขึ้นข้อความอะไร" /></label>
       <div style={{ marginTop: 12, fontSize: 12.5, lineHeight: 1.55, background: '#F6F4FB', borderRadius: 12, padding: '10px 12px' }}>

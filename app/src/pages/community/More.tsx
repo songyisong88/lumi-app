@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { Av, Empty, Img, SampleNote, TopBar } from '../../components/ui'
+import { Av, Empty, Img, SampleNote, Sheet, TopBar } from '../../components/ui'
+import { FEATURES } from '../../config'
 import { ROOMS } from '../../data/appSeed'
 import { ME, creatorById, imgUrl } from '../../data/sampleData'
 import { CHALLENGE, LEADERBOARD, MY_RANK, challengeEnd } from '../../data/searchData'
@@ -29,6 +30,9 @@ export function PostDetail() {
   const p = db.posts.find((x) => x.id === id)
   const [text, setText] = useState('')
   const [reply, setReply] = useState<string>()
+  const nav = useNavigate()
+  const [own, setOwn] = useState<null | 'menu' | 'edit'>(null)
+  const [draft, setDraft] = useState('')
   useEffect(() => { if (hash === '#c') setTimeout(() => document.getElementById('cmt-in')?.focus({ preventScroll: true }), 500) }, [hash])
   if (!p) return <><TopBar title="โพสต์" /><Empty icon="comment" title="ไม่พบโพสต์นี้" text="อาจถูกลบไปแล้ว" action={<Link to="/community" className="btn btn-o btn-sm">กลับไปที่ชุมชน</Link>} /></>
   const cs = db.comments.filter((c) => c.postId === id)
@@ -36,7 +40,7 @@ export function PostDetail() {
   const send = (v = text) => { const x = v.trim(); if (!x) return; community.comment(id, x, reply); setText(''); setReply(undefined); toast('ส่งความคิดเห็นแล้ว') }
   return (
     <div className="has-bar">
-      <TopBar title="โพสต์" right={<button className="tb-btn" onClick={() => sharePost(id)} aria-label="แชร์"><Icon name="share" size={20} /></button>} />
+      <TopBar title="โพสต์" right={<>{FEATURES.accounts && p.authorId === ME && <button className="tb-btn" onClick={() => setOwn('menu')} aria-label="จัดการโพสต์"><Icon name="dots" size={20} /></button>}<button className="tb-btn" onClick={() => sharePost(id)} aria-label="แชร์"><Icon name="share" size={20} /></button></>} />
       <div className="narrow">
         <PostCard p={p} full />
         <div className={s.cmH}>ความคิดเห็น {cs.length}<span>เกี่ยวข้องที่สุด</span></div>
@@ -57,6 +61,15 @@ export function PostDetail() {
           <button className="btn btn-xs btn-p" disabled={!text.trim()} onClick={() => send()}>ส่ง</button>
         </div>
       </div>
+      {FEATURES.accounts && p.authorId === ME && <>
+        <Sheet open={own === 'menu'} onClose={() => setOwn(null)} title="โพสต์ของฉัน">
+          <button className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }} onClick={() => { setDraft(p.text); setOwn('edit') }}><Icon name="edit" size={20} /><span className="grow">แก้ไขข้อความ<small>คนอ่านจะเห็นว่า “แก้ไขแล้ว”</small></span></button>
+          <button className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)', color: '#DC2626' }} onClick={async () => { if (!confirm('ลบโพสต์นี้? ความคิดเห็นทั้งหมดจะหายไปด้วย')) return; try { await community.deletePost(id); setOwn(null); toast('ลบโพสต์แล้ว'); nav('/community', { replace: true }) } catch (e) { toast((e as Error).message) } }}><Icon name="trash" size={20} color="#DC2626" /><span className="grow">ลบโพสต์<small>ลบแล้วกู้คืนไม่ได้</small></span></button>
+        </Sheet>
+        <Sheet open={own === 'edit'} onClose={() => setOwn(null)} title="แก้ไขโพสต์" footer={<button className="btn btn-p btn-block" disabled={!draft.trim() || draft === p.text} onClick={async () => { try { await community.editPost(id, { text: draft.trim() }); setOwn(null); toast('บันทึกแล้ว') } catch (e) { toast((e as Error).message) } }}>บันทึก</button>}>
+          <textarea className="ta" rows={6} value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="ข้อความโพสต์" maxLength={2000} />
+        </Sheet>
+      </>}
     </div>
   )
 }
@@ -70,7 +83,10 @@ function Cmt({ c, onReply }: { c: ReturnType<typeof useDb>['comments'][number]; 
       <Av src={a.avatar} size={34} />
       <div className={s.cmb}>
         <div className={s.cmBubble}><b>{a.name}{c.badge === 'author' && <span className="pill pill-p">ผู้เขียน</span>}{c.badge === 'buyer' && <span className="pill pill-g">ซื้อแล้ว</span>}</b><p>{c.text}</p></div>
-        <div className={s.cmA}><span>{ago(c.at)}</span><button className={liked ? s.on : ''} onClick={() => community.likeComment(c.id)}><Icon name="heart" size={13} fill={liked ? '#F0508A' : 'none'} color={liked ? '#F0508A' : 'currentColor'} />{c.likes}</button><button onClick={onReply}>ตอบกลับ</button></div>
+        <div className={s.cmA}><span>{ago(c.at)}</span><button className={liked ? s.on : ''} onClick={() => community.likeComment(c.id)}><Icon name="heart" size={13} fill={liked ? '#F0508A' : 'none'} color={liked ? '#F0508A' : 'currentColor'} />{c.likes}</button><button onClick={onReply}>ตอบกลับ</button>{FEATURES.accounts && c.authorId === ME && <>
+          <button onClick={async () => { const t = prompt('แก้ไขความคิดเห็น', c.text); if (t == null || !t.trim() || t === c.text) return; try { await community.editComment(c.id, t.trim()); toast('บันทึกแล้ว') } catch (e) { toast((e as Error).message) } }}>แก้ไข</button>
+          <button onClick={async () => { if (!confirm('ลบความคิดเห็นนี้?')) return; try { await community.deleteComment(c.id); toast('ลบแล้ว') } catch (e) { toast((e as Error).message) } }}>ลบ</button>
+        </>}</div>
       </div>
     </div>
   )

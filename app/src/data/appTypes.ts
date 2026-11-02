@@ -38,6 +38,9 @@ export interface Purchase {
   issue?: Issue
   /** Buyer's own review of this purchase (editable). */
   review?: { stars: number; text: string; at: number }
+  /** Supabase ids (real accounts only). */
+  orderItemId?: string
+  reviewId?: string
 }
 
 export interface Asset { kind: 'file' | 'key' | 'prompt' | 'link'; title: string; value: string; size?: string }
@@ -69,6 +72,8 @@ export interface Message {
   linkLabel?: string
   /** Delivery: buyer asked for 3 more days to check the work. */
   extended?: boolean
+  /** Supabase offer id (quotes from real accounts). */
+  offerId?: string
 }
 
 export interface Thread {
@@ -93,6 +98,8 @@ export interface Thread {
   pinned?: boolean
   muted?: boolean
   issue?: Issue
+  /** Supabase hire job (real accounts only). */
+  jobId?: string
 }
 
 export const HIRE_STEPS = ['บรีฟ', 'ใบเสนอราคา', 'ชำระเงิน', 'กำลังทำ', 'ส่งงาน', 'รีวิว'] as const
@@ -144,4 +151,22 @@ export interface DB {
   missions: string[]
   /** creator replies to reviews, key `${productId}:${reviewIndex}` */
   replies?: Record<string, string>
+  /** Real reviews of real listings (Supabase), by product id. */
+  cloudReviews?: Record<string, CloudReview[]>
+  /** Creator shop: items other people bought from me (real accounts: from Supabase). */
+  sales?: Sale[]
+  /** Stories I posted (demo keeps them here; real accounts load them from Supabase). */
+  stories?: UserStory[]
 }
+
+export interface Sale {
+  id: string; orderNo: string; at: number; buyerId: string; productId?: string; title: string; optionLabel?: string
+  gross: number; fee: number; net: number
+  /** held = waiting (hire: until the buyer accepts; others: until the refund window ends), released = in the next payout, paid_out, refunded, disputed */
+  payout: 'held' | 'released' | 'paid_out' | 'refunded' | 'disputed'
+  releaseAt?: number; threadId?: string; hire?: boolean
+  refund?: { id: string; status: 'open' | 'refunded' | 'declined' | 'escalated'; reason: string; note: string; at: number }
+}
+export interface UserStory { id: string; authorId: string; media: string; kind: 'image' | 'video'; caption: string; at: number; expires: number; views: number; productId?: string }
+
+export interface CloudReview { id: string; authorId: string; stars: number; text: string; at: number; reply?: string }
