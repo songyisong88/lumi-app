@@ -56,6 +56,8 @@ export interface Product {
   spec?: import('./listingSpec').Spec
   /** The wizard draft this listing was published from (minus covers), so the seller can edit it later. */
   listing?: Omit<import('./listingSpec').ListingDraft, 'covers'>
+  /** Listing review (A2). Absent = live (sample works). pending = รอตรวจ, rejected = ไม่ผ่าน (with reason). */
+  mod?: { status: 'pending' | 'live' | 'rejected'; reason?: string; at: number; share?: boolean }
 }
 
 /** The 8 product-page layouts (approved product-b). */

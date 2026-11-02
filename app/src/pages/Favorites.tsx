@@ -2,17 +2,17 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { MasonryFeed } from '../components/MasonryFeed'
-import { ALL_PRODUCTS, TYPES, TYPE_ORDER } from '../data/sampleData'
-import type { TypeKey } from '../data/types'
+import { ALL_PRODUCTS } from '../data/sampleData'
+import { SELL_TYPE_ORDER, SPECS, sellTypeOf, type SellType } from '../data/listingSpec'
 import { useFavorites } from '../services/FavoritesContext'
 import s from './Favorites.module.css'
 
 export function Favorites() {
   const nav = useNavigate()
   const { ids } = useFavorites()
-  const [type, setType] = useState<TypeKey | 'all'>('all')
+  const [type, setType] = useState<SellType | 'all'>('all')
   const favs = ids.map((id) => ALL_PRODUCTS.find((p) => p.id === id)).filter((p) => !!p)
-  const shown = favs.filter((p) => type === 'all' || p.type === type)
+  const shown = favs.filter((p) => type === 'all' || sellTypeOf(p) === type)
 
   return (
     <>
@@ -24,9 +24,9 @@ export function Favorites() {
       </header>
       <main className="wrap page">
         <div className={`hscroll ${s.fl}`}>
-          {(['all', ...TYPE_ORDER] as const).map((t) => (
+          {(['all', ...SELL_TYPE_ORDER.filter((t) => favs.some((p) => sellTypeOf(p) === t))] as const).map((t) => (
             <button key={t} className={`${s.chip} ${type === t ? s.on : ''}`} onClick={() => setType(t)}>
-              {t === 'all' ? 'ทั้งหมด' : TYPES[t].name}
+              {t === 'all' ? 'ทั้งหมด' : SPECS[t].name}
             </button>
           ))}
         </div>

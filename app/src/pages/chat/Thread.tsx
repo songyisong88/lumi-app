@@ -43,6 +43,7 @@ export function Thread() {
   if (!t) return <><TopBar title="แชต" /><Empty icon="chat" title="ไม่พบแชตนี้" action={<Link to="/chat" className="btn btn-o btn-sm">กลับไปที่แชต</Link>} /></>
   const c = creatorById(t.partnerId)
   const bought = t.role === 'creator' && !t.hire ? db.purchases.find((x) => x.threadId === id && x.price > 0 && !x.issue && issueOpen(x.at)) : undefined
+  const lib = t.role === 'creator' ? db.purchases.filter((x) => x.threadId === id) : []
   const hirePaid = t.role === 'creator' && t.hire && (t.step ?? 0) >= 2 && (t.step ?? 0) < 5 && !!t.amount && !t.issue
   const p = t.productId ? productById(t.productId) : undefined
   const send = (v = text) => { const x = v.trim(); if (!x) return; chat.send(id, x); setText('') }
@@ -129,7 +130,8 @@ export function Thread() {
 
       {/* C: files & keys */}
       <Sheet open={sheet === 'files'} onClose={() => setSheet(null)} title="ไฟล์และคีย์" sub={`จากแชตกับ ${c.name}`} tall>
-        {assets.length === 0 ? <Empty icon="file" title="ยังไม่มีไฟล์หรือคีย์" text="หลังชำระเงิน ไฟล์และคีย์จะรวมไว้ที่นี่ เปิดดูได้ตลอด" /> : (
+        {lib.length > 0 && <Link to={lib.length === 1 ? `/library/${lib[0].id}` : '/library'} className="list-row" style={{ margin: '0 -16px 8px', width: 'calc(100% + 32px)' }} data-thread-library><Icon name="box" size={20} color="var(--p)" /><span className="grow"><b>เปิดคลังของที่ซื้อ</b><small>ไฟล์ คีย์ ลิงก์ ใบเสร็จ ของ {lib.length} รายการจากแชตนี้</small></span><Icon name="chev" size={16} color="var(--mut)" /></Link>}
+        {assets.length === 0 ? (lib.length ? null : <Empty icon="file" title="ยังไม่มีไฟล์หรือคีย์" text="หลังชำระเงิน ไฟล์และคีย์จะอยู่ในคลังของที่ซื้อ เปิดดูได้ตลอด" />) : (
           <div className={s.assets}>
             {(['key', 'file', 'delivery', 'coupon'] as const).map((k) => {
               const list = assets.filter((m) => m.kind === k)
@@ -215,7 +217,7 @@ function Bubble({ m, t, fresh, onPay, onReview, onRevise }: { m: Message; t: T; 
   const time = <span className={s.tm}>{clock(m.at)}</span>
   switch (m.kind) {
     case 'typing': return <div className={`${s.b} ${s.them} bubble-in`}><div className={s.typing}><i /><i /><i /></div></div>
-    case 'system': return <div className={`${s.sys} ${fresh ? 'bubble-in' : ''}`}><Icon name="shield" size={13} color="#15803D" />{m.text}</div>
+    case 'system': return <div className={`${s.sys} ${fresh ? 'bubble-in' : ''}`}><Icon name="shield" size={13} color="#15803D" />{m.text}{m.link && <Link to={m.link} className={s.sysLink} data-sys-link>{m.linkLabel ?? 'เปิด'} ›</Link>}</div>
     case 'sticker': return <div className={cls}><div className={s.sticker}>{m.text}</div>{time}</div>
     case 'text': return <div className={cls}>{m.image && <Img src={m.image} className={s.pic} />}{m.text && <div className={s.tx}>{m.text}</div>}{time}</div>
     case 'product': {

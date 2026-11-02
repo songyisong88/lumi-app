@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { TYPES, creatorById, imgUrl } from '../data/sampleData'
+import { creatorById, imgUrl } from '../data/sampleData'
+import { typeOf } from '../data/listingSpec'
 import type { Product } from '../data/types'
 import { HeartButton } from './HeartButton'
 import { Icon } from './Icon'
@@ -10,7 +11,7 @@ const ratioOf = (p: Product) => p.ratio ?? (p.image ? `${p.image.w}/${p.image.h}
 
 function TypeTag({ p }: { p: Product }) {
   return (
-    <span className={s.tag}><i style={{ background: TYPES[p.type].color }} />{p.label ?? TYPES[p.type].name}</span>
+    <span className={s.tag}><i style={{ background: typeOf(p).color }} />{p.label ?? typeOf(p).name}</span>
   )
 }
 

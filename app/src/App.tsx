@@ -17,6 +17,7 @@ import { Community } from './pages/community/Community'
 import { Activities, PostDetail, Room } from './pages/community/More'
 import { Compose } from './pages/community/Compose'
 import { Drafts, Sell } from './pages/sell/Sell'
+import { Library, LibraryItem } from './pages/library/Library'
 
 function NotFound() {
   return <div style={{ paddingTop: 80 }}><Empty icon="search" title="ไม่พบหน้านี้" text="ลิงก์อาจผิดหรือหน้านี้ถูกย้ายแล้ว" action={<Link to="/" className="btn btn-p btn-sm">กลับหน้าแรก</Link>} /></div>
@@ -39,6 +40,8 @@ export default function App() {
             <Route path="/chat" element={<Inbox />} />
             <Route path="/chat/:id" element={<Thread />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/library" element={<Library />} />
+            <Route path="/library/:id" element={<LibraryItem />} />
             <Route path="/creator/:id" element={<CreatorPage />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/community" element={<Community />} />

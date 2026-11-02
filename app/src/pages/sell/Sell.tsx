@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Empty, Img, SampleNote, Sheet, Toggle, TopBar } from '../../components/ui'
-import { licRows, presetRows, MAX_FILES, SPECS, uploadRule, arr, checkListing, completion, filesOf, on, str, visible, sellTypeOf, specOf } from '../../data/listingSpec'
+import { licRows, presetRows, MAX_FILES, SPECS, uploadRule, arr, checkListing, completion, filesOf, on, str, visible, sellTypeOf, specOf, SELL_TYPE_ORDER } from '../../data/listingSpec'
 import type { Field, ListingDraft, SellType, Spec, SpecValue, Step, UploadedFile } from '../../data/listingSpec'
+import { CATEGORIES, childrenOf } from '../../data/searchData'
 import { baht, ME, productById } from '../../data/sampleData'
 import { creatorStats, heroOf, optionsOf } from '../../data/productExtras'
 import { draftToProduct, sell } from '../../services/api'
@@ -14,10 +15,11 @@ import { ago } from '../../utils/time'
 import { ProductView } from '../product/ProductView'
 import { PRICE_OPTS } from '../../data/sellDefaults'
 import { FEATURES } from '../../config'
+import { useModStatus } from '../../components/ModStatus'
 import s from './Sell.module.css'
 
 const STEPS = ['ประเภท', 'ไฟล์', 'รายละเอียด', 'ราคา', 'สิทธิ์', 'ตัวอย่าง']
-const ORDER: SellType[] = ['img', 'tpl', 'media', 'sw', 'game', 'bot', 'skill', 'data', 'course', 'font', 'hire']
+const ORDER = SELL_TYPE_ORDER
 const FEE = 0.1
 type Opt = ListingDraft['options'][number]
 const SAMPLE_COVERS: Record<SellType, string[]> = {
@@ -191,7 +193,7 @@ export function Sell() {
         {d.step > 0 ? <button className="btn btn-o" onClick={() => go(d.step - 1)}>{d.step === 5 ? 'แก้ไข' : 'ย้อนกลับ'}</button> : <span />}
         {d.step < 5
           ? <button className="btn btn-p" style={{ flex: 1 }} disabled={!d.type} onClick={() => go(d.step + 1)}>ถัดไป · {STEPS[d.step + 1]}{d.step > 0 && stepMissing(d.step) > 0 && <span className={s.miss}>ขาด {stepMissing(d.step)}</span>}</button>
-          : <button className="btn btn-p" style={{ flex: 1 }} disabled={busy} onClick={() => publish()}>{busy ? 'กำลังลงขาย…' : missing.length ? `ยังขาด ${missing.length} อย่าง` : d.publishedId && productById(d.publishedId) ? 'บันทึกการแก้ไข' : d.free && d.type !== 'hire' ? 'แจกฟรีเลย' : 'ลงขายเลย'}</button>}
+          : <button className="btn btn-p" style={{ flex: 1 }} disabled={busy} onClick={() => publish()}>{busy ? 'กำลังลงขาย…' : missing.length ? `ยังขาด ${missing.length} อย่าง` : d.publishedId && productById(d.publishedId) ? productById(d.publishedId)?.mod?.status === 'rejected' ? 'ส่งตรวจใหม่' : 'บันทึกการแก้ไข' : d.free && d.type !== 'hire' ? 'แจกฟรีเลย' : 'ลงขายเลย'}</button>}
       </div>
       <Sheet open={payout} onClose={() => setPayout(false)} title="ก่อนรับเงินจากการขายจริง" sub="ยืนยันตัวตนและผูกบัญชีรับเงิน · เร็ว ๆ นี้"
         footer={<button className="btn btn-p btn-block" onClick={() => { localStorage.setItem(PAYOUT_ACK, '1'); setPayout(false); publish(true) }}>รับทราบ ลงขายต่อ</button>}>
@@ -227,6 +229,7 @@ function StepType({ d, pick }: { d: ListingDraft; pick: (k: SellType) => void })
         </button>
       ) })}
     </div>
+    {d.type && SPECS[d.type] && <div className={s.bx} style={{ marginTop: 12 }} data-type-cats><div className={s.row}><span className={s.ri} style={{ background: SPECS[d.type].bg }}><Icon name="grid" size={18} color={SPECS[d.type].color} /></span><span className="grow"><b>หมวดบนหน้าค้นหา</b><small>{childrenOf(d.type).map((k) => CATEGORIES[k].name).join(' · ')}</small></span></div></div>}
     <div className={s.bx} style={{ marginTop: 12 }}><div className={s.row}><span className={s.ri} style={{ background: '#E5F8EC' }}><Icon name="gift" size={18} color="#16A34A" /></span><span className="grow"><b>อยากแจกฟรี?</b><small>เปิดได้ในขั้นราคา ทุกประเภท</small></span></div></div>
   </>
 }
@@ -406,7 +409,7 @@ function Row({ icon, c, bg, t, sub, on: v, set }: { icon: string; c: string; bg:
 function CheckList({ checks, go, compact }: { checks: ReturnType<typeof checkListing>; go: (n: number) => void; compact?: boolean }) {
   const miss = checks.filter((c) => !c.ok)
   const list = compact ? miss : checks
-  if (compact && !miss.length) return <div className={s.allOk}><span className="ok-ic"><Icon name="check" size={14} stroke={3} /></span>ตรวจอัตโนมัติผ่านครบ {checks.length} ข้อ พร้อมลงขาย</div>
+  if (compact && !miss.length) return <div className={s.allOk}><span className="ok-ic"><Icon name="check" size={14} stroke={3} /></span>ตรวจอัตโนมัติผ่านครบ {checks.length} ข้อ พร้อมส่งให้ทีม LUMI ตรวจก่อนขึ้นขาย</div>
   return (
     <div className={compact ? s.ckC : s.ck}>
       {compact && <b className={s.ckH}>ยังขาด {miss.length} อย่างก่อนลงขาย</b>}
@@ -425,17 +428,23 @@ function Success({ id, d, share, notify, onNext, edited }: { id: string; d: List
   const nav = useNavigate()
   const p = draftToProduct(d, id)
   const opts = p.options ?? []
+  const mod = useModStatus(id)
+  const [reviewed] = useState(() => mod?.status === 'pending')
+  const pending = mod?.status === 'pending', passed = reviewed && mod?.status === 'live'
   return (
     <div className={`page has-bar ${s.page}`}>
       <TopBar title="" back={false} right={<button className="tb-btn" onClick={() => nav('/profile?mode=creator', { replace: true })} aria-label="ปิด"><Icon name="x" size={22} /></button>} />
       <div className={`narrow ${s.okp}`}>
-        <div className={`${s.okBg} pop-in`}><Icon name="check" size={48} color="#fff" stroke={3} /></div>
-        <h2 className="rise">{edited ? 'อัปเดตผลงานแล้ว!' : d.free && d.type !== 'hire' ? 'แจกฟรีแล้ว!' : 'ลงขายแล้ว!'}</h2>
-        <p className="rise" style={{ '--i': 1 } as React.CSSProperties}>ผ่านการตรวจอัตโนมัติเบื้องต้น ขึ้นหน้าร้าน ฟีด และหน้าค้นหาแล้ว · LUMI สุ่มตรวจและลบได้ถ้าผิดกฎ</p>
+        <div className={`${s.okBg} pop-in`} style={pending ? { background: 'linear-gradient(135deg,#F59E0B,#B45309)' } : undefined}><Icon name={pending ? 'clock' : 'check'} size={48} color="#fff" stroke={3} /></div>
+        <h2 className="rise" data-success={pending ? 'pending' : passed || !edited ? 'live' : 'edited'}>{pending ? 'ส่งตรวจแล้ว!' : passed ? d.free && d.type !== 'hire' ? 'แจกฟรีแล้ว · ผ่านการตรวจ' : 'ลงขายแล้ว · ผ่านการตรวจ' : 'อัปเดตผลงานแล้ว!'}</h2>
+        <p className="rise" style={{ '--i': 1 } as React.CSSProperties}>{pending ? 'ทีม LUMI ตรวจทุกชิ้นก่อนขึ้นขาย ปกติไม่เกิน 24 ชม. (ตัวอย่างนี้ใช้เวลาราว 20 วินาที) · ระหว่างรอ ผลงานยังไม่ขึ้นหน้าแรกและหน้าค้นหา ผลตรวจจะแจ้งในการแจ้งเตือน' : passed ? 'ขึ้นหน้าร้าน ฟีด และหน้าค้นหาแล้ว · ถ้ามีคนรายงานว่าผิดกฎ ทีม LUMI จะตรวจซ้ำ' : 'การแก้ไขมีผลทันที · ถ้ามีคนรายงานว่าผิดกฎ ทีม LUMI จะตรวจซ้ำ'}</p>
+        {reviewed && <div className="rise" data-mod-steps style={{ '--i': 1, display: 'flex', justifyContent: 'center', gap: 6, fontSize: 12, margin: '4px 0 10px' } as React.CSSProperties}>
+          {['ส่งตรวจ', 'รอตรวจ', 'ขึ้นขาย'].map((x, i) => { const done = i === 0 || (i === 1 && !pending) || (i === 2 && passed); const cur = (i === 1 && pending) || (i === 2 && passed); return <span key={x} className={`pill ${done ? 'pill-g' : cur ? 'pill-w' : ''}`}>{done && <Icon name="check" size={11} stroke={3} />}{x}</span> })}
+        </div>}
         <Link to={`/product/${id}`} className={`${s.mini} rise press`} style={{ '--i': 2 } as React.CSSProperties}><Img src={p.covers?.[0] ?? p.image?.src} className={s.drbI} /><span className="grow"><b className="ell">{p.title}</b><small>{p.price === 0 ? 'แจกฟรี' : `${opts.length} แบบ · เริ่ม ${baht(p.price)}`}</small></span><Icon name="chev" size={18} /></Link>
         <div className={`${s.bx} rise`} style={{ '--i': 3, textAlign: 'left' } as React.CSSProperties}>
-          <div className={s.row}><span className={s.ri} style={{ background: '#F3ECFF' }}><Icon name="share" size={18} color="#6C2BD9" /></span><span className="grow"><b>แชร์ลงชุมชน LUMI</b><small>{share ? 'โพสต์แล้ว พร้อมลิงก์สินค้า' : 'ไม่ได้แชร์'}</small></span>{share && <span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>}</div>
-          <div className={s.row}><span className={s.ri} style={{ background: '#FDEBF2' }}><Icon name="megaphone" size={18} color="#D6336C" /></span><span className="grow"><b>แจ้งผู้ติดตาม {creatorStats(ME).followersLabel} คน</b><small>{notify ? 'จำลองการแจ้งแล้ว (ทดลอง)' : 'ไม่ได้แจ้ง'}</small></span>{notify && <span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>}</div>
+          <div className={s.row}><span className={s.ri} style={{ background: '#F3ECFF' }}><Icon name="share" size={18} color="#6C2BD9" /></span><span className="grow"><b>แชร์ลงชุมชน LUMI</b><small>{share ? pending ? 'จะโพสต์ให้เมื่อผ่านการตรวจ' : 'โพสต์แล้ว พร้อมลิงก์ผลงาน' : 'ไม่ได้แชร์'}</small></span>{share && !pending && <span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>}</div>
+          <div className={s.row}><span className={s.ri} style={{ background: '#FDEBF2' }}><Icon name="megaphone" size={18} color="#D6336C" /></span><span className="grow"><b>แจ้งผู้ติดตาม {creatorStats(ME).followersLabel} คน</b><small>{notify ? pending ? 'จะแจ้งเมื่อผ่านการตรวจ (ทดลอง)' : 'จำลองการแจ้งแล้ว (ทดลอง)' : 'ไม่ได้แจ้ง'}</small></span>{notify && !pending && <span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>}</div>
         </div>
         <SampleNote>โหมดทดลอง · เก็บในเครื่องนี้เท่านั้น</SampleNote>
       </div>

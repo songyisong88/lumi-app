@@ -130,3 +130,4 @@
 .stk button:hover{background:var(--soft)}
 .rate{display:flex;justify-content:center;gap:4px;margin:4px 0}
 @media(min-width:1024px){.th{max-width:860px;margin:0 auto;border-left:1px solid var(--line);border-right:1px solid var(--line)}}
+.sysLink{flex:none;align-self:center;color:var(--p);font-weight:700;white-space:nowrap;margin-left:2px}

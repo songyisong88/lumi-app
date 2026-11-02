@@ -16,6 +16,7 @@ import { WriteReviewSheet } from '../../components/OrderHelp'
 import { ReportSheet } from '../../components/Report'
 import { sell } from '../../services/api'
 import { FEATURES } from '../../config'
+import { ModBanner } from '../../components/ModStatus'
 import s from './Product.module.css'
 
 type Sec = 'over' | 'get' | 'how' | 'rev' | 'sim'
@@ -42,7 +43,6 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
   const mine = p.creatorId === ME
   const [busy, setBusy] = useState(false)
   const [sheet, setSheet] = useState<null | 'brief' | 'tip' | 'free' | 'trial' | 'lesson' | 'share' | 'sendto' | 'added' | 'manage' | 'report'>(null)
-  const [freeThread, setFreeThread] = useState('')
   const root = useRef<HTMLDivElement>(null)
   const [sec, setSec] = useState<Sec>('over')
   const [solid, setSolid] = useState(false)
@@ -90,8 +90,6 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
     const key = await cart.add({ productId: p.id, price: 0, creatorId: p.creatorId, optionLabel: 'ของฟรี', direct: true })
     await checkout.place([key], 'ฟรี')
     setBusy(false)
-    const th = getDb().threads.find((x) => x.partnerId === p.creatorId && x.productId === p.id)
-    setFreeThread(th?.id ?? '')
     setSheet('free')
   }
 
@@ -106,7 +104,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
   // bottom bar per layout (approved product-b “bar”)
   const bar = (() => {
     if (mine && !preview) return { sub: 'ผลงานของคุณ', main: <button className="btn btn-d" onClick={() => setSheet('manage')}>จัดการผลงาน</button>, sec: <button className="btn btn-o btn-sm" onClick={() => setSheet('share')}><Icon name="share" size={16} />แชร์</button> }
-    if (owned && L !== 'hire') return { sub: `ซื้อแล้ว · #${owned.orderNo}`, main: <button className="btn btn-p" onClick={() => owned.threadId ? nav(`/chat/${owned.threadId}`) : openChat()}><Icon name="download" size={18} color="#fff" />เปิดไฟล์และคีย์</button>, sec: null }
+    if (owned && L !== 'hire') return { sub: `ซื้อแล้ว · #${owned.orderNo}`, main: <button className="btn btn-p" onClick={() => nav(`/library/${owned.id}`)}><Icon name="download" size={18} color="#fff" />เปิดในคลังของที่ซื้อ</button>, sec: null }
     switch (L) {
       case 'free': return { sub: 'ของฟรี', main: <button className="btn btn-p" disabled={busy} onClick={getFree}>{busy ? 'กำลังเตรียมไฟล์…' : 'ดาวน์โหลดฟรี'}</button>, sec: FEATURES.tips ? <button className="btn btn-o btn-sm" onClick={() => (guard() ? null : setSheet('tip'))}><Icon name="gift" size={16} color="#B45309" />ให้ทิป</button> : null }
       case 'hire': return { sub: freeHire ? 'รับงานฟรี' : `แพ็กเกจ${opt?.label ?? ''}`, main: <button className="btn btn-p" onClick={() => (guard() ? null : setSheet('brief'))}>{freeHire ? 'ส่งบรีฟขอรับงานฟรี' : 'ส่งบรีฟขอใบเสนอราคา'}</button>, sec: <button className="btn btn-o btn-sm" onClick={openChat} aria-label="แชตถามก่อน" title="แชตถามก่อน"><Icon name="chat" size={18} color="var(--p)" /></button> }
@@ -147,6 +145,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
       </div>
 
       <div className={s.pd}>
+        {!preview && mine && <ModBanner id={p.id} />}
         <h1 className={s.ttl}>{p.title}</h1>
         <div className={s.rt}><Icon name="star" size={13} stroke={0} fill="#F5A524" /><b>{st.reviews ? st.rating : 'ใหม่'}</b>{st.reviews > 0 && <span>({st.reviews} รีวิว)</span>}<span>·</span><span>{st.soldLabel}</span></div>
         <div className={s.pr}>
@@ -276,8 +275,8 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
         footer={<><button className="btn btn-o" style={{ flex: 1 }} onClick={() => setSheet(null)}>ดูต่อ</button><button className="btn btn-p" style={{ flex: 1 }} onClick={() => { setSheet(null); nav('/cart') }}>ไปที่ตะกร้า ({inCart})</button></>}>
         <div className={s.addedRow}><Img src={gallery[0]} className={s.addedImg} /><div><b className="ell2">{p.title}</b><small className="muted">{opt?.label}</small></div><b>{baht(opt?.price ?? p.price)}</b></div>
       </Sheet>
-      <Sheet open={sheet === 'free'} onClose={() => setSheet(null)} title="ได้รับแล้ว 🎉" sub="ไฟล์ส่งเข้าแชตกับครีเอเตอร์ และอยู่ใน โปรไฟล์ › ซื้อแล้ว"
-        footer={<>{FEATURES.tips && <button className="btn btn-o" style={{ flex: 1 }} onClick={() => { setSheet(null); setSheet('tip') }}>ให้ทิป</button>}<button className="btn btn-p" style={{ flex: 1 }} onClick={() => { setSheet(null); nav(freeThread ? `/chat/${freeThread}` : '/chat') }}>เปิดไฟล์</button></>}>
+      <Sheet open={sheet === 'free'} onClose={() => setSheet(null)} title="ได้รับแล้ว 🎉" sub="ไฟล์อยู่ในคลังของที่ซื้อแล้ว · เปิดโหลดซ้ำได้ตลอด"
+        footer={<>{FEATURES.tips && <button className="btn btn-o" style={{ flex: 1 }} onClick={() => { setSheet(null); setSheet('tip') }}>ให้ทิป</button>}<button className="btn btn-p" style={{ flex: 1 }} data-open-library onClick={() => { const b = getDb().purchases.find((x) => x.productId === p.id); setSheet(null); nav(b ? `/library/${b.id}` : '/library') }}>เปิดคลังของที่ซื้อ</button></>}>
         <div className={s.box}>{pc.deliver.slice(0, 4).map((d, i) => <div key={i} className={s.ok}><span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>{d}</div>)}</div>
       </Sheet>
       <Sheet open={sheet === 'trial'} onClose={() => setSheet(null)} title={`ทดลองฟรี ${str(spec.trialDays)}`} sub="สแกนด้วยมือถือเพื่อเปิดในแอป (ตัวอย่าง)">

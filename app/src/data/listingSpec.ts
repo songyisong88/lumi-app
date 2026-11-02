@@ -131,12 +131,12 @@ export const SPECS: Record<SellType, TypeSpec> = {
       { id: 'howOpen', label: 'วิธีเปิดและแก้ไข (ทีละขั้น)', kind: 'list', step: 'details', required: true },
       ...LICENSE('tpl'),
     ],
-    defaults: { apps: ['Canva'], appVersion: 'Canva เวอร์ชันล่าสุด', formats: ['ลิงก์ Canva', 'PDF'], editable: ['ข้อความ', 'สี', 'รูปภาพ', 'โลโก้'], howOpen: ['เปิดลิงก์ Canva ที่ได้ในแชต', 'กด “ใช้เทมเพลต” ระบบจะคัดลอกเข้าบัญชีคุณ', 'แก้ข้อความ สี และรูป แล้วกดแชร์ › ดาวน์โหลด'], ...licDefaults('tpl') },
+    defaults: { apps: ['Canva'], appVersion: 'Canva เวอร์ชันล่าสุด', formats: ['ลิงก์ Canva', 'PDF'], editable: ['ข้อความ', 'สี', 'รูปภาพ', 'โลโก้'], howOpen: ['เปิดลิงก์ Canva ในคลังของที่ซื้อ', 'กด “ใช้เทมเพลต” ระบบจะคัดลอกเข้าบัญชีคุณ', 'แก้ข้อความ สี และรูป แล้วกดแชร์ › ดาวน์โหลด'], ...licDefaults('tpl') },
   },
   sw: {
     key: 'sw', name: 'โปรแกรม · แอป', sub: 'ไฟล์ติดตั้ง คีย์ใช้งาน', icon: 'code', color: '#4F46E5', bg: '#EEF2FF', layout: 'sw',
     fields: [
-      { id: 'sub', label: 'เป็นแบบไหน', kind: 'chips', step: 'files', options: ['โปรแกรม', 'แอปมือถือ', 'เว็บแอป'], required: true },
+      { id: 'sub', label: 'เป็นแบบไหน', kind: 'chips', step: 'files', options: ['โปรแกรม', 'แอปมือถือ', 'เว็บแอป', 'เครื่องมือร้านค้า'], required: true, hint: 'ใช้จัดหมวดย่อยบนหน้าค้นหา: ซอฟต์แวร์และโปรแกรม · แอปมือถือ · เครื่องมือ SME' },
       { ...FILES('ไฟล์ติดตั้ง', '.exe .dmg .apk .zip · LUMI สแกนไวรัสเบื้องต้นทุกไฟล์ ไฟล์ไม่ผ่านลงขายไม่ได้'), when: (s) => str(s.sub) !== 'เว็บแอป' },
       { id: 'webLink', label: 'ลิงก์เข้าใช้งานเว็บแอป', kind: 'text', step: 'files', when: (s) => str(s.sub) === 'เว็บแอป', required: (s) => str(s.sub) === 'เว็บแอป', placeholder: 'https://app.ร้านคุณ.com', pattern: /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i, patternNote: 'ต้องเป็นลิงก์เว็บ เช่น https://app.example.com', hint: 'เว็บแอปไม่ต้องอัปไฟล์ติดตั้ง · ส่งลิงก์ให้ผู้ซื้อหลังจ่ายเท่านั้น' },
       { id: 'storeLink', label: 'ลิงก์ร้านค้าแอป (App Store / Google Play / Chrome Web Store / TestFlight)', kind: 'text', step: 'files', when: (s) => arr(s.platforms).some((x) => ['iOS', 'Android', 'Chrome'].includes(x)), required: (s) => arr(s.platforms).includes('iOS'), placeholder: 'เช่น testflight.apple.com/join/…', pattern: /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i, patternNote: 'ต้องเป็นลิงก์ เช่น apps.apple.com/… หรือ testflight.apple.com/join/…', hint: 'iOS ติดตั้งจากไฟล์ไม่ได้ ต้องมีลิงก์ App Store หรือ TestFlight' },
@@ -152,7 +152,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
       { id: 'activation', label: 'วิธีใส่คีย์ / เปิดใช้งาน', kind: 'list', step: 'license', when: (s) => str(s.keyType) !== 'ไม่ต้องใช้คีย์', required: (s) => str(s.keyType) !== 'ไม่ต้องใช้คีย์' },
       SUPPORT, REFUND_SW, ...LICENSE('sw'),
     ],
-    defaults: { sub: 'โปรแกรม', platforms: ['Windows'], keyType: 'คีย์ต่อเครื่อง', deps: 'ไม่ต้องติดตั้งเพิ่ม', install: ['ดาวน์โหลดไฟล์ติดตั้งจากแชต', 'ดับเบิลคลิกไฟล์ แล้วกดถัดไปจนเสร็จ', 'เปิดโปรแกรมจากไอคอนบนหน้าจอ'], activation: ['คัดลอกคีย์จากแชต หรือ โปรไฟล์ › ซื้อแล้ว', 'เปิดโปรแกรม › เมนูตั้งค่า › ใส่คีย์', 'กดยืนยัน ระบบผูกคีย์กับเครื่องนี้'], support: 'อัปเดตฟรี 1 ปี · ตอบแชตภายใน 24 ชม.', refund: 'คืนเงินเต็มจำนวนภายใน 7 วัน ถ้าติดตั้งหรือใช้งานไม่ได้', trial: true, trialDays: '14 วัน', ...licDefaults('sw') },
+    defaults: { sub: 'โปรแกรม', platforms: ['Windows'], keyType: 'คีย์ต่อเครื่อง', deps: 'ไม่ต้องติดตั้งเพิ่ม', install: ['ดาวน์โหลดไฟล์ติดตั้งจากคลังของที่ซื้อ', 'ดับเบิลคลิกไฟล์ แล้วกดถัดไปจนเสร็จ', 'เปิดโปรแกรมจากไอคอนบนหน้าจอ'], activation: ['คัดลอกคีย์จากคลังของที่ซื้อ', 'เปิดโปรแกรม › เมนูตั้งค่า › ใส่คีย์', 'กดยืนยัน ระบบผูกคีย์กับเครื่องนี้'], support: 'อัปเดตฟรี 1 ปี · ตอบแชตภายใน 24 ชม.', refund: 'คืนเงินเต็มจำนวนภายใน 7 วัน ถ้าติดตั้งหรือใช้งานไม่ได้', trial: true, trialDays: '14 วัน', ...licDefaults('sw') },
   },
   game: {
     key: 'game', name: 'เกม · ปลั๊กอิน', sub: 'เกม ม็อด ส่วนเสริม', icon: 'game', color: '#0E9384', bg: '#E3F7F4', layout: 'sw',
@@ -162,7 +162,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
   bot: {
     key: 'bot', name: 'บอท · ระบบอัตโนมัติ', sub: 'บอทแชต ลิงก์ทดลอง', icon: 'robot', color: '#15803D', bg: '#E5F8EC', layout: 'bot',
     fields: [
-      { id: 'sub', label: 'เป็นแบบไหน', kind: 'chips', step: 'files', options: ['บอทแชต', 'ผู้ช่วย AI', 'ระบบอัตโนมัติ', 'เครื่องมือร้านค้า'], required: true, hint: 'ใช้จัดหมวดบนหน้าค้นหา: บอท LINE OA · ผู้ช่วย AI · ระบบอัตโนมัติ · เครื่องมือ SME' },
+      { id: 'sub', label: 'เป็นแบบไหน', kind: 'chips', step: 'files', options: ['บอทแชต', 'ผู้ช่วย AI', 'ระบบอัตโนมัติ'], required: true, hint: 'ใช้จัดหมวดย่อยบนหน้าค้นหา: บอทแชต · ผู้ช่วย AI · ระบบอัตโนมัติ' },
       { id: 'platform', label: 'ใช้กับแพลตฟอร์มไหน', kind: 'multi', step: 'files', options: ['LINE OA', 'Facebook Messenger', 'Instagram', 'เว็บไซต์', 'TikTok', 'Telegram', 'Google Sheets', 'n8n / Make'], required: true },
       { id: 'buyerNeeds', label: 'ผู้ซื้อต้องมีบัญชี / API key อะไร', kind: 'list', step: 'files', required: true, placeholder: 'เช่น บัญชี LINE OA (ฟรี) · Channel access token' },
       { id: 'features', label: 'บอททำอะไรได้บ้าง', kind: 'list', step: 'details', required: true },
@@ -197,7 +197,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
   font: {
     key: 'font', name: 'ฟอนต์ · สติกเกอร์', sub: 'ไอคอน พรีเซ็ต ตารางสิทธิ์', icon: 'font', color: '#D6336C', bg: '#FDEBF2', layout: 'font',
     fields: [
-      { id: 'sub', label: 'เป็นแบบไหน', kind: 'chips', step: 'files', options: ['ฟอนต์', 'สติกเกอร์ PNG', 'ไอคอน', 'พรีเซ็ต / LUT', 'แปรง'], required: true },
+      { id: 'sub', label: 'เป็นแบบไหน', kind: 'chips', step: 'files', options: ['ฟอนต์', 'สติกเกอร์ PNG', 'ไอคอน', 'พรีเซ็ต / LUT', 'แปรง'], required: true, hint: 'ใช้จัดหมวดย่อยบนหน้าค้นหา: สติกเกอร์ · ฟอนต์ พรีเซ็ต ไอคอน' },
       FILES('ไฟล์ที่ผู้ซื้อได้รับ', 'OTF TTF PNG SVG CUBE XMP ABR'),
       { id: 'formats', label: 'นามสกุลไฟล์', kind: 'multi', step: 'files', options: ['OTF', 'TTF', 'WOFF2', 'PNG', 'SVG', 'LUT (.cube)', 'XMP', 'ABR'], required: true },
       { id: 'count', label: 'จำนวนในชุด', kind: 'text', step: 'files', required: true, placeholder: 'เช่น 3 น้ำหนัก · 24 ตัว · 12 พรีเซ็ต' },
@@ -230,7 +230,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
 }
 // เกม · ปลั๊กอิน shares the software checklist, with its own sub-types and platforms.
 SPECS.game.fields = SPECS.sw.fields.map((f) =>
-  f.id === 'sub' ? { ...f, options: ['เกม', 'ซอร์สโค้ดเกม', 'ปลั๊กอิน', 'ส่วนขยาย Chrome', 'ม็อด'] }
+  f.id === 'sub' ? { ...f, options: ['เกม', 'ซอร์สโค้ดเกม', 'ปลั๊กอิน', 'ส่วนขยาย Chrome', 'ม็อด'], hint: 'ใช้จัดหมวดย่อยบนหน้าค้นหา: เกม · ปลั๊กอิน · ส่วนขยาย Chrome' }
     : f.id === 'platforms' ? { ...f, options: ['Windows', 'macOS', 'เว็บ', 'Android', 'iOS', 'WordPress', 'Shopify', 'Chrome', 'Unity', 'Godot'] }
       : f.id === 'licAllowed' ? { ...f, options: licRows('game') } : f)
 SPECS.game.defaults = { ...SPECS.sw.defaults, sub: 'เกม', keyType: 'ไม่ต้องใช้คีย์', ...licDefaults('game') }
@@ -253,7 +253,7 @@ SPECS.media = {
     { id: 'musicLic', label: 'สิทธิ์เพลง / เสียง', kind: 'chips', step: 'license', options: ['ผู้ขายรับรองว่าใช้ในคลิปโซเชียลได้', 'ผู้ขายรับรองว่าใช้ในโฆษณา ทีวี และสตรีมได้', 'ใช้ส่วนตัวเท่านั้น'], required: true, hint: 'หากผู้ซื้อถูกระบบแพลตฟอร์มแจ้งลิขสิทธิ์ ผู้ซื้อติดต่อคุณหรือขอคืนเงินได้' },
     REFUND, ...LICENSE('media'),
   ],
-  defaults: { sub: 'วิดีโอ AI', formats: ['MP4'], quality: '1080p 30fps', musicLic: 'ผู้ขายรับรองว่าใช้ในคลิปโซเชียลได้', howUse: ['ดาวน์โหลดไฟล์จากแชต หรือ โปรไฟล์ › ซื้อแล้ว', 'นำเข้าแอปตัดต่อหรืออัปโหลดขึ้นโซเชียลได้ทันที'], refund: 'คืนเงินได้ภายใน 7 วัน ถ้าไฟล์เปิดไม่ได้หรือไม่ตรงคำอธิบาย', ...licDefaults('media') },
+  defaults: { sub: 'วิดีโอ AI', formats: ['MP4'], quality: '1080p 30fps', musicLic: 'ผู้ขายรับรองว่าใช้ในคลิปโซเชียลได้', howUse: ['ดาวน์โหลดไฟล์จากคลังของที่ซื้อ', 'นำเข้าแอปตัดต่อหรืออัปโหลดขึ้นโซเชียลได้ทันที'], refund: 'คืนเงินได้ภายใน 7 วัน ถ้าไฟล์เปิดไม่ได้หรือไม่ตรงคำอธิบาย', ...licDefaults('media') },
 }
 SPECS.skill = {
   key: 'skill', name: 'Agent Skills', sub: 'สกิล ชุดความรู้ให้ AI agent', icon: 'bulb', color: '#0F766E', bg: '#E2F6F2', layout: 'skill',
@@ -269,7 +269,7 @@ SPECS.skill = {
     { id: 'examples', label: 'ตัวอย่างคำสั่งที่ใช้ได้', kind: 'list', step: 'details', placeholder: 'เช่น “ตอบลูกค้าที่ถามค่าส่งให้หน่อย”' },
     SUPPORT, refundField(['คืนเงินได้ภายใน 7 วัน ถ้าติดตั้งไม่ได้', ...REFUND_STD]), ...LICENSE('skill'),
   ],
-  defaults: { platforms: ['Claude (Agent Skills)'], version: 'v1.0', install: ['ดาวน์โหลดไฟล์ ZIP จากแชต', 'เปิด Claude › Settings › Capabilities › Skills › Upload skill', 'เลือกไฟล์ ZIP แล้วเปิดใช้งาน'], support: 'อัปเดตฟรี 6 เดือน · ตอบแชตภายใน 24 ชม.', refund: 'คืนเงินได้ภายใน 7 วัน ถ้าติดตั้งไม่ได้', ...licDefaults('skill') },
+  defaults: { platforms: ['Claude (Agent Skills)'], version: 'v1.0', install: ['ดาวน์โหลดไฟล์ ZIP จากคลังของที่ซื้อ', 'เปิด Claude › Settings › Capabilities › Skills › Upload skill', 'เลือกไฟล์ ZIP แล้วเปิดใช้งาน'], support: 'อัปเดตฟรี 6 เดือน · ตอบแชตภายใน 24 ชม.', refund: 'คืนเงินได้ภายใน 7 วัน ถ้าติดตั้งไม่ได้', ...licDefaults('skill') },
 }
 SPECS.data = {
   key: 'data', name: 'ชุดข้อมูล', sub: 'CSV JSON สำหรับแอป/AI', icon: 'grid', color: '#1D4ED8', bg: '#E8EFFF', layout: 'data',
@@ -402,6 +402,10 @@ export function sellTypeOf(p: Product): SellType {
   if (p.type === 'tpl') return 'tpl'
   return 'img'
 }
+/** The one taxonomy: every work belongs to one of the 11 sell types (home chips, cards, favorites, search groups). */
+export const typeOf = (p: Product) => SPECS[sellTypeOf(p)]
+export const SELL_TYPE_ORDER: SellType[] = ['img', 'tpl', 'media', 'sw', 'game', 'bot', 'skill', 'data', 'course', 'font', 'hire']
+
 export function layoutOf(p: Product): DetailKind {
   if (p.dk) return p.dk
   if (p.price === 0 && p.kind !== 'commission') return 'free'
@@ -419,13 +423,13 @@ export function specOf(p: Product): Spec {
   if (t === 'tpl') {
     const web = /เว็บ/.test(l), print = /พิมพ์/.test(l)
     Object.assign(d, web ? { apps: ['เว็บ (HTML)', 'Figma'], appVersion: 'เบราว์เซอร์ใดก็ได้ · Figma ฟรี', formats: ['HTML', 'FIG'], count: '1 หน้า · 6 ส่วน', size: 'รองรับมือถือและคอม', files: [JSON.stringify({ name: 'bakery-site.zip', size: '6.1 MB', scan: 'ok' })], howOpen: ['แตกไฟล์ ZIP', 'เปิด index.html ด้วยเบราว์เซอร์เพื่อดู', 'แก้ข้อความใน Figma หรือไฟล์ HTML แล้วอัปโหลดขึ้นโฮสต์ (เช่น GitHub Pages ฟรี)'] }
-      : print ? { apps: ['โปรแกรมอ่าน PDF'], appVersion: 'Adobe Acrobat Reader หรือแอปดู PDF ในมือถือ (ฟรี)', formats: ['PDF'], count: '40 หน้า', size: 'A4 300 dpi', files: [JSON.stringify({ name: 'coloring-40p.pdf', size: '22 MB', scan: 'ok' })], editable: ['ไม่ต้องแก้ พิมพ์ได้ทันที'], howOpen: ['ดาวน์โหลด PDF จากแชต', 'สั่งพิมพ์ขนาด A4 แบบ “พอดีหน้า”'] }
+      : print ? { apps: ['โปรแกรมอ่าน PDF'], appVersion: 'Adobe Acrobat Reader หรือแอปดู PDF ในมือถือ (ฟรี)', formats: ['PDF'], count: '40 หน้า', size: 'A4 300 dpi', files: [JSON.stringify({ name: 'coloring-40p.pdf', size: '22 MB', scan: 'ok' })], editable: ['ไม่ต้องแก้ พิมพ์ได้ทันที'], howOpen: ['ดาวน์โหลด PDF จากคลังของที่ซื้อ', 'สั่งพิมพ์ขนาด A4 แบบ “พอดีหน้า”'] }
         : { noPro: true, count: '30 แบบ', size: '1080×1350 px (IG 4:5)', canvaLink: 'canva.com/design/DAF-sample/remix', files: [JSON.stringify({ name: 'cafe-30.psd', size: '86 MB', scan: 'ok' })], formats: ['ลิงก์ Canva', 'PSD', 'PDF'], apps: ['Canva', 'Photoshop'], appVersion: 'Canva ฟรี · Photoshop 2023 ขึ้นไป' })
     d.fonts = print ? [] : ['Prompt — fonts.google.com/specimen/Prompt', 'Mali — fonts.google.com/specimen/Mali']
   }
   if (t === 'sw' || t === 'game') Object.assign(d, { sub: /แอป/.test(l) ? 'แอปมือถือ' : /เกม/.test(l) ? 'ซอร์สโค้ดเกม' : /ปลั๊กอิน/.test(l) ? 'ปลั๊กอิน' : /ส่วนขยาย/.test(l) ? 'ส่วนขยาย Chrome' : 'โปรแกรม', platforms: p.platforms ?? ['Windows'], version: 'v1.3', changelog: ['v1.3 · เร็วขึ้น 2 เท่า แก้บั๊กภาษาไทย', 'v1.2 · เพิ่มรายงานรายวัน', 'v1.0 · เปิดตัว'], minSpec: /iOS|Android/.test((p.platforms ?? []).join()) ? 'iOS 15 / Android 10 ขึ้นไป' : 'RAM 4 GB · พื้นที่ว่าง 200 MB', files: [JSON.stringify({ name: `${slug}-v1.3.zip`, size: '48 MB', scan: 'ok' })] })
   if (t === 'game' && /เกม/.test(l)) Object.assign(d, { platforms: ['เว็บ', 'Android'], deps: 'Godot 4.2 (ฟรี) ถ้าจะแก้ซอร์ส', install: ['แตกไฟล์ ZIP', 'เปิดโปรเจกต์ด้วย Godot 4.2', 'กด Run เพื่อเล่น หรือ Export เป็น APK'] })
-  if (t === 'sw' && p.kind === 'tool' && !/โปรแกรม|แอป/.test(l)) Object.assign(d, { sub: 'เว็บแอป', platforms: ['เว็บ'], keyType: 'สมาชิกรายเดือน', minSpec: 'เบราว์เซอร์ Chrome / Safari รุ่นล่าสุด', install: ['ไม่ต้องติดตั้ง เปิดลิงก์ที่ได้ในแชต', 'ล็อกอินด้วยอีเมลที่ใช้ซื้อ'], deps: `บัญชี ${(p.platforms ?? []).join(' / ')}` })
+  if (t === 'sw' && p.kind === 'tool' && !/โปรแกรม|แอป/.test(l)) Object.assign(d, { sub: 'เว็บแอป', platforms: ['เว็บ'], keyType: 'สมาชิกรายเดือน', minSpec: 'เบราว์เซอร์ Chrome / Safari รุ่นล่าสุด', install: ['ไม่ต้องติดตั้ง เปิดลิงก์ในคลังของที่ซื้อ', 'ล็อกอินด้วยอีเมลที่ใช้ซื้อ'], deps: `บัญชี ${(p.platforms ?? []).join(' / ')}` })
   if (t === 'bot') {
     const demo = p.id === 'p05' ? ['มีเมนูแนะนำไหมคะ', 'วันนี้แนะนำข้าวเหนียวมะม่วง ฿89 สั่งเลยไหมคะ 🥭', 'เอา 2 ที่ค่ะ', 'รับออเดอร์แล้วค่ะ ยอดรวม ฿178 ชำระผ่าน QR ได้เลย']
       : p.chat ? [p.chat.q, p.chat.a]
@@ -434,7 +438,7 @@ export function specOf(p: Product): Spec {
       : /ออเดอร์/.test(p.title) ? ['ขอสั่งชาไทย 2 แก้ว ส่งบ้านค่ะ', 'บันทึกออเดอร์ #1024 ลง Google Sheets แล้ว ✓ แจ้งร้านใน LINE แล้ว']
       : []
     const line = (p.platforms ?? ['LINE OA']).some((x) => /LINE/.test(x))
-    Object.assign(d, { demo, trialLink: line ? 'line.me/R/ti/p/@lumi-demo' : 'chatgpt.com/g/lumi-demo', sub: /ผู้ช่วย/.test(l) ? 'ผู้ช่วย AI' : /อัตโนมัติ/.test(l) ? 'ระบบอัตโนมัติ' : /ร้านค้า/.test(l) ? 'เครื่องมือร้านค้า' : 'บอทแชต' })
+    Object.assign(d, { demo, trialLink: line ? 'line.me/R/ti/p/@lumi-demo' : 'chatgpt.com/g/lumi-demo', sub: /ผู้ช่วย/.test(l) ? 'ผู้ช่วย AI' : /อัตโนมัติ/.test(l) ? 'ระบบอัตโนมัติ' : 'บอทแชต' })
   }
   if (t === 'bot' && /แอดมิน/.test(p.title)) Object.assign(d, { features: [p.use, 'ร่างคำตอบลูกค้าด้วยโทนสุภาพแบบไทย', 'สรุปแชตทั้งวันเป็นข้อ ๆ ให้แอดมิน'], buyerNeeds: ['ChatGPT Plus (ใช้ GPTs ได้)', 'เพจ Facebook ที่คุณเป็นแอดมิน'], limits: 'ใช้ได้ตามโควตาข้อความของ ChatGPT Plus' })
   if (t === 'bot') Object.assign(d, { platform: p.platforms ?? ['LINE OA'], features: p.kind === 'bot' ? [p.use, 'ตอบลูกค้าอัตโนมัติ 24 ชม.', 'ส่งออเดอร์เข้า Google Sheets', 'แจ้งเตือนเจ้าของร้านใน LINE'] : [p.use, 'ตั้งเวลาทำงานเองทุกวัน', 'ดูรายงานย้อนหลังได้'], buyerNeeds: p.kind === 'bot' ? ['บัญชี LINE OA (สมัครฟรี)', 'เมนูและราคา (ไฟล์หรือรูปก็ได้)'] : [`บัญชี ${(p.platforms ?? ['Google']).join(' · ')}`, 'บัญชี n8n Cloud หรือเครื่องที่ติดตั้ง n8n (ฟรี)'], limits: p.kind === 'bot' ? 'ตอบได้ตามโควตาข้อความของ LINE OA (แพ็กเกจฟรี 300 ข้อความ/เดือน)' : 'ทำงานได้ 2,500 ครั้ง/เดือน ตามแพ็กเกจ n8n Starter', trialLink: d.trialLink })
@@ -443,14 +447,14 @@ export function specOf(p: Product): Spec {
   if (t === 'course' && /อีบุ๊ก/.test(l)) Object.assign(d, { sub: 'อีบุ๊ก', files: [JSON.stringify({ name: 'prompt-ebook-30.pdf', size: '4.8 MB', scan: 'ok' }), JSON.stringify({ name: 'prompt-ebook-30.epub', size: '1.2 MB', scan: 'ok' })], lessons: ['บทที่ 1 · พรอมต์เขียนแคปชันขาย', 'บทที่ 2 · พรอมต์ตอบแชตลูกค้า', 'บทที่ 3 · พรอมต์ทำโปรโมชัน'], duration: p.meta ?? '24 หน้า', materials: ['สรุป PDF', 'พรอมต์สำเร็จรูป'], certificate: false })
   if (t === 'font') {
     const sticker = /สติกเกอร์/.test(l)
-    Object.assign(d, sticker ? { sub: 'สติกเกอร์ PNG', formats: ['PNG'], count: /(\d+) (ตัว|อารมณ์)/.exec(p.title)?.[0] ?? '8 ตัว', compat: 'LINE (ส่งเป็นรูป) · LINE Creators Market', install: ['ดาวน์โหลดไฟล์ PNG พื้นใสจากแชต', 'บันทึกลงอัลบั้มมือถือ', 'ส่งในแชตเป็นรูป หรืออัปขึ้น LINE Creators Market'], files: [JSON.stringify({ name: `${slug}-stickers.zip`, size: '3.2 MB', scan: 'ok' })] }
+    Object.assign(d, sticker ? { sub: 'สติกเกอร์ PNG', formats: ['PNG'], count: /(\d+) (ตัว|อารมณ์)/.exec(p.title)?.[0] ?? '8 ตัว', compat: 'LINE (ส่งเป็นรูป) · LINE Creators Market', install: ['ดาวน์โหลดไฟล์ PNG พื้นใสจากคลังของที่ซื้อ', 'บันทึกลงอัลบั้มมือถือ', 'ส่งในแชตเป็นรูป หรืออัปขึ้น LINE Creators Market'], files: [JSON.stringify({ name: `${slug}-stickers.zip`, size: '3.2 MB', scan: 'ok' })] }
       : { count: '3 น้ำหนัก (ปกติ หนา บาง)', files: [JSON.stringify({ name: `${slug}-Regular.otf`, size: '420 KB', scan: 'ok' }), JSON.stringify({ name: `${slug}-Bold.otf`, size: '436 KB', scan: 'ok' })] })
   }
   if (t === 'media') {
     const music = /เพลง/.test(l), tplv = /เทมเพลต/.test(l)
-    Object.assign(d, music ? { sub: 'เพลงต้นฉบับ', count: '10 เพลง', duration: 'รวม 32 นาที (เพลงละ 2–4 นาที)', formats: ['WAV', 'MP3'], quality: 'WAV 48kHz 24-bit', aiTool: 'Suno', musicLic: 'ผู้ขายรับรองว่าใช้ในคลิปโซเชียลได้', files: [JSON.stringify({ name: 'lukthung-chill-10.zip', size: '410 MB', scan: 'ok' })], howUse: ['ดาวน์โหลด ZIP จากแชต แล้วแตกไฟล์', 'ลากเพลงเข้า CapCut / Premiere เป็นแทร็กเสียง', 'ใส่เครดิต “Music by Ton Sheets” ในคำบรรยาย (ไม่บังคับ)'] }
+    Object.assign(d, music ? { sub: 'เพลงต้นฉบับ', count: '10 เพลง', duration: 'รวม 32 นาที (เพลงละ 2–4 นาที)', formats: ['WAV', 'MP3'], quality: 'WAV 48kHz 24-bit', aiTool: 'Suno', musicLic: 'ผู้ขายรับรองว่าใช้ในคลิปโซเชียลได้', files: [JSON.stringify({ name: 'lukthung-chill-10.zip', size: '410 MB', scan: 'ok' })], howUse: ['ดาวน์โหลด ZIP จากคลังของที่ซื้อ แล้วแตกไฟล์', 'ลากเพลงเข้า CapCut / Premiere เป็นแทร็กเสียง', 'ใส่เครดิต “Music by Ton Sheets” ในคำบรรยาย (ไม่บังคับ)'] }
       : tplv ? { sub: 'เทมเพลตตัดต่อวิดีโอ', count: '5 แบบ', duration: 'แบบละ 12–20 วินาที', formats: ['เทมเพลต CapCut'], quality: '9:16 1080×1920', appVersion: 'CapCut มือถือ 12.0 ขึ้นไป (ฟรี)', aiTool: 'CapCut AI', files: [JSON.stringify({ name: 'skincare-capcut-links.pdf', size: '180 KB', scan: 'ok' })], howUse: ['เปิดลิงก์เทมเพลตในไฟล์ PDF ด้วยมือถือ', 'กด “ใช้เทมเพลต” ใน CapCut', 'เลือกคลิปสินค้าของคุณ 3–5 คลิป แล้วกดส่งออก'] }
-        : { sub: 'วิดีโอ AI', count: '1 คลิป + เวอร์ชันไม่มีข้อความ', duration: '15 วินาที', formats: ['MP4', 'SRT (ซับไตเติล)'], quality: '9:16 1080×1920', aiTool: 'Kling', files: [JSON.stringify({ name: 'cafe-promo-15s.mp4', size: '38 MB', scan: 'ok' }), JSON.stringify({ name: 'cafe-promo-clean.mp4', size: '36 MB', scan: 'ok' })], howUse: ['ดาวน์โหลด MP4 จากแชต', 'โพสต์ลง Reels / TikTok ได้ทันที หรือเปลี่ยนข้อความใน CapCut', 'ใช้ไฟล์ SRT ถ้าอยากแก้คำบรรยาย'] })
+        : { sub: 'วิดีโอ AI', count: '1 คลิป + เวอร์ชันไม่มีข้อความ', duration: '15 วินาที', formats: ['MP4', 'SRT (ซับไตเติล)'], quality: '9:16 1080×1920', aiTool: 'Kling', files: [JSON.stringify({ name: 'cafe-promo-15s.mp4', size: '38 MB', scan: 'ok' }), JSON.stringify({ name: 'cafe-promo-clean.mp4', size: '36 MB', scan: 'ok' })], howUse: ['ดาวน์โหลด MP4 จากคลังของที่ซื้อ', 'โพสต์ลง Reels / TikTok ได้ทันที หรือเปลี่ยนข้อความใน CapCut', 'ใช้ไฟล์ SRT ถ้าอยากแก้คำบรรยาย'] })
     d.noClone = true
     if (str(d.aiTool) && str(d.aiTool) !== 'ไม่ได้ใช้ AI') d.aiPlan = 'แผนเสียเงิน (ใช้เชิงพาณิชย์ได้)'
   }
@@ -484,7 +488,7 @@ export function pageContent(p: Product): PageContent {
       if (files.length) deliver.push(`ไฟล์: ${files.join(', ')}`)
       if (on(s.sellPrompt)) deliver.push('พรอมต์ฉบับเต็ม (ปลดล็อกหลังซื้อ)', `โมเดล ${str(s.model)} + ค่าตั้ง ${str(s.settings)}`)
       deliver.push(lic.length > 1 ? 'ใบอนุญาตใช้เชิงพาณิชย์ (PDF)' : 'ใบอนุญาตใช้ส่วนตัว (PDF)')
-      howto.push('ดาวน์โหลดไฟล์จากแชต หรือ โปรไฟล์ › ซื้อแล้ว', 'เปิดด้วยแอปดูรูป Canva หรือ Photoshop ได้ทันที')
+      howto.push('ดาวน์โหลดไฟล์จากคลังของที่ซื้อ', 'เปิดด้วยแอปดูรูป Canva หรือ Photoshop ได้ทันที')
       if (on(s.sellPrompt)) howto.push(`คัดลอกพรอมต์ไปวางใน ${str(s.model)} แล้วใส่ค่าตั้ง ${str(s.settings)} เพื่อสร้างภาพแนวเดียวกัน`)
       needs.push('ไม่ต้องติดตั้งอะไรเพิ่ม')
       if (on(s.sellPrompt)) needs.push(`บัญชี ${str(s.model)} (ถ้าอยากสร้างภาพเอง)`)
@@ -494,7 +498,7 @@ export function pageContent(p: Product): PageContent {
     case 'tpl':
       deliver.push(`${str(s.count)} · ขนาด ${str(s.size)}`, `ไฟล์ ${list(fm)}`)
       if (files.length) deliver.push(`ไฟล์: ${files.join(', ')}`)
-      if (arr(s.apps).includes('Canva')) deliver.push('ลิงก์ Canva แบบ “ใช้เป็นเทมเพลต” (ส่งในแชตหลังจ่าย)')
+      if (arr(s.apps).includes('Canva')) deliver.push('ลิงก์ Canva แบบ “ใช้เป็นเทมเพลต” (อยู่ในคลังของที่ซื้อหลังจ่าย)')
       if (arr(s.fonts).length) deliver.push('รายชื่อฟอนต์พร้อมลิงก์โหลดฟรี', 'คู่มือแก้ไขทีละขั้น')
       else deliver.push(fm.length === 1 && fm[0] === 'PDF' ? 'คู่มือสั่งพิมพ์ให้สีตรง' : 'คู่มือแก้ไขทีละขั้น')
       howto.push(...arr(s.howOpen))
@@ -502,10 +506,10 @@ export function pageContent(p: Product): PageContent {
       facts.push(['แก้ได้', list(arr(s.editable))], ['ขนาด', str(s.size)], ['ไฟล์', list(fm)])
       break
     case 'sw': case 'game':
-      if (str(s.sub) === 'เว็บแอป') deliver.push('ลิงก์เข้าใช้งานเว็บแอป ส่งในแชตทันทีหลังจ่าย (ไม่ต้องติดตั้ง)')
+      if (str(s.sub) === 'เว็บแอป') deliver.push('ลิงก์เข้าใช้งานเว็บแอป อยู่ในคลังของที่ซื้อทันทีหลังจ่าย (ไม่ต้องติดตั้ง)')
       else deliver.push(`ไฟล์ติดตั้ง ${files.join(', ') || '-'} (สแกนไวรัสเบื้องต้นแล้ว)`)
       if (str(s.storeLink)) deliver.push('ลิงก์ติดตั้งจากร้านค้าแอป (App Store / Google Play / Chrome Web Store / TestFlight)')
-      if (str(s.keyType) !== 'ไม่ต้องใช้คีย์') deliver.push(`คีย์ใช้งานแบบ${str(s.keyType)} ส่งในแชตทันทีหลังจ่าย`)
+      if (str(s.keyType) !== 'ไม่ต้องใช้คีย์') deliver.push(`คีย์ใช้งานแบบ${str(s.keyType)} อยู่ในคลังของที่ซื้อทันทีหลังจ่าย`)
       deliver.push(`เวอร์ชัน ${str(s.version)} พร้อมประวัติอัปเดต`, str(s.support), 'คู่มือติดตั้งและเปิดใช้งาน')
       howto.push(...arr(s.install), ...(str(s.keyType) !== 'ไม่ต้องใช้คีย์' ? arr(s.activation) : []))
       needs.push(`รองรับ ${list(arr(s.platforms))}`, `สเปกขั้นต่ำ ${str(s.minSpec)}`, `ต้องมี: ${str(s.deps)}`)
@@ -526,8 +530,8 @@ export function pageContent(p: Product): PageContent {
       deliver.push(...arr(s.materials).map((m) => `ไฟล์ประกอบ: ${m}`))
       if (!eb) deliver.push(forever ? 'ดูได้ไม่จำกัดเวลา ตราบที่คอร์สยังเปิดบน LUMI' : `ดูได้ ${str(s.access)}`)
       if (!eb && on(s.certificate)) deliver.push('ใบรับรองเมื่อเรียนจบ')
-      if (eb) howto.push('ซื้อแล้วไปที่ โปรไฟล์ › ซื้อแล้ว › ดาวน์โหลด', 'เปิดด้วยแอปอ่าน PDF หรือ EPUB ในมือถือหรือคอม', 'แนะนำให้ดาวน์โหลดเก็บไว้ · สงสัยตรงไหนถามผู้เขียนในแชต')
-      else howto.push('ซื้อแล้วไปที่ โปรไฟล์ › ซื้อแล้ว › เริ่มเรียน', 'ดูต่อจากตอนล่าสุดได้ทุกเครื่อง', 'ติดตรงไหนถามผู้สอนในแชต แนบเลขตอนและนาทีได้')
+      if (eb) howto.push('ซื้อแล้วไปที่ คลังของที่ซื้อ › ดาวน์โหลด', 'เปิดด้วยแอปอ่าน PDF หรือ EPUB ในมือถือหรือคอม', 'แนะนำให้ดาวน์โหลดเก็บไว้ · สงสัยตรงไหนถามผู้เขียนในแชต')
+      else howto.push('ซื้อแล้วไปที่ คลังของที่ซื้อ › ห้องเรียน', 'ดูต่อจากตอนล่าสุดได้ทุกเครื่อง', 'ติดตรงไหนถามผู้สอนในแชต แนบเลขตอนและนาทีได้')
       needs.push(str(s.prereq), eb ? 'แอปอ่าน PDF หรือ EPUB (ฟรี)' : 'เรียนผ่านแอป LUMI หรือเว็บเบราว์เซอร์')
       facts.push(['รูปแบบ', eb ? 'อีบุ๊ก' : 'คอร์สวิดีโอ'], ['ระดับ', str(s.level)], ['ความยาว', str(s.duration)], [eb ? 'อ่านฟรี' : 'ดูฟรี', str(s.freeLessons)])
       if (!eb) facts.push(['เข้าถึง', forever ? 'ไม่จำกัดเวลา' : str(s.access)])
@@ -558,7 +562,7 @@ export function pageContent(p: Product): PageContent {
       break
     case 'data':
       deliver.push(`${str(s.size)}`, `ไฟล์ ${list(fm)}`, ...files.map((f) => `ไฟล์: ${f}`), `คำอธิบายคอลัมน์ ${arr(s.columns).length} รายการ (data dictionary)`, `การอัปเดต: ${str(s.updates)}`)
-      howto.push('ดาวน์โหลดไฟล์จากแชต หรือ โปรไฟล์ › ซื้อแล้ว', `เปิดด้วย Excel / Google Sheets (CSV) หรือโค้ด เช่น pandas.read_csv()`, ...arr(s.useCases).map((u) => `ใช้ได้กับ: ${u}`))
+      howto.push('ดาวน์โหลดไฟล์จากคลังของที่ซื้อ', `เปิดด้วย Excel / Google Sheets (CSV) หรือโค้ด เช่น pandas.read_csv()`, ...arr(s.useCases).map((u) => `ใช้ได้กับ: ${u}`))
       needs.push('โปรแกรมเปิดไฟล์ตาราง หรือภาษาโปรแกรมที่อ่าน CSV/JSON ได้')
       facts.push(['ขนาด', str(s.size)], ['รูปแบบ', list(fm)], ['อัปเดต', str(s.updates)], ['ข้อมูลส่วนบุคคล', on(s.noPII) ? 'ผู้ขายรับรองว่าไม่มี' : '-'], ['สิทธิ์เผยแพร่', on(s.rights) ? 'ผู้ขายรับรองแล้ว' : '-'])
       break

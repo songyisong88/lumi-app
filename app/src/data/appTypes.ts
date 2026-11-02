@@ -32,11 +32,15 @@ export interface Purchase {
   price: number
   key?: string
   threadId?: string
+  /** What the buyer got: files, keys, prompts and links. Shown in คลังของที่ซื้อ (/library), not in chat. */
+  assets?: Asset[]
   /** Buyer reported a problem / asked for a refund (local only until moderation exists). */
   issue?: Issue
   /** Buyer's own review of this purchase (editable). */
   review?: { stars: number; text: string; at: number }
 }
+
+export interface Asset { kind: 'file' | 'key' | 'prompt' | 'link'; title: string; value: string; size?: string }
 
 export interface Issue { reason: string; note: string; at: number; status: string }
 
@@ -60,6 +64,9 @@ export interface Message {
   fileName?: string
   size?: string
   productId?: string
+  /** System message: in-app link shown as a button (e.g. /library/b1). */
+  link?: string
+  linkLabel?: string
   /** Delivery: buyer asked for 3 more days to check the work. */
   extended?: boolean
 }

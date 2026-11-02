@@ -5,8 +5,9 @@ import { HeartButton } from '../components/HeartButton'
 import { copyText } from '../components/ui'
 import { toast } from '../services/toast'
 import { Icon } from '../components/Icon'
-import { STORIES, TYPES, creatorById, formatPrice, imgUrl, productById } from '../data/sampleData'
+import { STORIES, creatorById, formatPrice, imgUrl, productById } from '../data/sampleData'
 import { markStorySeen } from '../services/seenStories'
+import { typeOf } from '../data/listingSpec'
 import s from './StoryViewer.module.css'
 
 const DURATION = 5000
@@ -71,11 +72,11 @@ export function StoryViewer() {
             <div className={s.pu}>{p.use}</div>
             <div className={s.pp}>{p.kind === 'commission' && 'เริ่มต้น '}{formatPrice(p)}</div>
           </div>
-          <span className={s.tb} style={{ background: TYPES[p.type].color }}>{TYPES[p.type].name}</span>
+          <span className={s.tb} style={{ background: typeOf(p).color }}>{typeOf(p).name}</span>
         </div>
         <div className={s.cta}>
           <HeartButton productId={p.id} variant="glass" />
-          <Link className={s.go} to={`/product/${p.id}`}>ดูสินค้า <Icon name="arrow" size={18} color="#fff" stroke={2.2} /></Link>
+          <Link className={s.go} to={`/product/${p.id}`}>ดูผลงาน <Icon name="arrow" size={18} color="#fff" stroke={2.2} /></Link>
           <button className={s.rb} aria-label="แชร์" onClick={() => { copyText(`${location.origin}${location.pathname}#/product/${p.id}`); toast('คัดลอกลิงก์ผลงานแล้ว') }}><Icon name="send" size={20} color="#fff" /></button>
         </div>
       </div>

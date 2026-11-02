@@ -1,6 +1,6 @@
 /** Presentation helpers for the product page: options, hero image, highlights, reviews. */
 import { layoutOf, pageContent, sellTypeOf, specOf, str, arr, on } from './listingSpec'
-import { ALL_PRODUCTS, creatorById } from './sampleData'
+import { ALL_PRODUCTS, creatorById, isLive } from './sampleData'
 import type { Product, ProductOption } from './types'
 
 const FALLBACK: Record<string, string> = { p03: 'c_auto.jpg', p05: 'c_bot.jpg', p10: 'c_software.jpg', p13: 'robot.jpg', p18: 'c_bot.jpg' }
@@ -76,7 +76,7 @@ export function statsOf(p: Product) {
 const FOLLOWERS: Record<string, number> = { mint: 3400, nova: 5200, fasai: 1200, kenji: 2800, pim: 4100, toy: 1900, ton: 2300 }
 /** One set of creator numbers for every screen (product page, creator page, profile). */
 export function creatorStats(id: string, followedByMe = false) {
-  const works = ALL_PRODUCTS.filter((p) => p.creatorId === id)
+  const works = ALL_PRODUCTS.filter((p) => p.creatorId === id && isLive(p))
   const rated = works.filter((p) => !p.mine)
   const rating = rated.length ? Math.round((rated.reduce((a, p) => a + statsOf(p).rating, 0) / rated.length) * 10) / 10 : 0
   const followers = (FOLLOWERS[id] ?? 0) + (followedByMe ? 1 : 0)
@@ -92,8 +92,10 @@ export const REVIEWS = [
 export const reviewer = (id: string) => creatorById(id)
 
 export const similarOf = (p: Product) => {
-  const same = ALL_PRODUCTS.filter((x) => x.id !== p.id && x.type === p.type)
-  const rest = ALL_PRODUCTS.filter((x) => x.id !== p.id && x.type !== p.type)
+  const pool = ALL_PRODUCTS.filter((x) => x.id !== p.id && isLive(x))
+  const t = sellTypeOf(p)
+  const same = pool.filter((x) => sellTypeOf(x) === t)
+  const rest = pool.filter((x) => sellTypeOf(x) !== t)
   return [...same, ...rest].slice(0, 6)
 }
 

@@ -13,6 +13,7 @@ import { creatorStats } from '../data/productExtras'
 import type { Product } from '../data/types'
 import { getDb, resetDb, uid, update } from './db'
 import { FEATURES } from '../config'
+import { assetsFor } from '../data/library'
 
 export interface FollowService { toggle(creatorId: string): Promise<boolean> }
 export interface CartService { add(item: Omit<CartItem, 'key'>): Promise<string>; remove(key: string): Promise<void> }
@@ -54,7 +55,18 @@ export interface SellService {
   deleteDraft(id: string): Promise<void>
   publish(d: ListingDraft, share: boolean, notify: boolean): Promise<string>
   unpublish(productId: string): Promise<void>
+  /** DEMO: stands in for the LUMI review team. pass=false needs a reason. */
+  review(productId: string, pass: boolean, reason?: string): Promise<void>
 }
+
+/** Listing review (A2): new listings wait for the LUMI team. In this demo they pass by themselves after REVIEW_MS. */
+export const REVIEW_MS = 20000
+export const REVIEW_REASONS = [
+  'ภาพตัวอย่างไม่ตรงกับไฟล์ที่ผู้ซื้อจะได้รับ',
+  'มีโลโก้หรือตัวละครของแบรนด์อื่น อาจละเมิดลิขสิทธิ์',
+  'ข้อมูลสิทธิ์ใช้งานหรือวิธีใช้ยังไม่ชัด',
+  'ไฟล์ไม่ผ่านการสแกนความปลอดภัย',
+]
 
 const now = () => Date.now()
 const orderNo = () => `LM-${String(20520 + Math.floor(Math.random() * 9000)).padStart(5, '0')}`
@@ -149,6 +161,7 @@ class LocalCheckout implements CheckoutService {
     await new Promise((r) => setTimeout(r, 1100)) // feels like a gateway round-trip (DEMO, nothing is charged)
     let order!: Order
     const sims: string[] = []
+    const bought: string[] = []
     update((d) => {
       const items = d.cart.filter((c) => keys.includes(c.key))
       const discount = discountOf(items, coupon)
@@ -175,20 +188,22 @@ class LocalCheckout implements CheckoutService {
         const st = SPECS[sellTypeOfSafe(p)]
         const sp = specOf(p)
         const key = ['sw', 'game'].includes(st.key) && sp.keyType !== 'ไม่ต้องใช้คีย์' ? `LUMI-${rnd()}-${rnd()}-${rnd()}` : undefined
-        t.orderNo = order.no; t.amount = it.price; t.status = 'ซื้อแล้ว · ดาวน์โหลดได้'; t.tone = 'ok'
-        push(d, t.id, { from: 'system', kind: 'system', text: it.price ? `ชำระเงิน ฿${it.price.toLocaleString('th-TH')} แล้ว (ทดลอง) · ออเดอร์ #${order.no}` : `รับของฟรีแล้ว · ออเดอร์ #${order.no}` })
-        if (key) push(d, t.id, { from: 'them', kind: 'key', title: `คีย์ใช้งาน · ${it.optionLabel ?? '1 เครื่อง'}`, code: key })
-        const files = (Array.isArray(sp.files) ? sp.files : []).map((x) => { try { return JSON.parse(String(x)) } catch { return { name: String(x), size: '' } } })
-        for (const f of files) push(d, t.id, { from: 'them', kind: 'file', fileName: f.name, size: f.size })
-        if (on(sp.sellPrompt) && it.optionId !== 'img') push(d, t.id, { from: 'them', kind: 'key', title: 'พรอมต์ฉบับเต็ม', code: String(sp.prompt ?? '') })
-        if (typeof sp.canvaLink === 'string') push(d, t.id, { from: 'them', kind: 'file', fileName: sp.canvaLink, size: 'ลิงก์ Canva' })
-        d.purchases.unshift({ id: uid('b'), productId: p.id, orderNo: order.no, optionLabel: it.optionLabel, at: now(), title: p.title, image: p.image?.src ?? p.covers?.[0], creatorId: p.creatorId, price: it.price, key, threadId: t.id } satisfies Purchase)
+        t.orderNo = order.no; t.amount = it.price; t.status = 'ซื้อแล้ว · อยู่ในคลังของที่ซื้อ'; t.tone = 'ok'
+        const bid = uid('b')
+        const assets = assetsFor(p, it, key)
+        push(d, t.id, { from: 'system', kind: 'system', text: `${it.price ? `ชำระเงิน ฿${it.price.toLocaleString('th-TH')} แล้ว (ทดลอง)` : 'รับของฟรีแล้ว'} · ออเดอร์ #${order.no} · ${assetSummary(assets)} อยู่ในคลังของที่ซื้อ`, link: `/library/${bid}`, linkLabel: 'เปิดคลังของที่ซื้อ' })
+        d.purchases.unshift({ id: bid, productId: p.id, orderNo: order.no, optionLabel: it.optionLabel, at: now(), title: p.title, image: p.image?.src ?? p.covers?.[0], creatorId: p.creatorId, price: it.price, key, threadId: t.id, assets } satisfies Purchase)
+        bought.push(bid)
       }
-      notify(d, { kind: 'order', text: order.total > 0 ? `ชำระเงินสำเร็จ (ทดลอง) ออเดอร์ #${order.no} · ไฟล์และคีย์อยู่ในแชตแล้ว` : `รับของฟรีแล้ว ออเดอร์ #${order.no} · ไฟล์อยู่ในแชตแล้ว`, link: '/profile?tab=bought', image: undefined })
+      notify(d, { kind: 'order', text: order.total > 0 ? `ชำระเงินสำเร็จ (ทดลอง) ออเดอร์ #${order.no} · ไฟล์และคีย์อยู่ในคลังของที่ซื้อ` : `รับของฟรีแล้ว ออเดอร์ #${order.no} · ไฟล์อยู่ในคลังของที่ซื้อ`, link: bought.length === 1 ? `/library/${bought[0]}` : '/library', image: undefined })
     })
     for (const id of sims) simulateHireProgress(id)
     return order
   }
+}
+const assetSummary = (a: { kind: string }[]) => {
+  const f = a.filter((x) => x.kind === 'file').length, k = a.filter((x) => x.kind === 'key').length, o = a.length - f - k
+  return [f && `ไฟล์ ${f} รายการ`, k && 'คีย์', o && 'ลิงก์/พรอมต์'].filter(Boolean).join(' ')
 }
 const rnd = () => Math.random().toString(36).slice(2, 6).toUpperCase()
 const sellTypeOfSafe = (p: Product) => sellTypeOf(p)
@@ -288,8 +303,9 @@ class LocalChat implements ChatService {
       t.step = 5; t.status = 'เสร็จสมบูรณ์'; t.tone = 'done'
       t.quick = ['ขอบคุณมากครับ', 'ไว้มีงานใหม่จะจ้างอีกนะครับ']
       push(d, threadId, { from: 'system', kind: 'system', text: `คุณรับงานแล้ว · รีวิว ${'★'.repeat(stars)}${review ? ` “${review}”` : ''} · ${t.amount ? 'เงินโอนให้ครีเอเตอร์ (ทดลอง)' : 'งานฟรี · ให้ทิปขอบคุณครีเอเตอร์ได้'}` })
-      push(d, threadId, { from: 'them', kind: 'file', fileName: `${t.title.slice(0, 18)}-final.zip`, size: '24 MB' })
-      d.purchases.unshift({ id: uid('b'), productId: t.productId ?? 'offer', orderNo: t.orderNo ?? '-', optionLabel: 'งานจ้าง', at: now(), title: t.title, image: t.image, creatorId: t.partnerId, price: t.amount ?? 0, threadId, review: { stars, text: review, at: now() } })
+      const bid = uid('b'), zip = `${t.title.slice(0, 18)}-final.zip`
+      push(d, threadId, { from: 'system', kind: 'system', text: `ไฟล์งานฉบับสมบูรณ์ (${zip}) อยู่ในคลังของที่ซื้อ`, link: `/library/${bid}`, linkLabel: 'เปิดคลังของที่ซื้อ' })
+      d.purchases.unshift({ id: bid, productId: t.productId ?? 'offer', orderNo: t.orderNo ?? '-', optionLabel: 'งานจ้าง', at: now(), title: t.title, image: t.image, creatorId: t.partnerId, price: t.amount ?? 0, threadId, review: { stars, text: review, at: now() }, assets: [{ kind: 'file', title: zip, value: zip, size: '24 MB' }] })
     })
     simulateReply(threadId, 'ขอบคุณสำหรับรีวิวมากครับ ไว้มีงานใหม่ทักมาได้เลยนะครับ 🙏')
   }
@@ -393,7 +409,7 @@ class LocalOrders implements OrderService {
         t.status = 'แจ้งปัญหาแล้ว รอครีเอเตอร์ตอบ'; t.tone = 'warn'; t.updatedAt = now()
         push(d, t.id, { from: 'system', kind: 'system', text: `คุณแจ้งปัญหา: ${reason}${note ? ` “${note}”` : ''} · ${ISSUE_STATUS} (ตัวอย่าง)` })
       }
-      notify(d, { kind: 'system', text: `ส่งเรื่อง “${reason}” แล้ว · ${ISSUE_STATUS}`, link: t ? `/chat/${t.id}` : '/profile?tab=bought' })
+      notify(d, { kind: 'system', text: `ส่งเรื่อง “${reason}” แล้ว · ${ISSUE_STATUS}`, link: t ? `/chat/${t.id}` : b ? `/library/${b.id}` : '/library' })
     })
   }
   async review(purchaseId: string, stars: number, text: string) {
@@ -466,20 +482,41 @@ class LocalSell implements SellService {
     if (checkListing(dr).some((c) => !c.ok)) throw new Error('listing incomplete')
     const { covers: _c, ...listing } = dr; void _c
     const was = productById(dr.publishedId ?? '')
-    const p: Product = { ...draftToProduct(dr), listing: { ...listing, step: 1 }, createdAt: was?.createdAt ?? now() }
+    // new listings and fixes of rejected ones go to review; edits of a live listing stay live
+    const review = !was || was.mod?.status === 'rejected' || was.mod?.status === 'pending'
+    const mod: Product['mod'] = review ? { status: 'pending', at: now(), share } : was?.mod
+    const p: Product = { ...draftToProduct(dr), listing: { ...listing, step: 1 }, createdAt: was?.createdAt ?? now(), mod }
+    if (review) share = false // the post goes out when the listing passes review
     update((d) => {
       d.published = [p, ...d.published.filter((x) => x.id !== p.id)]
       d.drafts = d.drafts.filter((x) => x.id !== dr.id)
       if (share) d.posts.unshift({ id: uid('u'), authorId: ME, at: now(), tag: p.price === 0 ? 'แจกฟรี' : 'โชว์ผลงาน', text: was ? `อัปเดตผลงาน “${p.title}” ${p.price === 0 ? '· ตอนนี้แจกฟรีแล้ว 🎁' : '✨'} ${p.use}` : `ลงผลงานใหม่ “${p.title}” 🎉 ${p.use}`, images: dr.covers.slice(0, 3), productIds: [p.id], likes: 0, comments: 0, shares: 0, mine: true })
-      notify(d, { kind: 'system', text: `${was ? 'อัปเดต' : 'ลงขาย'} “${p.title}” แล้ว${notifyFollowers ? ` · แจ้งผู้ติดตาม ${creatorStats(ME).followersLabel} คน (ทดลอง)` : ''}`, link: `/product/${p.id}`, image: dr.covers[0] })
+      notify(d, { kind: 'system', text: review ? `ส่ง “${p.title}” ให้ทีม LUMI ตรวจแล้ว · ผลตรวจจะแจ้งที่นี่` : `อัปเดต “${p.title}” แล้ว${notifyFollowers ? ` · แจ้งผู้ติดตาม ${creatorStats(ME).followersLabel} คน (ทดลอง)` : ''}`, link: `/product/${p.id}`, image: dr.covers[0] })
     })
+    if (review) autoReview(p.id, REVIEW_MS)
     return p.id
+  }
+  async review(productId: string, pass: boolean, reason?: string) {
+    update((d) => {
+      const p = d.published.find((x) => x.id === productId)
+      if (!p || p.mod?.status !== 'pending') return
+      const share = p.mod.share
+      p.mod = pass ? { status: 'live', at: now() } : { status: 'rejected', reason: reason ?? REVIEW_REASONS[0], at: now() }
+      if (pass && share) d.posts.unshift({ id: uid('u'), authorId: ME, at: now(), tag: p.price === 0 ? 'แจกฟรี' : 'โชว์ผลงาน', text: `ลงผลงานใหม่ “${p.title}” 🎉 ${p.use}`, images: (p.covers ?? []).slice(0, 3), productIds: [p.id], likes: 0, comments: 0, shares: 0, mine: true })
+      notify(d, { kind: 'system', text: pass ? `“${p.title}” ผ่านการตรวจแล้ว · ขึ้นขายบนหน้าแรกและหน้าค้นหาแล้ว` : `“${p.title}” ยังไม่ผ่านการตรวจ: ${p.mod.reason} · แก้ไขแล้วส่งตรวจใหม่ได้`, link: `/product/${p.id}`, image: p.covers?.[0] })
+    })
   }
   async unpublish(productId: string) {
     unregisterProduct(productId)
     update((d) => { d.published = d.published.filter((x) => x.id !== productId) })
   }
 }
+
+function autoReview(id: string, ms: number) {
+  later(Math.max(500, ms), () => { void sell.review(id, true) })
+}
+// pending listings from an earlier visit finish their (demo) review after a reload
+for (const p of getDb().published) if (p.mod?.status === 'pending') autoReview(p.id, p.mod.at + REVIEW_MS - Date.now())
 
 export const follows: FollowService = new LocalFollows()
 export const cart: CartService = new LocalCart()

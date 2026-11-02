@@ -1,12 +1,12 @@
-import { QUICK_FILTERS, TYPES, TYPE_ORDER } from '../data/sampleData'
-import type { TypeKey } from '../data/types'
+import { QUICK_FILTERS } from '../data/sampleData'
+import { SELL_TYPE_ORDER, SPECS, type SellType } from '../data/listingSpec'
 import s from './FilterChips.module.css'
 
 interface Props {
   quick: string
   onQuick: (id: string) => void
-  type: TypeKey | null
-  onType: (t: TypeKey | null) => void
+  type: SellType | null
+  onType: (t: SellType | null) => void
 }
 
 export function FilterChips({ quick, onQuick, type, onType }: Props) {
@@ -20,13 +20,13 @@ export function FilterChips({ quick, onQuick, type, onType }: Props) {
         ))}
       </div>
       <div className={`hscroll ${s.r2}`} aria-label="ประเภท">
-        {TYPE_ORDER.map((t) => {
+        {SELL_TYPE_ORDER.map((t) => {
           const on = type === t
           return (
             <button key={t} aria-pressed={on} className={`${s.tchip} ${on ? s.ton : ''}`}
-              style={on ? { background: TYPES[t].bg, color: TYPES[t].color, borderColor: TYPES[t].color } : undefined}
+              style={on ? { background: SPECS[t].bg, color: SPECS[t].color, borderColor: SPECS[t].color } : undefined}
               onClick={() => onType(on ? null : t)}>
-              <i style={{ background: TYPES[t].color }} />{TYPES[t].name}
+              <i style={{ background: SPECS[t].color }} />{SPECS[t].name}
             </button>
           )
         })}

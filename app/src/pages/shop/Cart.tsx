@@ -171,7 +171,7 @@ export function Checkout() {
           <div><span>ค่าธรรมเนียม</span><span>฿0</span></div>
           <div className={s.grand}><span>ยอดชำระ</span><span>{baht(total)}</span></div>
         </div>
-        <p className="hint" style={{ margin: '10px 16px 0' }}>{total === 0 ? 'ของฟรี ไม่มีการชำระเงิน · ไฟล์ส่งเข้าแชตและอยู่ใน โปรไฟล์ › ซื้อแล้ว' : <>ชำระผ่านผู้ให้บริการชำระเงินที่มีใบอนุญาต · ไฟล์ คีย์ และลิงก์ส่งเข้าแชตทันทีหลังชำระ กด “แจ้งปัญหา / ขอคืนเงิน” ได้ภายใน 7 วันที่ โปรไฟล์ › ซื้อแล้ว · งานจ้าง: เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงานถ้าไม่ได้ขอแก้หรือแจ้งปัญหา</>}</p>
+        <p className="hint" style={{ margin: '10px 16px 0' }}>{total === 0 ? 'ของฟรี ไม่มีการชำระเงิน · ไฟล์จะอยู่ในคลังของที่ซื้อ (โปรไฟล์ › ซื้อแล้ว)' : <>ชำระผ่านผู้ให้บริการชำระเงินที่มีใบอนุญาต · ไฟล์ คีย์ และลิงก์เข้าคลังของที่ซื้อทันทีหลังชำระ กด “แจ้งปัญหา / ขอคืนเงิน” ได้ภายใน 7 วันในคลังของที่ซื้อ · งานจ้าง: เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงานถ้าไม่ได้ขอแก้หรือแจ้งปัญหา</>}</p>
       </div>
       <div className="bottom-bar">
         <div className={s.tot}><small>ยอดชำระ</small><b>{baht(total)}</b></div>
@@ -203,7 +203,7 @@ function Success({ order }: { order: Order }) {
         <div className={s.done}>
           <span className={`${s.bigOk} pop-in`}><Icon name="check" size={44} color="#fff" stroke={3} /></span>
           <h1>{order.total === 0 ? 'รับฟรีเรียบร้อย!' : tipOnly ? 'ส่งทิปแล้ว ขอบคุณค่ะ!' : 'ชำระเงินสำเร็จ!'}</h1>
-          <p>{hireThread ? 'ครีเอเตอร์เริ่มงานได้แล้ว ติดตามงานได้ในแชต · เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงานถ้าไม่ได้ขอแก้หรือแจ้งปัญหา' : tipOnly ? 'ครีเอเตอร์ได้รับทิปหลังหักค่าธรรมเนียมการชำระเงิน (ทดลอง)' : 'ไฟล์ คีย์ และลิงก์ส่งเข้าแชตกับครีเอเตอร์แล้ว · เปิดได้จากโปรไฟล์ › ซื้อแล้ว · แนะนำให้ดาวน์โหลดเก็บไว้'}</p>
+          <p>{hireThread ? 'ครีเอเตอร์เริ่มงานได้แล้ว ติดตามงานได้ในแชต · เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงานถ้าไม่ได้ขอแก้หรือแจ้งปัญหา' : tipOnly ? 'ครีเอเตอร์ได้รับทิปหลังหักค่าธรรมเนียมการชำระเงิน (ทดลอง)' : 'ไฟล์ คีย์ และลิงก์อยู่ในคลังของที่ซื้อแล้ว · เปิดโหลดซ้ำได้ตลอด พร้อมใบเสร็จ · มีคำถามทักครีเอเตอร์ในแชตได้'}</p>
         </div>
         <div className={`${s.rcp} rise`}>
           <div><span>เลขออเดอร์</span><b>#{order.no}</b></div>
@@ -213,8 +213,11 @@ function Success({ order }: { order: Order }) {
           <div><span>ช่องทาง</span><b>{order.method}</b></div>
         </div>
         <div className={s.acts}>
-          {thread && <button className="btn btn-p btn-block" onClick={() => nav(`/chat/${thread}`, { replace: true })}><Icon name="chat" size={18} color="#fff" />{hireThread ? 'ไปที่แชตงานจ้าง' : 'เปิดไฟล์ในแชต'}</button>}
-          <button className="btn btn-o btn-block" onClick={() => nav('/profile?tab=bought', { replace: true })}>ดูรายการซื้อแล้ว</button>
+          {hireThread || tipOnly
+            ? thread && <button className="btn btn-p btn-block" onClick={() => nav(`/chat/${thread}`, { replace: true })}><Icon name="chat" size={18} color="#fff" />{hireThread ? 'ไปที่แชตงานจ้าง' : 'ไปที่แชต'}</button>
+            : <button className="btn btn-p btn-block" data-open-library onClick={() => nav(bought.length === 1 ? `/library/${bought[0].id}` : '/library', { replace: true })}><Icon name="box" size={18} color="#fff" />เปิดคลังของที่ซื้อ</button>}
+          {!hireThread && !tipOnly && thread && <button className="btn btn-o btn-block" onClick={() => nav(`/chat/${thread}`, { replace: true })}><Icon name="chat" size={18} />แชตกับครีเอเตอร์</button>}
+          {hireThread && <button className="btn btn-o btn-block" onClick={() => nav('/library', { replace: true })}>ดูคลังของที่ซื้อ</button>}
           <button className="btn btn-s btn-block" onClick={() => nav('/', { replace: true })}>เลือกซื้อต่อ</button>
         </div>
         <SampleNote>ออเดอร์ตัวอย่าง · ไม่มีการตัดเงินจริง</SampleNote>

@@ -114,6 +114,9 @@ export const QUICK_FILTERS: { id: string; label: string; match: (p: Product) => 
   { id: 'hire', label: 'งานจ้าง', match: (p) => p.kind === 'commission' },
 ]
 
+/** Only reviewed (or sample) works show in the home feed, search and similar lists. */
+export const isLive = (p: Product) => !p.mod || p.mod.status === 'live'
+
 export const creatorById = (id: string) => CREATORS.find((c) => c.id === id)!
 export const productById = (id: string) => ALL_PRODUCTS.find((p) => p.id === id)
 /** Add works published locally (sell wizard) to the catalog used by lookups and search. */

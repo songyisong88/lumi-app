@@ -88,7 +88,7 @@ function PopularCats({ onPick, onAll }: { onPick: (k: CatKey) => void; onAll: ()
   )
 }
 
-/** “ทุกหมวด” bottom sheet: search box + the 4 groups with all categories (new ones marked ใหม่). */
+/** “ทุกหมวด” bottom sheet: search box + one group per sell type (11) + ของฟรี, with all 19 categories (new ones marked ใหม่). */
 function AllCatsSheet({ open, onClose, onPick }: { open: boolean; onClose: () => void; onPick: (k: CatKey) => void }) {
   const [f, setF] = useState('')
   const term = f.trim().toLowerCase()
@@ -104,7 +104,7 @@ function AllCatsSheet({ open, onClose, onPick }: { open: boolean; onClose: () =>
       {groups.length === 0 && <p className={s.bsNone}>ไม่พบหมวด “{f}” ลองคำอื่น หรือค้นหาผลงานโดยตรง</p>}
       {groups.map((g) => (
         <div key={g.name}>
-          <div className={s.bgh}><i style={{ background: g.color }} />{g.name}<span>{g.keys.length} หมวด</span></div>
+          <div className={s.bgh} data-group={g.type ?? "free"}><i style={{ background: g.color }} />{g.name}<span>{g.keys.length} หมวด</span></div>
           {g.keys.map((k) => {
             const c = CATEGORIES[k]
             return (

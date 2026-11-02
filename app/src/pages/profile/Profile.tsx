@@ -9,7 +9,7 @@ import { ISSUE_DAYS, IssueSheet, WriteReviewSheet, issueOpen } from '../../compo
 import { Av, Empty, Img, SampleNote, Seg, Sheet, Stars, TopBar } from '../../components/ui'
 import { completion, SPECS } from '../../data/listingSpec'
 import { creatorStats, heroOf, statsOf } from '../../data/productExtras'
-import { ALL_PRODUCTS, CREATORS, ME, baht, creatorById } from '../../data/sampleData'
+import { ALL_PRODUCTS, CREATORS, ME, baht, creatorById, isLive } from '../../data/sampleData'
 import { chat, resetAll } from '../../services/api'
 import { useDb } from '../../services/db'
 import { useFavorites } from '../../services/FavoritesContext'
@@ -70,14 +70,14 @@ export function Profile() {
                 <Icon name="chev" size={18} color="var(--mut)" />
               </Link>
               <div ref={bought} className="sec" style={{ scrollMarginTop: 60 }}>
-                <div className="sec-h">ซื้อแล้ว<span className="more">ทั้งหมด {db.purchases.length}</span></div>
+                <div className="sec-h">ซื้อแล้ว<Link to="/library" className="more" data-open-library>คลังของที่ซื้อ ›</Link></div>
                 {db.purchases.length === 0 ? <Empty icon="receipt" title="ยังไม่มีรายการที่ซื้อ" text="ของที่ซื้อและของฟรีที่กดรับจะอยู่ที่นี่" action={<Link to="/" className="btn btn-p btn-sm">เลือกดูผลงาน</Link>} /> : (
                   <div className="card2" style={{ padding: 0, overflow: 'hidden' }}>
                     {db.purchases.map((b, i) => (
                       <div key={b.id} className={`list-row rise`} style={{ '--i': Math.min(i, 6) } as React.CSSProperties}>
                         <Img src={b.image} className={s.th} />
                         <Link to={b.productId.startsWith('offer') ? `/chat/${b.threadId}` : `/product/${b.productId}`} className="grow"><b className="ell" style={{ display: 'block' }}>{b.title}</b><small className="ell">{creatorById(b.creatorId).name} · {b.optionLabel ?? (b.price ? baht(b.price) : 'ฟรี')} · {ago(b.at)}</small>{(b.issue || b.review) && <small className="ell" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>{b.issue && <span className="pill pill-r">แจ้งปัญหาแล้ว</span>}{b.review && <Stars v={b.review.stars} size={11} />}</small>}</Link>
-                        <button className="btn btn-xs btn-s" onClick={async () => nav(`/chat/${b.threadId ?? await chat.openWith(b.creatorId, b.productId)}`)}><Icon name="download" size={14} />เปิด</button>
+                        <Link to={`/library/${b.id}`} className="btn btn-xs btn-s"><Icon name="download" size={14} />ไฟล์</Link>
                         <button className="tb-btn" style={{ width: 34, height: 34 }} aria-label={`จัดการรายการ ${b.title}`} data-order-menu={b.id} onClick={() => setAct({ id: b.id, sheet: 'menu' })}><Icon name="dots" size={19} /></button>
                       </div>
                     ))}
@@ -153,7 +153,7 @@ export function Profile() {
                     <Link key={p.id} to={`/product/${p.id}`} className={`${s.gi} press`}>
                       <Img src={heroOf(p)} />
                       <span className={s.gl}>{p.price === 0 ? 'ฟรี' : `♥ ${statsOf(p).likes}`}</span>
-                      {p.mine && <span className={s.gn}>ใหม่</span>}
+                      {p.mod?.status === 'pending' ? <span className={s.gn} data-mod="pending" style={{ background: '#B45309' }}>รอตรวจ</span> : p.mod?.status === 'rejected' ? <span className={s.gn} data-mod="rejected" style={{ background: '#DC2626' }}>ไม่ผ่าน</span> : p.mine && <span className={s.gn}>ใหม่</span>}
                     </Link>
                   ))}
                   <Link to="/sell" className={`${s.gi} ${s.add} press`}><Icon name="plus" size={26} color="var(--p)" /><span>ลงขายผลงาน</span></Link>
@@ -177,7 +177,8 @@ export function Profile() {
       <Sheet open={act?.sheet === 'menu' && !!actB} onClose={() => setAct(null)} title={actB?.title} sub={actB ? `ออเดอร์ #${actB.orderNo} · ${actB.price ? baht(actB.price) : 'ฟรี'} · ${ago(actB.at)}` : ''}>
         {actB && <div>
           {actB.issue && <div className="hint" style={{ background: '#FEF2F2', color: '#B91C1C', borderRadius: 12, padding: '10px 12px', marginBottom: 8 }}><b>แจ้งปัญหาแล้ว: {actB.issue.reason}</b><br />{actB.issue.status}</div>}
-          <button className="list-row" style={{ width: '100%' }} onClick={async () => { const id = actB.threadId ?? await chat.openWith(actB.creatorId, actB.productId); setAct(null); nav(`/chat/${id}`) }}><Icon name="download" size={20} color="var(--p)" /><span className="grow">เปิดไฟล์และคีย์<small>อยู่ในแชตกับ {creatorById(actB.creatorId).name}</small></span></button>
+          <button className="list-row" style={{ width: '100%' }} onClick={() => { setAct(null); nav(`/library/${actB.id}`) }}><Icon name="download" size={20} color="var(--p)" /><span className="grow">เปิดไฟล์และคีย์<small>ในคลังของที่ซื้อ · พร้อมใบเสร็จ</small></span></button>
+          <button className="list-row" style={{ width: '100%' }} onClick={async () => { const id = actB.threadId ?? await chat.openWith(actB.creatorId, actB.productId); setAct(null); nav(`/chat/${id}`) }}><Icon name="chat" size={20} /><span className="grow">ทักครีเอเตอร์<small>{creatorById(actB.creatorId).name}</small></span></button>
           {!actB.productId.startsWith('offer') && <button className="list-row" style={{ width: '100%' }} onClick={() => { setAct(null); nav(`/product/${actB.productId}`) }}><Icon name="store" size={20} />ดูหน้าผลงาน</button>}
           <button className="list-row" style={{ width: '100%' }} onClick={() => setAct({ id: actB.id, sheet: 'review' })}><Icon name="star" size={20} color="#F5A524" /><span className="grow">{actB.review ? 'แก้ไขรีวิว' : 'เขียนรีวิว'}{actB.review && <small><Stars v={actB.review.stars} size={11} /> {actB.review.text || 'ไม่มีข้อความ'}</small>}</span></button>
           {actB.optionLabel === 'งานจ้าง'
@@ -203,7 +204,7 @@ export function CreatorPage() {
   const nav = useNavigate()
   const c = CREATORS.find((x) => x.id === id)
   if (!c) return <><TopBar title="ครีเอเตอร์" /><Empty icon="user" title="ไม่พบครีเอเตอร์" action={<Link to="/search" className="btn btn-o btn-sm">ค้นหาครีเอเตอร์</Link>} /></>
-  const works = ALL_PRODUCTS.filter((p) => p.creatorId === id)
+  const works = ALL_PRODUCTS.filter((p) => p.creatorId === id && isLive(p))
   const posts = db.posts.filter((p) => p.authorId === id)
   const isMe = id === ME
   const st = creatorStats(id, db.follows.includes(id))
