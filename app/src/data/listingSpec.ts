@@ -193,7 +193,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
       { id: 'certificate', label: 'มีใบรับรองเมื่อเรียนจบ', kind: 'toggle', step: 'license', when: (s) => str(s.sub) !== 'อีบุ๊ก' },
       refundField(['คืนเงินได้ภายใน 7 วัน ถ้าเรียนไม่เกิน 2 ตอน', ...REFUND_STD]), ...LICENSE('course'),
     ],
-    defaults: { sub: 'คอร์สวิดีโอ', freeLessons: '1 ตอน', materials: ['สรุป PDF'], level: 'มือใหม่', access: 'ไม่จำกัดเวลา', certificate: true, refund: 'คืนเงินได้ภายใน 7 วัน ถ้าเรียนไม่เกิน 2 ตอน', ...licDefaults('course', 'ใช้ส่วนตัว') },
+    defaults: { sub: FEATURES.launch ? 'อีบุ๊ก' : 'คอร์สวิดีโอ', freeLessons: '1 ตอน', materials: ['สรุป PDF'], level: 'มือใหม่', access: 'ไม่จำกัดเวลา', certificate: true, refund: 'คืนเงินได้ภายใน 7 วัน ถ้าเรียนไม่เกิน 2 ตอน', ...licDefaults('course', 'ใช้ส่วนตัว') },
   },
   font: {
     key: 'font', name: 'ฟอนต์ · สติกเกอร์', sub: 'ฟอนต์ สติกเกอร์ PNG ไอคอน พรีเซ็ต', icon: 'font', color: '#D6336C', bg: '#FDEBF2', layout: 'font',
@@ -316,17 +316,19 @@ const UP: Partial<Record<SellType, { exts: string[]; maxMB: number }>> = {
 }
 export const MAX_FILES = 20
 const VIDEO_EXTS = ['mp4', 'mov', 'webm', 'm4v']
-/** 1.9 GB per file at launch (server: product_files_size). */
-export const LAUNCH_MAX_MB = 1945
+/** Per-file cap at launch. Must equal the storage buckets' file_size_limit and launch_rules.max_file_bytes (52428800 = 50 MB). */
+export const LAUNCH_MAX_MB = 50
 export function uploadRule(t: SellType | null, s?: Spec, fieldId = 'files') {
   const r = uploadRuleRaw(t, s, fieldId)
   return FEATURES.launch && r.maxMB > LAUNCH_MAX_MB ? { ...r, maxMB: LAUNCH_MAX_MB } : r
 }
 function uploadRuleRaw(t: SellType | null, s: Spec | undefined, fieldId: string) {
   if (t === 'data' && fieldId === 'sample') return { exts: ['csv', 'json', 'jsonl', 'xlsx', 'txt'], maxMB: 10 }
-  if (t === 'course') return str(s?.sub) === 'อีบุ๊ก' ? { exts: ['pdf', 'epub', 'zip'], maxMB: 200 } : { exts: [...VIDEO_EXTS, 'pdf', 'zip'], maxMB: 4096 }
+  if (t === 'course') return FEATURES.launch || str(s?.sub) === 'อีบุ๊ก' ? { exts: ['pdf', 'epub', 'zip'], maxMB: 200 } : { exts: [...VIDEO_EXTS, 'pdf', 'zip'], maxMB: 4096 }
   return (t && UP[t]) || { exts: [] as string[], maxMB: 500 }
 }
+/** Size label for MB values (binary units, matches the server cap). */
+export const fmtMB = (mb: number) => (mb >= 1024 ? `${+(mb / 1024).toFixed(1)} GB` : `${mb} MB`)
 const isEbook = (s: Spec, label = '') => str(s.sub) === 'อีบุ๊ก' || (!str(s.sub) && /อีบุ๊ก/.test(label))
 export const visible = (f: Field, s: Spec) => !f.when || f.when(s)
 const isReq = (f: Field, s: Spec) => visible(f, s) && (typeof f.required === 'function' ? f.required(s) : !!f.required)

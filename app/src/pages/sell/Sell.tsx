@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Empty, Img, SampleNote, Sheet, Toggle, TopBar, blockTap } from '../../components/ui'
-import { newSpec, licRows, presetRows, MAX_FILES, SPECS, uploadRule, arr, checkListing, completion, filesOf, on, str, visible, sellTypeOf, specOf, SELL_TYPE_ORDER } from '../../data/listingSpec'
+import { newSpec, licRows, presetRows, MAX_FILES, SPECS, uploadRule, fmtMB, arr, checkListing, completion, filesOf, on, str, visible, sellTypeOf, specOf, SELL_TYPE_ORDER } from '../../data/listingSpec'
 import type { Field, ListingDraft, SellType, Spec, SpecValue, Step, UploadedFile } from '../../data/listingSpec'
 import { CATEGORIES, childrenOf } from '../../data/searchData'
 import { baht, ME, productById } from '../../data/sampleData'
@@ -397,7 +397,7 @@ function FilesEdit({ f, v, set, type, spec, draftId }: { f: Field; v: SpecValue 
       const name = file.name
       const ext = (name.split('.').pop() ?? '').toLowerCase()
       if (rule.exts.length && !rule.exts.includes(ext)) { toast(`“${name}” ไม่ใช่ไฟล์ที่รองรับ · ใช้ได้: ${rule.exts.map((x) => '.' + x).join(' ')}`); continue }
-      if (file.size > rule.maxMB * 1e6) { toast(`“${name}” ใหญ่เกิน ${rule.maxMB >= 1024 ? `${rule.maxMB / 1024} GB` : `${rule.maxMB} MB`} ต่อไฟล์`); continue }
+      if (file.size > rule.maxMB * 1048576) { toast(`“${name}” ใหญ่เกิน ${fmtMB(rule.maxMB)} ต่อไฟล์`); continue }
       if (file.size === 0) { toast(`“${name}” เป็นไฟล์ว่าง`); continue }
       if (room-- <= 0) { toast(`อัปโหลดได้สูงสุด ${MAX_FILES} ไฟล์ · รวมเป็น ZIP ได้`); break }
       write((xs) => [...xs.filter((x) => x.name !== name), { name, size: sizeOf(file.size), scan: 'scan', pct: 0 }])
@@ -432,7 +432,7 @@ function FilesEdit({ f, v, set, type, spec, draftId }: { f: Field; v: SpecValue 
       ))}
       <button className={`${s.drop} press`} onClick={() => ref.current?.click()}><Icon name="upload" size={22} color="var(--p)" /><b>เลือกไฟล์จากเครื่อง</b><small>{f.hint}</small></button>
       <input ref={ref} type="file" multiple hidden accept={rule.exts.map((x) => '.' + x).join(',') || undefined} onChange={(e) => { add(e.target.files); e.target.value = '' }} />
-      <span className="hint">รองรับ {rule.exts.map((x) => '.' + x).join(' ')} · ไม่เกิน {rule.maxMB >= 1024 ? `${rule.maxMB / 1024} GB` : `${rule.maxMB} MB`} ต่อไฟล์ · สูงสุด {MAX_FILES} ไฟล์</span>
+      <span className="hint">รองรับ {rule.exts.map((x) => '.' + x).join(' ')} · ไม่เกิน {fmtMB(rule.maxMB)} ต่อไฟล์ · สูงสุด {MAX_FILES} ไฟล์</span>
       <span className="hint"><Icon name="shield" size={12} /> {REAL ? 'ไฟล์อัปโหลดขึ้นระบบ LUMI และสแกนไวรัสอัตโนมัติก่อนขาย ผู้ซื้อดาวน์โหลดได้หลังรับของเท่านั้น' : 'ทดลอง: ไฟล์ไม่ถูกส่งขึ้นเซิร์ฟเวอร์ ระบบจำลองการสแกน (ชื่อไฟล์มีคำว่า virus จะไม่ผ่าน)'}</span>
     </div>
   )
