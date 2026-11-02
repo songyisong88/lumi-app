@@ -46,7 +46,10 @@ window.addEventListener('vite:preloadError', (e) => {
    Show that reason as a toast instead of leaving it as an uncaught error. */
 const SIGN_IN_FIRST = 'เข้าสู่ระบบก่อนนะ'
 const signInNotice = (err: unknown, e: Event) => {
-  if (err instanceof Error && err.message === SIGN_IN_FIRST) { e.preventDefault(); toast(SIGN_IN_FIRST) }
+  if (err instanceof Error && err.message === SIGN_IN_FIRST) { e.preventDefault(); toast(SIGN_IN_FIRST); return }
+  // Any other app error already worded for people (Thai, e.g. "เชื่อมต่ออินเทอร์เน็ตไม่ได้ ลองใหม่อีกครั้ง") that a tap handler
+  // did not catch: show it instead of a silent tap.
+  if (err instanceof Error && /[\u0E00-\u0E7F]/.test(err.message)) { e.preventDefault(); toast(err.message) }
 }
 window.addEventListener('error', (e) => signInNotice(e.error, e))
 window.addEventListener('unhandledrejection', (e) => signInNotice(e.reason, e))
