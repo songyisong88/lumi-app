@@ -4,7 +4,7 @@
  * Sample creators/products (ids that are not uuids) stay simulated locally, as in the demo.
  */
 import type { CartItem, CloudReview, Message, Notif, Order, Post, Purchase, Sale, Thread, UserStory, Asset } from '../data/appTypes'
-import type { ListingDraft } from '../data/listingSpec'
+import { LAUNCH_MAX_MB, type ListingDraft } from '../data/listingSpec'
 import type { Creator, Product } from '../data/types'
 import { ME, NO_AVATAR, isRemoteId, productById, registerCreators, remoteCreator } from '../data/sampleData'
 import { setRoomCounts } from '../data/appSeed'
@@ -386,7 +386,7 @@ async function serverDraft(localId: string) {
 }
 /** Seller deliverable: private quarantine bucket → scan-file edge function → deliverables. */
 export async function uploadDeliverable(localDraftId: string, file: File, onPct?: (n: number) => void) {
-  if (file.size > 50 * 1024 * 1024) return { scan: 'fail' as const, reason: 'ไฟล์ใหญ่เกิน 50 MB (ระบบทดลอง)' }
+  if (file.size > LAUNCH_MAX_MB * 1024 * 1024) return { scan: 'fail' as const, reason: 'ไฟล์ใหญ่เกิน 50 MB (ระบบทดลอง)' }
   const c = S(), draft = await serverDraft(localDraftId)
   const path = `${ME}/${draft}/${Date.now().toString(36)}-${safe(file.name)}`
   onPct?.(10)
@@ -413,13 +413,14 @@ async function draftRow(dr: ListingDraft) {
   return { type: dr.type, step: Math.min(6, dr.step), title: dr.title.slice(0, 70), use_text: dr.use.slice(0, 200), description: (dr.desc ?? '').slice(0, 5000), tags: dr.tags.slice(0, 8), covers, spec: dr.spec, is_free: dr.free && dr.type !== 'hire', tips: dr.tips, options: dr.options, published_product_id: isRemoteId(dr.publishedId) ? dr.publishedId : null }
 }
 const sleep = (n: number) => new Promise((r) => setTimeout(r, n))
-/** Test mode: the review “team” is finish_review (auto-pass ~20 s after submit). Polls until a result. */
-async function waitReview(productId: string, draftId: string | null, onLive?: () => Promise<void>) {
+/** Polls finish_review for a result. Approval is done by a LUMI moderator (approve_listing); the server no longer
+ *  auto-approves, so this usually just ends with 'wait' and the next hydrate picks up the decision. */
+async function waitReview(productId: string, draftId: string | null) {
   for (let i = 0; i < 40; i++) {
     await sleep(i === 0 ? 21000 : 4000)
     const { data, error } = await S().rpc('finish_review', { p_product: productId, p_draft: draftId })
     if (error) return
-    if (data === 'live') { await onLive?.(); break }
+    if (data === 'live') break
     if (data === 'rejected' || data === 'none') break
   }
   await hydrate().catch(() => {})
@@ -436,12 +437,10 @@ export async function publishListing(dr: ListingDraft, share: boolean, notify: b
     pid = dr.publishedId!
     void waitReview(pid, id)
   } else {
-    pid = must(await c.rpc('publish_listing', { p_draft: id, p_share: false, p_notify: notify }), 'publish') as string
+    // share post + follower notice are queued on the server and sent when a moderator approves (even if the app is closed)
     const fresh = !isRemoteId(dr.publishedId)
-    void waitReview(pid, null, share && fresh ? async () => {
-      const p = getDb().published.find((x) => x.id === pid)
-      await c.from('posts').insert({ tag: p?.price === 0 ? 'แจกฟรี' : 'โชว์ผลงาน', body: `ลงผลงานใหม่ “${dr.title}” 🎉 ${dr.use}`.slice(0, 5000), images: (await toPaths(dr.covers.slice(0, 3), 'posts')), product_ids: [pid] })
-    } : undefined)
+    pid = must(await c.rpc('publish_listing', { p_draft: id, p_share: share && fresh, p_notify: notify }), 'publish') as string
+    void waitReview(pid, null)
   }
   const m = draftMap(); delete m[dr.id]; localStorage.setItem(MAP_KEY, JSON.stringify(m))
   await hydrate()
