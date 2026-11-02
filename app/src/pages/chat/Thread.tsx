@@ -15,7 +15,7 @@ import { fileToDataUrl } from '../../utils/image'
 import s from './Chat.module.css'
 
 const STICKERS = ['🙏', '😊', '💜', '👍', '🎉', '🥰', '😂', '🔥', '✨', '🐶', '🌸', '☕']
-const STEP_DESC = ['คุณส่งรายละเอียดงานให้ครีเอเตอร์', 'ครีเอเตอร์เสนอราคาและสิ่งที่จะได้รับ', 'เงินพักไว้กับผู้ให้บริการชำระเงิน ยังไม่โอนให้ครีเอเตอร์', 'ครีเอเตอร์กำลังทำงานและอัปเดตความคืบหน้า', 'ตรวจงาน ขอแก้ได้ตามจำนวนครั้งในแพ็กเกจ', 'กดรับงานแล้ว (หรือครบ 3 วันหลังส่งงาน) เงินโอนให้ครีเอเตอร์']
+const STEP_DESC = ['คุณส่งรายละเอียดงานให้ครีเอเตอร์', 'ครีเอเตอร์เสนอราคาและสิ่งที่จะได้รับ', 'ชำระผ่านผู้ให้บริการชำระเงินแล้ว ยังไม่โอนให้ครีเอเตอร์', 'ครีเอเตอร์กำลังทำงานและอัปเดตความคืบหน้า', 'ตรวจงาน ขอแก้ได้ตามจำนวนครั้งในแพ็กเกจ', 'กดรับงานแล้ว (หรือครบ 3 วันหลังส่งงาน) เงินโอนให้ครีเอเตอร์']
 
 export function Thread() {
   const { id = '' } = useParams()
@@ -82,7 +82,7 @@ export function Thread() {
         </button>
       )}
       <div ref={scroller} className={s.msgs}>
-        <div className={s.safe}><Icon name="shield" size={14} color="#15803D" />คุยและชำระผ่าน LUMI เท่านั้น เงินถูกพักไว้จนรับงาน · แชตตัวอย่าง</div>
+        <div className={s.safe}><Icon name="shield" size={14} color="#15803D" />{t.hire ? 'ชำระผ่านผู้ให้บริการชำระเงินที่มีใบอนุญาต · เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงาน' : 'คุยผ่าน LUMI เท่านั้น · อย่าโอนเงินนอกแอป'} · แชตตัวอย่าง</div>
         {msgs.map((m, i) => {
           const d = dayLabel(m.at)
           const showDay = d !== lastDay
@@ -97,7 +97,7 @@ export function Thread() {
         })}
       </div>
 
-      {t.role === 'customer' && t.status.includes('รอคุณส่งไฟล์') && (
+      {t.role === 'customer' && t.hire && t.status.includes('รอคุณส่งไฟล์') && (
         <div className={s.act}><Icon name="bolt" size={16} color="#B45309" />ลูกค้าชำระแล้ว ส่งไฟล์งานได้เลย<button className="btn btn-xs btn-p" onClick={() => chat.deliverToCustomer(id)}>ส่งไฟล์งาน</button></div>
       )}
       <div className={s.cmp}>
@@ -131,7 +131,7 @@ export function Thread() {
       {/* C: files & keys */}
       <Sheet open={sheet === 'files'} onClose={() => setSheet(null)} title="ไฟล์และคีย์" sub={`จากแชตกับ ${c.name}`} tall>
         {lib.length > 0 && <Link to={lib.length === 1 ? `/library/${lib[0].id}` : '/library'} className="list-row" style={{ margin: '0 -16px 8px', width: 'calc(100% + 32px)' }} data-thread-library><Icon name="box" size={20} color="var(--p)" /><span className="grow"><b>เปิดคลังของที่ซื้อ</b><small>ไฟล์ คีย์ ลิงก์ ใบเสร็จ ของ {lib.length} รายการจากแชตนี้</small></span><Icon name="chev" size={16} color="var(--mut)" /></Link>}
-        {assets.length === 0 ? (lib.length ? null : <Empty icon="file" title="ยังไม่มีไฟล์หรือคีย์" text="หลังชำระเงิน ไฟล์และคีย์จะอยู่ในคลังของที่ซื้อ เปิดดูได้ตลอด" />) : (
+        {assets.length === 0 ? (lib.length ? null : <Empty icon="file" title="ยังไม่มีไฟล์หรือคีย์" text="หลังชำระเงิน ไฟล์และคีย์จะอยู่ในคลังของที่ซื้อ · แนะนำให้ดาวน์โหลดเก็บไว้" />) : (
           <div className={s.assets}>
             {(['key', 'file', 'delivery', 'coupon'] as const).map((k) => {
               const list = assets.filter((m) => m.kind === k)
@@ -143,7 +143,7 @@ export function Thread() {
                 </div>
               )
             })}
-            <p className="hint" style={{ textAlign: 'center' }}>ไฟล์ทุกไฟล์ผ่านการสแกนไวรัสก่อนส่ง · ไฟล์ตัวอย่าง</p>
+            <p className="hint" style={{ textAlign: 'center' }}>ไฟล์ผ่านการสแกนไวรัสเบื้องต้น ไม่พบภัยที่รู้จัก · ไฟล์ตัวอย่าง</p>
           </div>
         )}
       </Sheet>
@@ -161,7 +161,7 @@ export function Thread() {
             )
           })}
         </div>
-        <div className={s.escrow}><Icon name="shield" size={22} color="#15803D" /><div><b>{t.amount ? baht(t.amount) : (t.step ?? 0) >= 1 ? 'งานฟรี' : 'รอใบเสนอราคา'} · {!t.amount && (t.step ?? 0) >= 1 ? 'ไม่ต้องชำระเงิน' : (t.step ?? 0) >= 2 && (t.step ?? 0) < 5 ? 'เงินพักไว้ รอคุณกดรับงาน' : (t.step ?? 0) >= 5 ? 'โอนให้ครีเอเตอร์แล้ว' : 'ยังไม่ชำระ'}</b>{!t.amount && (t.step ?? 0) >= 1 ? 'งานฟรีไม่มีการชำระเงิน · คุย ตรวจงาน และกดรับงานในแชตนี้ได้เลย' : 'ถ้าครีเอเตอร์ไม่ส่งงานตามกำหนด ขอเงินคืนได้เต็มจำนวน · ถ้าไม่ขอแก้หรือแจ้งปัญหาภายใน 3 วันหลังส่งงาน เงินโอนให้ครีเอเตอร์อัตโนมัติ (ตัวอย่าง)'}</div></div>
+        <div className={s.escrow}><Icon name="shield" size={22} color="#15803D" /><div><b>{t.amount ? baht(t.amount) : (t.step ?? 0) >= 1 ? 'งานฟรี' : 'รอใบเสนอราคา'} · {!t.amount && (t.step ?? 0) >= 1 ? 'ไม่ต้องชำระเงิน' : (t.step ?? 0) >= 2 && (t.step ?? 0) < 5 ? 'ชำระแล้ว · โอนให้ครีเอเตอร์เมื่อคุณกดรับงาน' : (t.step ?? 0) >= 5 ? 'โอนให้ครีเอเตอร์แล้ว' : 'ยังไม่ชำระ'}</b>{!t.amount && (t.step ?? 0) >= 1 ? 'งานฟรีไม่มีการชำระเงิน · คุย ตรวจงาน และกดรับงานในแชตนี้ได้เลย' : 'ถ้าครีเอเตอร์ไม่ส่งงานตามกำหนด ขอเงินคืนได้เต็มจำนวน · ถ้าไม่ขอแก้หรือแจ้งปัญหาภายใน 3 วันหลังส่งงาน เงินโอนให้ครีเอเตอร์อัตโนมัติ (ตัวอย่าง)'}</div></div>
       {hirePaid && (t.step ?? 0) < 4 && <button className="btn btn-o btn-block" style={{ marginTop: 12, color: '#DC2626' }} onClick={() => setSheet('late')}>ครีเอเตอร์ส่งช้าเกินกำหนด? ขอยกเลิกและคืนเงิน</button>}
         {t.issue && <p className="hint" style={{ marginTop: 10, color: '#B91C1C' }}>แจ้งปัญหาแล้ว: {t.issue.reason} · {t.issue.status}</p>}
       </Sheet>
@@ -206,7 +206,7 @@ function Asset({ m }: { m: Message }) {
   )
   return (
     <div className={s.as}><span className={s.asi} style={{ background: '#EAF1FF' }}><Icon name={m.kind === 'delivery' ? 'image' : 'file'} size={18} color="#2563EB" /></span>
-      <span className="grow"><b className="ell">{m.fileName ?? m.title}</b><small>{m.size ?? 'ไฟล์งานฉบับเต็ม'} · <span style={{ color: '#15803D' }}>สแกนแล้ว</span></small></span>
+      <span className="grow"><b className="ell">{m.fileName ?? m.title}</b><small>{m.size ?? 'ไฟล์งานฉบับเต็ม'} · <span style={{ color: '#15803D' }}>สแกนเบื้องต้นแล้ว</span></small></span>
       <button className="btn btn-xs btn-s" onClick={() => toast('ไฟล์ตัวอย่าง · ดาวน์โหลดไฟล์จริงได้เมื่อเปิดระบบเก็บไฟล์')}><Icon name="download" size={14} />โหลด</button></div>
   )
 }
@@ -239,7 +239,7 @@ function Bubble({ m, t, fresh, onPay, onReview, onRevise }: { m: Message; t: T; 
             : m.status === 'pending' ? <div className={s.btns}><button className="btn btn-sm btn-o" onClick={() => chat.send(t.id, 'ขอคุยรายละเอียดเพิ่มก่อนนะครับ')}>ขอคุยเพิ่ม</button><button className="btn btn-sm btn-p" onClick={() => chat.acceptOffer(t.id, m.id)}>{m.amount ? 'รับข้อเสนอ' : 'รับข้อเสนอ (ฟรี)'}</button></div>
             : m.status === 'accepted' && !m.amount ? <div className={s.state}><Icon name="check" size={14} color="#16A34A" stroke={2.6} />งานฟรี · ไม่ต้องชำระเงิน</div>
             : m.status === 'accepted' && !paid ? <button className="btn btn-sm btn-p btn-block" onClick={() => onPay(m)}>ชำระเงิน {baht(m.amount ?? 0)} (ทดลอง)</button>
-            : <div className={s.state}><Icon name="check" size={14} color="#16A34A" stroke={2.6} />ชำระแล้ว · เงินพักไว้จนกว่าจะรับงาน</div>}
+            : <div className={s.state}><Icon name="check" size={14} color="#16A34A" stroke={2.6} />ชำระแล้ว · โอนให้ครีเอเตอร์เมื่อรับงาน</div>}
         </div>{time}</div>
       )
     }
@@ -258,7 +258,7 @@ function Bubble({ m, t, fresh, onPay, onReview, onRevise }: { m: Message; t: T; 
       </div>{time}</div>
     )
     case 'key': return <div className={cls}><div className={`${s.card} ${s.key}`}><div className={s.ch}><Icon name="key" size={16} color="#6C2BD9" />{m.title}</div><code>{m.code}</code><button className="btn btn-xs btn-s" onClick={() => { copyText(m.code ?? ''); toast('คัดลอกแล้ว') }}><Icon name="copy" size={14} />คัดลอก</button></div>{time}</div>
-    case 'file': return <div className={cls}><div className={`${s.card} ${s.file}`}><span className={s.asi} style={{ background: '#EAF1FF' }}><Icon name="file" size={18} color="#2563EB" /></span><span className="grow"><b className="ell">{m.fileName}</b><small>{m.size} · สแกนไวรัสแล้ว</small></span><button className={s.dl} onClick={() => toast('ไฟล์ตัวอย่าง · ดาวน์โหลดไฟล์จริงได้เมื่อเปิดระบบเก็บไฟล์')} aria-label="ดาวน์โหลด"><Icon name="download" size={18} /></button></div>{time}</div>
+    case 'file': return <div className={cls}><div className={`${s.card} ${s.file}`}><span className={s.asi} style={{ background: '#EAF1FF' }}><Icon name="file" size={18} color="#2563EB" /></span><span className="grow"><b className="ell">{m.fileName}</b><small>{m.size} · สแกนเบื้องต้นแล้ว</small></span><button className={s.dl} onClick={() => toast('ไฟล์ตัวอย่าง · ดาวน์โหลดไฟล์จริงได้เมื่อเปิดระบบเก็บไฟล์')} aria-label="ดาวน์โหลด"><Icon name="download" size={18} /></button></div>{time}</div>
     case 'tip': return <div className={cls}><div className={`${s.card} ${s.tip}`}><Icon name="coin" size={22} color="#B45309" /><span><b>ให้ทิป {baht(m.amount ?? 0)}</b><small>{m.text}</small></span></div>{time}</div>
     case 'coupon': return <div className={cls}><div className={`${s.card} ${s.cpn}`}><Icon name="gift" size={22} color="#DB2777" /><span className="grow"><b>{m.title}</b><code>{m.code}</code></span><button className="btn btn-xs btn-p" onClick={() => { copyText(m.code ?? ''); toast(`คัดลอกโค้ด ${m.code} แล้ว ใช้ตอนชำระเงิน`) }}>เก็บโค้ด</button></div>{time}</div>
   }

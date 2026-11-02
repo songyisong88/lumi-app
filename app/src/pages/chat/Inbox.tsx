@@ -26,7 +26,7 @@ export function preview(m?: Message) {
     case 'delivery': return `📦 ${m.title}`
     case 'key': return `🔑 ${m.title}`
     case 'file': return `📎 ${m.fileName}`
-    case 'product': return `${who}แชร์สินค้า`
+    case 'product': return `${who}แชร์ผลงาน`
     case 'system': return m.text ?? ''
     case 'sticker': return `${who}ส่งสติกเกอร์`
     case 'tip': return `${who}ให้ทิป ฿${m.amount}`
@@ -51,7 +51,7 @@ export function Inbox() {
 
   return (
     <div className="page">
-      <TopBar title="แชต" sub={unread ? `ยังไม่อ่าน ${unread} ข้อความ` : 'อ่านครบแล้ว'} />
+      <TopBar title="แชต" sub={unread ? `ยังไม่อ่าน ${unread} ข้อความ · ${db.threads.filter((t) => t.unread > 0).length} แชต` : 'อ่านครบแล้ว'} />
       <div className="narrow">
         <div className={s.search}><Icon name="search" size={18} color="var(--mut)" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาชื่อ หรือชื่องาน" aria-label="ค้นหาแชต" />{q && <button onClick={() => setQ('')} aria-label="ล้าง"><Icon name="x" size={16} /></button>}</div>
         <div className="chips hscroll" style={{ padding: '10px 16px 4px' }}>
@@ -61,7 +61,7 @@ export function Inbox() {
           })}
         </div>
         <div style={{ padding: '6px 16px 2px' }}><SampleNote>แชตตัวอย่าง · ข้อความไม่ได้ส่งถึงใครจริง</SampleNote></div>
-        {list.length === 0 ? <Empty icon="chat" title={q ? 'ไม่พบแชตที่ค้นหา' : 'ยังไม่มีแชตในหมวดนี้'} text="ทักครีเอเตอร์ได้จากหน้าผลงาน หรือกดส่งบรีฟเพื่อจ้างงาน" action={<Link to="/search" className="btn btn-o btn-sm">ค้นหาครีเอเตอร์</Link>} /> : (
+        {list.length === 0 ? <Empty icon="chat" title={q ? 'ไม่พบแชตที่ค้นหา' : 'ยังไม่มีแชตในหมวดนี้'} text="ทักครีเอเตอร์ได้จากหน้าผลงาน หรือส่งบรีฟงานจ้าง" action={<Link to="/search" className="btn btn-o btn-sm">ค้นหาครีเอเตอร์</Link>} /> : (
           <div className={s.list}>
             {list.map((t, i) => {
               const c = creatorById(t.partnerId)

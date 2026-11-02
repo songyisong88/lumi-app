@@ -65,7 +65,7 @@ export function Community() {
           <div className={s.live}>
             <span className={s.liveTag}><i />สอนฟรีวันนี้ · 20:00 น.</span>
             <b>เริ่มขายผลงานบน LUMI ใน 30 นาที</b>
-            <small>โดย มิ้นท์ สตูดิโอ · ลงทะเบียนแล้ว 312 คน</small>
+            <small>โดย มิ้นท์ สตูดิโอ · ลงทะเบียนแล้ว {312 + (remind ? 1 : 0)} คน</small>
             <button className="btn btn-sm" style={{ background: '#fff', color: 'var(--p)', alignSelf: 'flex-start', marginTop: 8 }} onClick={() => { const v = !remind; setRemind(v); localStorage.setItem('lumi_remind_live', v ? '1' : ''); toast(v ? 'ตั้งเตือนแล้ว จะแจ้งก่อนเริ่ม 15 นาที' : 'ยกเลิกการเตือนแล้ว') }}>{remind ? 'ตั้งเตือนแล้ว ✓' : 'เตือนฉัน'}</button>
           </div>
           {composer}

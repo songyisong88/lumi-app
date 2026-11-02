@@ -20,13 +20,13 @@ import s from './Profile.module.css'
 type Mode = 'buyer' | 'creator'
 /** SAMPLE DATA: past sales shown in creator mode until real orders exist. */
 const SHOP_SALES = [
-  { no: 'LM-20488', pid: 'p01', who: 'ลูกค้าร้านกาแฟ', amt: 129, st: 'ส่งไฟล์แล้ว · รอพ้น 7 วัน', tone: 'info' },
-  { no: 'LM-20451', pid: 'p01', who: 'ร้านดอกไม้ป้าแดง', amt: 129, st: 'เข้ายอดรอโอนแล้ว', tone: 'done' },
+  { no: 'LM-20476', pid: 'p01', who: 'ลูกค้าร้านกาแฟ', amt: 390, st: 'ส่งไฟล์แล้ว · รอพ้น 7 วัน', tone: 'info' },
+  { no: 'LM-20451', pid: 'p01', who: 'ร้านดอกไม้ป้าแดง', amt: 159, st: 'เข้ายอดรอโอนแล้ว', tone: 'done' },
 ]
 const HANDLE: Record<string, string> = { fasai: 'fasai.create', mint: 'mint.studio', nova: 'novalab', kenji: 'kenjiweb', pim: 'pimdao', toy: 'toymascot', ton: 'tondata' }
 const BIO: Record<string, string> = {
   fasai: 'วาดภาพสีน้ำด้วย AI · ภาพดอกไม้ ลายไทย โทนพาสเทล 🌸', mint: 'เทมเพลต Canva สำหรับร้านเล็ก แก้ง่ายในมือถือ', nova: 'ทีมทำโปรแกรมและภาพ 3D สำหรับ SME ไทย',
-  kenji: 'รับทำเว็บร้านค้า แอปจองคิว ส่งงานไว', pim: 'นักวาดสติกเกอร์ LINE ชิบะและแมวเหมียว', toy: 'ออกแบบมาสคอตร้านค้า น่ารักจำง่าย', ton: 'เครื่องมือ Google Sheets และชุดข้อมูลสำหรับธุรกิจ',
+  kenji: 'รับทำเว็บร้านค้า แอปจองคิว ส่งงานไว', pim: 'ครีเอเตอร์สติกเกอร์ LINE ชิบะและแมวเหมียว', toy: 'ออกแบบมาสคอตร้านค้า น่ารักจำง่าย', ton: 'เครื่องมือ Google Sheets และชุดข้อมูลสำหรับธุรกิจ',
 }
 
 export function Profile() {
@@ -55,7 +55,7 @@ export function Profile() {
           <Av src={me.avatar} size={68} ring />
           <div className={s.mm}>
             <b>{me.name}</b>
-            <small>@{HANDLE[ME]} · ติดตาม {db.follows.length} · ผู้ติดตาม {creatorStats(ME).followersLabel}</small>
+            <small><span className="nw">@{HANDLE[ME]}</span> · <span className="nw">ติดตาม {db.follows.length}</span> · <span className="nw">ผู้ติดตาม {creatorStats(ME).followersLabel}</span></small>
           </div>
           <Link to={`/creator/${ME}`} className="btn btn-o btn-xs">ดูหน้าร้าน</Link>
         </div>
@@ -76,7 +76,7 @@ export function Profile() {
                     {db.purchases.map((b, i) => (
                       <div key={b.id} className={`list-row rise`} style={{ '--i': Math.min(i, 6) } as React.CSSProperties}>
                         <Img src={b.image} className={s.th} />
-                        <Link to={b.productId.startsWith('offer') ? `/chat/${b.threadId}` : `/product/${b.productId}`} className="grow"><b className="ell" style={{ display: 'block' }}>{b.title}</b><small className="ell">{creatorById(b.creatorId).name} · {b.optionLabel ?? (b.price ? baht(b.price) : 'ฟรี')} · {ago(b.at)}</small>{(b.issue || b.review) && <small className="ell" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>{b.issue && <span className="pill pill-r">แจ้งปัญหาแล้ว</span>}{b.review && <Stars v={b.review.stars} size={11} />}</small>}</Link>
+                        <Link to={b.productId.startsWith('offer') ? `/chat/${b.threadId}` : `/product/${b.productId}`} className="grow"><b className="ell" style={{ display: 'block' }}>{b.title}</b><small className="ell">{creatorById(b.creatorId).name} · {b.optionLabel && b.optionLabel !== 'ของฟรี' ? `${b.optionLabel} · ` : ''}{b.price ? baht(b.price) : 'ฟรี'} · {ago(b.at)}</small>{(b.issue || b.review) && <small className="ell" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>{b.issue && <span className="pill pill-r">แจ้งปัญหาแล้ว</span>}{b.review && <Stars v={b.review.stars} size={11} />}</small>}</Link>
                         <Link to={`/library/${b.id}`} className="btn btn-xs btn-s"><Icon name="download" size={14} />ไฟล์</Link>
                         <button className="tb-btn" style={{ width: 34, height: 34 }} aria-label={`จัดการรายการ ${b.title}`} data-order-menu={b.id} onClick={() => setAct({ id: b.id, sheet: 'menu' })}><Icon name="dots" size={19} /></button>
                       </div>
@@ -153,7 +153,7 @@ export function Profile() {
                     <Link key={p.id} to={`/product/${p.id}`} className={`${s.gi} press`}>
                       <Img src={heroOf(p)} />
                       <span className={s.gl}>{p.price === 0 ? 'ฟรี' : `♥ ${statsOf(p).likes}`}</span>
-                      {p.mod?.status === 'pending' ? <span className={s.gn} data-mod="pending" style={{ background: '#B45309' }}>รอตรวจ</span> : p.mod?.status === 'rejected' ? <span className={s.gn} data-mod="rejected" style={{ background: '#DC2626' }}>ไม่ผ่าน</span> : p.mine && <span className={s.gn}>ใหม่</span>}
+                      {p.rev ? <span className={s.gn} data-mod={`rev-${p.rev.status}`} style={{ background: p.rev.status === 'pending' ? '#B45309' : '#DC2626' }}>{p.rev.status === 'pending' ? 'แก้ไขรอตรวจ' : 'แก้ไขไม่ผ่าน'}</span> : p.mod?.status === 'pending' ? <span className={s.gn} data-mod="pending" style={{ background: '#B45309' }}>รอตรวจ</span> : p.mod?.status === 'rejected' ? <span className={s.gn} data-mod="rejected" style={{ background: '#DC2626' }}>ไม่ผ่าน</span> : p.mine && <span className={s.gn}>ใหม่</span>}
                     </Link>
                   ))}
                   <Link to="/sell" className={`${s.gi} ${s.add} press`}><Icon name="plus" size={26} color="var(--p)" /><span>ลงขายผลงาน</span></Link>

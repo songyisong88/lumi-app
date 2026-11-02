@@ -41,7 +41,7 @@ export function Library() {
             {working.map((t) => (
               <Link key={t.id} to={`/chat/${t.id}`} className="list-row">
                 <Img src={t.image} className={s.th} />
-                <span className="grow"><b className="ell" style={{ display: 'block' }}>{t.title}</b><small className="ell">{creatorById(t.partnerId).name} · {HIRE_STEPS[t.step ?? 0]} · {t.status}</small><small>ไฟล์งานจะเข้าคลังนี้เมื่อคุณกดรับงาน</small></span>
+                <span className="grow"><b className="ell" style={{ display: 'block' }}>{t.title}</b><small className="ell">{creatorById(t.partnerId).name} · ขั้น {(t.step ?? 0) + 1}/{HIRE_STEPS.length} · {t.status}</small><small>ไฟล์งานจะเข้าคลังนี้เมื่อคุณกดรับงาน</small></span>
                 <Icon name="chev" size={16} color="var(--mut)" />
               </Link>
             ))}
@@ -50,7 +50,7 @@ export function Library() {
       )}
       <div className="sec">
         {list.length === 0 ? (
-          showWorking ? null : <Empty icon="box" title={tab === 'all' ? 'ยังไม่มีของที่ซื้อ' : `ยังไม่มีรายการใน “${LIB_TABS.find((x) => x.v === tab)!.label}”`} text="ของที่ซื้อและของฟรีที่กดรับ จะเก็บไว้ที่นี่ เปิดโหลดซ้ำได้ตลอด" action={<Link to="/" className="btn btn-p btn-sm">เลือกดูผลงาน</Link>} />
+          showWorking ? null : <Empty icon="box" title={tab === 'all' ? 'ยังไม่มีของที่ซื้อ' : `ยังไม่มีรายการใน “${LIB_TABS.find((x) => x.v === tab)!.label}”`} text="ของที่ซื้อและของฟรีที่กดรับ จะเก็บไว้ที่นี่ เปิดโหลดซ้ำได้จากคลังของที่ซื้อ · แนะนำให้ดาวน์โหลดเก็บไว้" action={<Link to="/" className="btn btn-p btn-sm">เลือกดูผลงาน</Link>} />
         ) : (
           <div className="card2" style={{ padding: 0, overflow: 'hidden' }} data-lib-list>
             {list.map((b, i) => {
@@ -61,7 +61,7 @@ export function Library() {
                   <Img src={b.image} className={s.th} />
                   <span className="grow">
                     <b className="ell" style={{ display: 'block' }}>{b.title}</b>
-                    <small className="ell">{creatorById(b.creatorId).name} · {b.optionLabel ?? (b.price ? baht(b.price) : 'ฟรี')} · {ago(b.at)}</small>
+                    <small className="ell">{creatorById(b.creatorId).name} · {b.optionLabel && b.optionLabel !== 'ของฟรี' ? `${b.optionLabel} · ` : ''}{b.price ? baht(b.price) : 'ฟรี'} · {ago(b.at)}</small>
                     <span className={s.chips}>
                       {kinds.map((k) => <span key={k} className="pill"><Icon name={KIND[k].icon} size={11} color={KIND[k].color} />{KIND[k].label}{k === 'file' ? ` ${a.filter((x) => x.kind === 'file').length}` : ''}</span>)}
                       {b.issue && <span className="pill pill-r">แจ้งปัญหาแล้ว</span>}
@@ -96,13 +96,13 @@ export function LibraryItem() {
   const copy = (x: Asset) => { copyText(x.value); toast(`คัดลอก${KIND[x.kind].label}แล้ว`) }
   return (
     <div className={s.page}>
-      <TopBar title="ของที่ซื้อ" sub={`ออเดอร์ #${b.orderNo}`} right={<button className="tb-btn" aria-label="ใบเสร็จ" onClick={() => setSheet('receipt')}><Icon name="receipt" size={20} /></button>} />
+      <TopBar title="ของที่ซื้อ" sub={`ออเดอร์ #${b.orderNo}${b.price ? "" : " · รับฟรี"}`} right={<button className="tb-btn" aria-label="ใบเสร็จ" onClick={() => setSheet('receipt')}><Icon name="receipt" size={20} /></button>} />
       <div className={s.head}>
         <Img src={b.image} className={s.big} />
         <div style={{ minWidth: 0 }}>
           <b>{b.title}</b>
           <small>{c.name} · {b.optionLabel ?? 'มาตรฐาน'} · {b.price ? baht(b.price) : 'ฟรี'}</small>
-          <small>ได้รับเมื่อ {ago(b.at)}{b.review && <> · <Stars v={b.review.stars} size={11} /></>}</small>
+          <small>ได้รับ{ago(b.at).startsWith('เมื่อ') ? '' : ' '}{ago(b.at)}{b.review && <> · <Stars v={b.review.stars} size={11} /></>}</small>
         </div>
       </div>
       {b.issue && <div className="hint" style={{ background: '#FEF2F2', color: '#B91C1C', borderRadius: 12, padding: '10px 12px', margin: '12px 16px 0' }}><b>แจ้งปัญหาแล้ว: {b.issue.reason}</b><br />{b.issue.status}</div>}
@@ -121,7 +121,7 @@ export function LibraryItem() {
       </div>}
 
       {codes.length > 0 && <div className="sec" data-lib-codes>
-        <div className="sec-h">คีย์และพรอมต์</div>
+        <div className="sec-h">{[...new Set(codes.map((x) => x.kind === 'key' ? 'คีย์' : x.kind === 'prompt' ? 'พรอมต์' : 'ลิงก์'))].join('และ')}</div>
         <div className="card2">
           {codes.map((x, i) => (
             <div key={x.title} style={{ marginTop: i ? 14 : 0 }}>

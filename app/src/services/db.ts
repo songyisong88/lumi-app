@@ -10,7 +10,7 @@ import { registerProducts } from '../data/sampleData'
 
 const KEY = 'lumi_app_db'
 // bump when the seed or stored shapes change; older local data is replaced by the new seed
-const VERSION = 5
+const VERSION = 6
 type Listener = () => void
 const listeners = new Set<Listener>()
 

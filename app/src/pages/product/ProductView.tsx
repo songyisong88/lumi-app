@@ -14,15 +14,22 @@ import { toast } from '../../services/toast'
 import { Modules } from './modules'
 import { WriteReviewSheet } from '../../components/OrderHelp'
 import { ReportSheet } from '../../components/Report'
-import { sell } from '../../services/api'
+import { replyToReview, sell } from '../../services/api'
 import { FEATURES } from '../../config'
 import { ModBanner } from '../../components/ModStatus'
+import { catLabel } from '../../data/searchData'
 import s from './Product.module.css'
 
 type Sec = 'over' | 'get' | 'how' | 'rev' | 'sim'
 const SECS: { v: Sec; label: string }[] = [
   { v: 'over', label: 'ภาพรวม' }, { v: 'get', label: 'ได้อะไรบ้าง' }, { v: 'how', label: 'วิธีใช้' }, { v: 'rev', label: 'รีวิว' }, { v: 'sim', label: 'คล้ายกัน' },
 ]
+
+/** Cheapest one-off option (monthly plans only if nothing else). Shown first so the page matches card prices. */
+const cheapest = <T extends { price: number; suffix?: string }>(os: T[]): T | undefined => {
+  const pool = os.filter((o) => !o.suffix).length ? os.filter((o) => !o.suffix) : os
+  return pool.reduce<T | undefined>((m, o) => (!m || o.price < m.price ? o : m), undefined)
+}
 
 export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
   const nav = useNavigate()
@@ -32,13 +39,17 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
   const spec = specOf(p)
   const pc = pageContent(p)
   const opts = optionsOf(p)
-  const [optId, setOptId] = useState(() => (opts.find((o) => o.best) ?? opts[0])?.id)
+  // once bought, open on the option that was paid for so page price = library/order price
+  const [optId, setOptId] = useState(() => { const ow = db.purchases.find((x) => x.productId === p.id); return ((ow && opts.find((o) => o.price === ow.price)) ?? cheapest(opts))?.id })
   const opt = opts.find((o) => o.id === optId) ?? opts[0]
   const c = creatorById(p.creatorId)
   const cs = creatorStats(p.creatorId, db.follows.includes(p.creatorId))
   const st = statsOf(p)
   const gallery = galleryOf(p)
   const owned = db.purchases.find((x) => x.productId === p.id)
+  const [replyTo, setReplyToRaw] = useState<{ key: string; who: string } | null>(null)
+  const [replyText, setReplyText] = useState('')
+  const setReplyTo = (x: { key: string; who: string } | null) => { if (x) setReplyText(db.replies?.[x.key] ?? ''); setReplyToRaw(x) }
   const [myRev, setMyRev] = useState(false)
   const mine = p.creatorId === ME
   const [busy, setBusy] = useState(false)
@@ -104,7 +115,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
   // bottom bar per layout (approved product-b “bar”)
   const bar = (() => {
     if (mine && !preview) return { sub: 'ผลงานของคุณ', main: <button className="btn btn-d" onClick={() => setSheet('manage')}>จัดการผลงาน</button>, sec: <button className="btn btn-o btn-sm" onClick={() => setSheet('share')}><Icon name="share" size={16} />แชร์</button> }
-    if (owned && L !== 'hire') return { sub: `ซื้อแล้ว · #${owned.orderNo}`, main: <button className="btn btn-p" onClick={() => nav(`/library/${owned.id}`)}><Icon name="download" size={18} color="#fff" />เปิดในคลังของที่ซื้อ</button>, sec: null }
+    if (owned && L !== 'hire') return { sub: `${owned.price ? 'ซื้อแล้ว' : 'รับฟรีแล้ว'}${owned.optionLabel && owned.optionLabel !== 'ของฟรี' ? ` · ${owned.optionLabel}` : ''}`, main: <button className="btn btn-p" onClick={() => nav(`/library/${owned.id}`)}><Icon name="download" size={18} color="#fff" />เปิดในคลังของที่ซื้อ</button>, sec: null }
     switch (L) {
       case 'free': return { sub: 'ของฟรี', main: <button className="btn btn-p" disabled={busy} onClick={getFree}>{busy ? 'กำลังเตรียมไฟล์…' : 'ดาวน์โหลดฟรี'}</button>, sec: FEATURES.tips ? <button className="btn btn-o btn-sm" onClick={() => (guard() ? null : setSheet('tip'))}><Icon name="gift" size={16} color="#B45309" />ให้ทิป</button> : null }
       case 'hire': return { sub: freeHire ? 'รับงานฟรี' : `แพ็กเกจ${opt?.label ?? ''}`, main: <button className="btn btn-p" onClick={() => (guard() ? null : setSheet('brief'))}>{freeHire ? 'ส่งบรีฟขอรับงานฟรี' : 'ส่งบรีฟขอใบเสนอราคา'}</button>, sec: <button className="btn btn-o btn-sm" onClick={openChat} aria-label="แชตถามก่อน" title="แชตถามก่อน"><Icon name="chat" size={18} color="var(--p)" /></button> }
@@ -139,7 +150,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
         <div className={`hscroll ${s.slides}`} onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
           {gallery.map((g, i) => <div key={g + i} className={s.slideW}><Img src={g} className={s.slide} sizes="100vw" eager={i === 0} />{marked && <span className={s.wm} data-wm aria-hidden>{Array.from({ length: 6 }, (_, k) => <i key={k}>LUMI · ตัวอย่าง</i>)}</span>}</div>)}
         </div>
-        <div className={s.tyb}><span><Icon name={SPECS[t].icon} size={13} color="#fff" stroke={2.2} />{p.label ?? SPECS[t].name}{L === 'free' || freeHire ? ' · ฟรี' : ''}</span>{marked && <span>ภาพตัวอย่างมีลายน้ำ</span>}{p.mine && <span>ผลงานของคุณ</span>}</div>
+        <div className={s.tyb}><span><Icon name={SPECS[t].icon} size={13} color="#fff" stroke={2.2} />{catLabel(p)}{L === 'free' || freeHire ? ' · ฟรี' : ''}</span>{marked && <span>ภาพตัวอย่างมีลายน้ำ</span>}{p.mine && <span>ผลงานของคุณ</span>}</div>
         {!preview && <HeartButton productId={p.id} className={s.fav} />}
         {gallery.length > 1 && <div className={s.dots}>{gallery.map((_, i) => <i key={i} className={i === slide ? s.don : ''} />)}</div>}
       </div>
@@ -149,7 +160,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
         <h1 className={s.ttl}>{p.title}</h1>
         <div className={s.rt}><Icon name="star" size={13} stroke={0} fill="#F5A524" /><b>{st.reviews ? st.rating : 'ใหม่'}</b>{st.reviews > 0 && <span>({st.reviews} รีวิว)</span>}<span>·</span><span>{st.soldLabel}</span></div>
         <div className={s.pr}>
-          {L === 'free' || freeHire ? <span className={s.free}>{freeHire ? 'รับงานฟรี' : 'ฟรี'}</span> : <>{L === 'hire' && <small>ราคาเริ่มต้น</small>}<b>{baht(L === 'hire' ? Math.min(...opts.map((o) => o.price)) : price)}{opt?.suffix ?? ''}</b>{L === 'hire' && <small data-quote-note>· ราคาจริงตามใบเสนอราคา</small>}</>}
+          {L === 'free' || freeHire ? <span className={s.free}>{freeHire ? 'รับงานฟรี' : 'ฟรี'}</span> : <>{L === 'hire' && <small>ราคาเริ่มต้น</small>}{L !== 'hire' && !owned && opts.length > 1 && <small>เริ่ม</small>}<b data-head-price>{baht(L === 'hire' ? Math.min(...opts.map((o) => o.price)) : owned ? owned.price : cheapest(opts)?.price ?? price)}{L === 'hire' ? '' : owned ? '' : cheapest(opts)?.suffix ?? ''}</b>{owned && L !== 'hire' && <small>{owned.price ? 'ซื้อแล้ว' : 'รับแล้ว'}</small>}{L === 'hire' && <small data-quote-note>· ราคาจริงตามใบเสนอราคา</small>}</>}
         </div>
         <p className={s.use}><Icon name="target" size={14} color="var(--mut)" />{p.use}</p>
         <div className={s.hl}>
@@ -176,7 +187,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
               ))}
             </>
           )}
-          <Modules unlocked={mine || !!owned} p={p} L={L} spec={spec} opts={opts} optId={opt?.id} setOptId={setOptId} onTip={(a) => { if (guard()) return; setTipAmt(a ?? 50); setSheet('tip') }} onTrial={() => setSheet('trial')} onLesson={() => setSheet('lesson')} />
+          <Modules unlocked={(mine && !preview) || !!owned} p={p} L={L} spec={spec} opts={opts} optId={opt?.id} setOptId={setOptId} onTip={(a) => { if (guard()) return; setTipAmt(a ?? 50); setSheet('tip') }} onTrial={() => setSheet('trial')} onLesson={() => setSheet('lesson')} />
           {p.desc && <><div className={s.st}>รายละเอียด</div><p className={s.desc}>{p.desc}</p></>}
           {pc.facts.length > 0 && <div className={s.spec} style={{ marginTop: 14 }}>{pc.facts.map(([k, v]) => <div key={k}>{k}<b>{v}</b></div>)}</div>}
         </section>
@@ -185,7 +196,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
           <div className={s.st}>สิ่งที่คุณจะได้รับ</div>
           <div className={s.box}>{pc.deliver.map((d, i) => <div key={i} className={s.ok}><span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>{d}</div>)}</div>
           {filesOf(spec.files).length > 0 && (
-            <div className={s.scan}><Icon name="shield" size={22} color="#16A34A" /><div><b>สแกนไวรัสเบื้องต้นแล้ว ไม่พบภัยที่รู้จัก</b>{filesOf(spec.files).length} ไฟล์ · ตรวจอัตโนมัติเบื้องต้น · LUMI สุ่มตรวจและลบได้ถ้าผิดกฎ</div></div>
+            <div className={s.scan}><Icon name="shield" size={22} color="#16A34A" /><div><b>สแกนไวรัสเบื้องต้นแล้ว ไม่พบภัยที่รู้จัก</b>{filesOf(spec.files).length} ไฟล์ · ผ่านการตรวจโดยทีม LUMI ก่อนขึ้นขาย · ถ้าพบว่าผิดกฎภายหลัง LUMI ลบได้</div></div>
           )}
           {L !== 'free' && !freeHire && <div className={s.scan} style={{ background: '#EEF2FF', color: '#3730A3' }}><Icon name="lock" size={22} color="#4F46E5" /><div><b>ชำระผ่านผู้ให้บริการชำระเงินที่มีใบอนุญาต</b>{L === 'hire' || t === 'hire' ? 'เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงานถ้าไม่ได้ขอแก้หรือแจ้งปัญหา' : 'ไฟล์มีปัญหาหรือไม่ตรงคำอธิบาย กดแจ้งปัญหา / ขอคืนเงินได้ภายใน 7 วัน ก่อนเงินโอนให้ครีเอเตอร์'}</div></div>}
         </section>
@@ -202,7 +213,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
               <div className={s.st}>สิทธิ์การใช้งาน</div>
               <table className={s.lic}><thead><tr><th>ใช้ทำ</th><th>ได้ไหม</th></tr></thead>
                 <tbody>{licRows(t).map((r) => <tr key={r}><td>{r}</td><td className={pc.lic!.includes(r) ? s.yes : s.no}>{pc.lic!.includes(r) ? '✓ ได้' : '–'}</td></tr>)}</tbody></table>
-              <p className="hint" style={{ marginTop: 8 }}>สิทธิ์ใช้งานนี้ไม่ผูกขาด ผู้ขายยังขายให้คนอื่นได้ · งานที่สร้างด้วย AI อาจได้รับความคุ้มครองลิขสิทธิ์ไม่เต็มที่ · ผู้ขายรับรองว่ามีสิทธิ์ขายงานนี้</p>
+              <p className="hint" style={{ marginTop: 8 }}>สิทธิ์ใช้งานนี้ไม่ผูกขาด ครีเอเตอร์ยังขายให้คนอื่นได้ · งานที่สร้างด้วย AI อาจได้รับความคุ้มครองลิขสิทธิ์ไม่เต็มที่ · ผู้ขายรับรองว่ามีสิทธิ์ขายงานนี้</p>
             </>
           )}
           {(pc.refund || pc.support) && (
@@ -240,6 +251,8 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
                   <div className={s.rvh}><Av src={reviewer(r.who).avatar} size={26} />{reviewer(r.who).name}<span className="pill pill-g" style={{ marginLeft: 6 }}>ซื้อแล้ว</span><small>{r.when}</small></div>
                   <Stars v={r.stars} /><p>{r.text}</p>
                   {r.pic && <Img src={gallery[0]} className={s.rvpic} />}
+                  {db.replies?.[`${p.id}:${i}`] && <div className={s.rvReply} data-review-reply><b>คำตอบจากครีเอเตอร์</b>{db.replies[`${p.id}:${i}`]}</div>}
+                  {mine && !preview && <button className={`btn btn-xs btn-s ${s.rvBtn}`} onClick={() => setReplyTo({ key: `${p.id}:${i}`, who: reviewer(r.who).name })} data-reply-review>{db.replies?.[`${p.id}:${i}`] ? 'แก้คำตอบ' : 'ตอบรีวิว'}</button>}
                 </div>
               ))}
             </>
@@ -261,13 +274,17 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
 
       {!preview && (
         <div className={`bottom-bar ${s.bar}`}>
-          <div className={s.pp}><small>{bar.sub}</small><b style={L === 'free' || freeHire ? { color: '#16A34A' } : undefined}>{L === 'free' || freeHire ? 'ฟรี' : `${baht(price)}${opt?.suffix ?? ''}`}</b></div>
+          <div className={s.pp}><small>{bar.sub}</small><b style={L === 'free' || freeHire ? { color: '#16A34A' } : undefined}>{owned && L !== 'hire' ? (owned.price ? baht(owned.price) : 'ฟรี') : L === 'free' || freeHire ? 'ฟรี' : `${baht(price)}${opt?.suffix ?? ''}`}</b></div>
           {bar.sec}
           {bar.main}
         </div>
       )}
 
       {/* sheets */}
+      <Sheet open={!!replyTo} onClose={() => setReplyTo(null)} title={`ตอบรีวิวของ ${replyTo?.who ?? ''}`} sub="คำตอบแสดงใต้รีวิวให้ทุกคนเห็น · สุภาพ ไม่ใส่ข้อมูลติดต่อนอกแอป"
+        footer={<button className="btn btn-p btn-block" onClick={async () => { if (!replyTo) return; await replyToReview(replyTo.key, replyText); setReplyTo(null); toast(replyText.trim() ? 'ตอบรีวิวแล้ว' : 'ลบคำตอบแล้ว') }}>{replyText.trim() ? 'ส่งคำตอบ' : 'ลบคำตอบ'}</button>}>
+        <textarea className="inp" rows={4} maxLength={500} value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="ขอบคุณสำหรับรีวิว…" aria-label="คำตอบรีวิว" style={{ height: 'auto', padding: 12 }} data-reply-input />
+      </Sheet>
       {owned && <WriteReviewSheet open={myRev} onClose={() => setMyRev(false)} purchaseId={owned.id} initial={owned.review} />}
       <BriefSheet open={sheet === 'brief'} onClose={() => setSheet(null)} p={p} opts={opts} optId={opt?.id} setOptId={setOptId} />
       <TipSheet open={sheet === 'tip'} onClose={() => setSheet(null)} p={p} initial={tipAmt} />
@@ -275,7 +292,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
         footer={<><button className="btn btn-o" style={{ flex: 1 }} onClick={() => setSheet(null)}>ดูต่อ</button><button className="btn btn-p" style={{ flex: 1 }} onClick={() => { setSheet(null); nav('/cart') }}>ไปที่ตะกร้า ({inCart})</button></>}>
         <div className={s.addedRow}><Img src={gallery[0]} className={s.addedImg} /><div><b className="ell2">{p.title}</b><small className="muted">{opt?.label}</small></div><b>{baht(opt?.price ?? p.price)}</b></div>
       </Sheet>
-      <Sheet open={sheet === 'free'} onClose={() => setSheet(null)} title="ได้รับแล้ว 🎉" sub="ไฟล์อยู่ในคลังของที่ซื้อแล้ว · เปิดโหลดซ้ำได้ตลอด"
+      <Sheet open={sheet === 'free'} onClose={() => setSheet(null)} title="ได้รับแล้ว 🎉" sub="ไฟล์อยู่ในคลังของที่ซื้อแล้ว · เปิดโหลดซ้ำได้จากคลังของที่ซื้อ · แนะนำให้ดาวน์โหลดเก็บไว้"
         footer={<>{FEATURES.tips && <button className="btn btn-o" style={{ flex: 1 }} onClick={() => { setSheet(null); setSheet('tip') }}>ให้ทิป</button>}<button className="btn btn-p" style={{ flex: 1 }} data-open-library onClick={() => { const b = getDb().purchases.find((x) => x.productId === p.id); setSheet(null); nav(b ? `/library/${b.id}` : '/library') }}>เปิดคลังของที่ซื้อ</button></>}>
         <div className={s.box}>{pc.deliver.slice(0, 4).map((d, i) => <div key={i} className={s.ok}><span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>{d}</div>)}</div>
       </Sheet>
@@ -292,7 +309,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
       <ReportSheet open={sheet === 'report'} onClose={() => setSheet(null)} target="product" id={p.id} />
       <Sheet open={sheet === 'manage'} onClose={() => setSheet(null)} title="จัดการผลงาน" sub={`${p.title} · ${p.price === 0 ? 'แจกฟรี' : `ขาย ${baht(p.price)}`}`}>
         <div className="card2" style={{ padding: 0, overflow: 'hidden' }}>
-          <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setSheet(null); nav(`/sell?edit=${p.id}&step=1`) }}><Icon name="edit" size={20} color="var(--p)" /><span className="grow">แก้ไขรายละเอียด<small>ชื่อ ภาพ ไฟล์ และข้อมูลทั้งหมด</small></span><Icon name="chev" size={18} /></button>
+          <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setSheet(null); nav(`/sell?edit=${p.id}&step=2`) }}><Icon name="edit" size={20} color="var(--p)" /><span className="grow">แก้ไขรายละเอียด<small>ชื่อ ภาพ ไฟล์ และข้อมูลทั้งหมด</small></span><Icon name="chev" size={18} /></button>
           <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setSheet(null); nav(`/sell?edit=${p.id}&step=3`) }}><Icon name={p.price === 0 || t === 'hire' ? 'tag' : 'gift'} size={20} color="var(--p)" /><span className="grow">{t === 'hire' ? 'เปลี่ยนราคาแพ็กเกจ' : p.price === 0 ? 'เปลี่ยนเป็นขาย (ตั้งราคา)' : 'เปลี่ยนราคา หรือเปลี่ยนเป็นแจกฟรี'}<small>{t === 'hire' ? 'งานจ้างต้องมีราคา · งานที่รับไปแล้วใช้ราคาเดิม' : 'สลับฟรีหรือขายได้ทุกเมื่อ · ผู้ที่ได้ไปแล้วยังใช้ได้ตามเดิม'}</small></span><Icon name="chev" size={18} /></button>
           <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setSheet(null); nav('/profile?mode=creator') }}><Icon name="store" size={20} color="var(--p)" /><span className="grow">ไปหน้าจัดการร้าน<small>ยอดขาย ร่าง และผลงานทั้งหมด</small></span><Icon name="chev" size={18} /></button>
           {p.mine && <button className="list-row" style={{ width: '100%', textAlign: 'left', color: '#DC2626' }} onClick={async () => { await sell.unpublish(p.id); setSheet(null); toast('เลิกขายแล้ว · ผู้ที่ซื้อไปแล้วยังเปิดไฟล์ได้'); nav('/profile?mode=creator', { replace: true }) }}><Icon name="trash" size={20} color="#DC2626" /><span className="grow">เลิกขายผลงานนี้<small>ซ่อนจากหน้าร้าน ฟีด และหน้าค้นหา</small></span></button>}

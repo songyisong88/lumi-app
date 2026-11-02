@@ -54,7 +54,7 @@ export const CATEGORIES: Record<CatKey, Category> = {
   game: { key: 'game', name: 'เกม', desc: 'เกมพร้อมเล่น ซอร์สเกม', sub: 'เกมมือถือ · PC · ซอร์สเกม', image: 'c_game.jpg', count: '520', accent: '#4F46E5', parent: 'game', rule: (p) => !isPlugin(p) && !isExt(p), match: (p) => inCat('game', p) },
   plugin: { key: 'plugin', name: 'ปลั๊กอิน', desc: 'เพิ่มฟีเจอร์ให้เว็บและร้านออนไลน์', sub: 'WordPress · Shopify', image: 'c_plugin.jpg', count: '690', accent: '#0891B2', parent: 'game', rule: isPlugin, match: (p) => inCat('plugin', p) },
   ext: { key: 'ext', name: 'ส่วนขยาย Chrome', desc: 'ตัวช่วยที่ติดตั้งในเบราว์เซอร์', sub: 'ติดตั้งในเบราว์เซอร์', image: 'c_plugin.jpg', count: '380', accent: '#0D9488', flip: true, parent: 'game', rule: isExt, match: (p) => inCat('ext', p) },
-  bot: { key: 'bot', name: 'บอทแชต', desc: 'ตอบแชตลูกค้าให้อัตโนมัติ', sub: 'สแกนลองคุยได้', image: 'c_bot.jpg', count: '310', accent: '#16A34A', parent: 'bot', rule: (p) => !['ผู้ช่วย AI', 'ระบบอัตโนมัติ'].includes(sub(p)), match: (p) => inCat('bot', p) },
+  bot: { key: 'bot', name: 'บอทแชต', desc: 'ตอบแชตลูกค้าให้อัตโนมัติ', sub: 'สแกน QR ลองคุยได้', image: 'c_bot.jpg', count: '310', accent: '#16A34A', parent: 'bot', rule: (p) => !['ผู้ช่วย AI', 'ระบบอัตโนมัติ'].includes(sub(p)), match: (p) => inCat('bot', p) },
   ai: { key: 'ai', name: 'ผู้ช่วย AI', desc: 'ช่วยแอดมิน เขียนแคปชัน', sub: 'แอดมิน · เขียนแคปชัน', image: 'robot.jpg', count: '860', accent: '#0E9384', parent: 'bot', rule: (p) => sub(p) === 'ผู้ช่วย AI', match: (p) => inCat('ai', p) },
   auto: { key: 'auto', name: 'ระบบอัตโนมัติ', desc: 'งานซ้ำ ๆ ให้ทำเองอัตโนมัติ', sub: 'n8n · Make · Zapier', image: 'c_auto.jpg', count: '450', accent: '#7C3AED', parent: 'bot', rule: (p) => sub(p) === 'ระบบอัตโนมัติ', match: (p) => inCat('auto', p) },
   sme: { key: 'sme', name: 'เครื่องมือ SME', desc: 'POS สต็อก บัญชีร้านค้า', sub: 'POS · สต็อก · บัญชี', image: 'c_sme.jpg', count: '610', accent: '#EA580C', span: 3, parent: 'sw', rule: (p) => sub(p) === 'เครื่องมือร้านค้า' || has(p, 'เครื่องมือร้านค้า') || /POS|สต็อก|ออเดอร์|ร้านค้า/.test(p.title + p.use), match: (p) => inCat('sme', p) },
@@ -77,9 +77,17 @@ export const childrenOf = (t: SellType) => (Object.keys(CATEGORIES) as CatKey[])
 /** Popular categories shown as the chip row on the search page (approved variant B). */
 export const POPULAR: CatKey[] = ['img', 'tpl', 'sticker', 'creator', 'sw', 'app', 'game', 'course']
 /** Short chip labels where the full name is too long. */
-export const SHORT: Partial<Record<CatKey, string>> = { sw: 'ซอฟต์แวร์', creator: 'ฟอนต์ & พรีเซ็ต' }
+export const SHORT: Partial<Record<CatKey, string>> = {}
 export const CAT_TOTAL = Object.keys(CATEGORIES).length
 
+/** The one category name a work shows on its card (same 18 names as search), e.g. “บอทแชต · LINE”. */
+export function catLabel(p: Product): string {
+  const keys = (Object.keys(CATEGORIES) as CatKey[]).filter((k) => k !== 'free' && CATEGORIES[k].match(p))
+  const k = keys[keys.length - 1]
+  if (!k) return SPECS[sellTypeOf(p)].name
+  const plat = k === 'bot' ? String((specOf(p).platform as string[] | undefined)?.[0] ?? '').replace(/ OA$/, '') : ''
+  return plat ? `${CATEGORIES[k].name} · ${plat}` : CATEGORIES[k].name
+}
 export const isCatKey = (k: string | null): k is CatKey => !!k && k in CATEGORIES
 
 /** Hidden search tags so trends and keywords find sample works. */
@@ -133,7 +141,7 @@ export const NEW_TODAY = [
   { p: byId('n10'), ago: '12 นาทีที่แล้ว' },
   { p: byId('n11'), ago: '20 นาทีที่แล้ว' },
 ]
-export const NEW_TODAY_COUNT = 128
+export const NEW_TODAY_COUNT = NEW_TODAY.length
 
 /** One weekly ranking used everywhere (ค้นหา + ชุมชน › กิจกรรม). The signed-in user (ME) is #14. */
 export const LEADERBOARD = [

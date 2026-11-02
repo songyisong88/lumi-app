@@ -41,7 +41,7 @@ export function HeaderActions({ search = true }: { search?: boolean }) {
     <div className={s.act}>
       {search && <Link to="/search" className={`${s.ib} ${s.deskOnly}`} aria-label="ค้นหา"><Icon name="search" size={20} /></Link>}
       <Link to="/chat" className={s.ib} aria-label={`แชต${b.chat ? ` ยังไม่อ่าน ${b.chat > 9 ? '9+' : b.chat}` : ''}`}><Icon name="chat" size={20} />{b.chat > 0 && <span className={s.cnt} style={{ background: 'var(--pink)' }}>{b.chat > 9 ? '9+' : b.chat}</span>}</Link>
-      <Link to="/notifications" className={s.ib} aria-label="แจ้งเตือน"><Icon name="bell" size={20} />{b.notif > 0 && <span className={s.dot} />}</Link>
+      <Link to="/notifications" className={s.ib} aria-label={`แจ้งเตือน${b.notif ? ` ยังไม่อ่าน ${b.notif > 9 ? '9+' : b.notif}` : ''}`}><Icon name="bell" size={20} />{b.notif > 0 && <span className={s.cnt} style={{ background: 'var(--pink)' }}>{b.notif > 9 ? '9+' : b.notif}</span>}</Link>
       <Link to="/cart" className={s.ib} aria-label={b.cart > 0 ? `ตะกร้า ${b.cart} ชิ้น` : 'ตะกร้า'}><Icon name="cart" size={20} />{b.cart > 0 && <span className={s.cnt}>{b.cart}</span>}</Link>
     </div>
   )
@@ -79,7 +79,7 @@ export function CreateSheet({ open, onClose }: { open: boolean; onClose: () => v
         </button>
         <button className={`${s.csi} rise`} style={{ '--i': 1 } as React.CSSProperties} onClick={() => go('/community/new')}>
           <span className={s.csic} style={{ background: 'linear-gradient(135deg,#0EA5E9,#6366F1)' }}><Icon name="edit" size={22} color="#fff" /></span>
-          <span><b>โพสต์ลงชุมชน</b><small>โชว์ผลงาน แชร์ความรู้ ถาม-ตอบ แท็กสินค้าได้</small></span><Icon name="chev" size={18} color="var(--mut)" />
+          <span><b>โพสต์ลงชุมชน</b><small>โชว์ผลงาน แชร์ความรู้ ถาม-ตอบ แท็กผลงานได้</small></span><Icon name="chev" size={18} color="var(--mut)" />
         </button>
         {db.drafts.length > 0 && (
           <button className={`${s.draft} rise`} style={{ '--i': 2 } as React.CSSProperties} onClick={() => go('/sell/drafts')}>

@@ -81,7 +81,7 @@ function PopularCats({ onPick, onAll }: { onPick: (k: CatKey) => void; onAll: ()
         })}
         <button className={`${s.cp} ${s.cpAll} rise press`} style={{ '--i': POPULAR.length } as React.CSSProperties} onClick={onAll} aria-haspopup="dialog">
           <span className={s.cpt}><span className={s.cai}><Icon name="grid" size={16} color="#fff" stroke={2} /></span><b>ดูทั้งหมด</b></span>
-          <small>{CAT_TOTAL} หมวด</small>
+          <small>{CAT_TOTAL - 1} หมวด + ของฟรี</small>
         </button>
       </div>
     </section>
@@ -95,7 +95,7 @@ function AllCatsSheet({ open, onClose, onPick }: { open: boolean; onClose: () =>
   const hit = (k: CatKey) => !term || `${CATEGORIES[k].name} ${CATEGORIES[k].desc} ${CATEGORIES[k].sub}`.toLowerCase().includes(term)
   const groups = GROUPS.map((g) => ({ ...g, keys: g.keys.filter(hit) })).filter((g) => g.keys.length)
   return (
-    <Sheet open={open} onClose={onClose} title="ทุกหมวด" sub={`${CAT_TOTAL} หมวด · แตะเพื่อดูผลงานในหมวด`} tall>
+    <Sheet open={open} onClose={onClose} title="ทุกหมวด" sub={`${CAT_TOTAL - 1} หมวด + ของฟรี · แตะเพื่อดูผลงานในหมวด`} tall>
       <div className={s.bsq}>
         <Icon name="search" size={17} color="#8A86A0" />
         <input value={f} onChange={(e) => setF(e.target.value)} placeholder="ค้นหาหมวด เช่น ฟอนต์ เพลง ข้อมูล" aria-label="ค้นหาหมวด" />

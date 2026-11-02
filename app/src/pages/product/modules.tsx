@@ -60,7 +60,7 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
         <>
           {on(spec.trial) && <>
             <div className={s.st}>ลองก่อน ไม่ต้องจ่าย</div>
-            <button className={`${s.trial} press`} onClick={onTrial}><span className={s.q}><Icon name="qr" size={60} stroke={1.6} /></span><span><b>ทดลองฟรี {str(spec.trialDays)}</b><small>{/line\.me/.test(str(spec.trialLink)) ? 'สแกนแล้วลองคุยกับบอทได้เลย' : 'เปิดลิงก์แล้วลองใช้ได้เลย'}</small><span className={s.g}>เปิดลิงก์ทดลอง</span></span></button>
+            <button className={`${s.trial} press`} onClick={onTrial}><span className={s.q}><Icon name="qr" size={60} stroke={1.6} /></span><span><b>ทดลองฟรี {str(spec.trialDays)}</b><small>{/line\.me/.test(str(spec.trialLink)) ? 'สแกน QR เพื่อลองคุยกับบอทได้เลย' : 'เปิดลิงก์แล้วลองใช้ได้เลย'}</small><span className={s.g}>เปิดลิงก์ทดลอง</span></span></button>
           </>}
           {arr(spec.demo).length > 0 && <div className={s.demo}>{arr(spec.demo).map((x, i) => <div key={i} className={i % 2 ? s.da : s.dq}>{x}</div>)}</div>}
           <div className={s.st}>ทำอะไรได้บ้าง</div>
@@ -176,7 +176,7 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
           <div className={s.tree}>{cols.map(([k, d]) => <div key={k}><Icon name="hash" size={14} color="#1D4ED8" /><code>{k}</code><span>{d}</span></div>)}</div>
           <div className={s.st}>ที่มาของข้อมูล</div>
           <p className={s.desc}>{str(spec.source)}</p>
-          <div className={s.scan}><Icon name="shield" size={22} color="#16A34A" /><div><b>ผู้ขายรับรอง: ไม่มีข้อมูลส่วนบุคคล · มีสิทธิ์เผยแพร่</b>ตรวจอัตโนมัติเบื้องต้น · LUMI สุ่มตรวจและลบได้ถ้าผิดกฎ</div></div>
+          <div className={s.scan}><Icon name="shield" size={22} color="#16A34A" /><div><b>ผู้ขายรับรอง: ไม่มีข้อมูลส่วนบุคคล · มีสิทธิ์เผยแพร่</b>ผ่านการตรวจโดยทีม LUMI ก่อนขึ้นขาย · ถ้าพบว่าผิดกฎภายหลัง LUMI ลบได้</div></div>
           {filesOf(spec.files).length > 0 && <p className="hint">ไฟล์: {filesOf(spec.files).map((f) => `${f.name} (${f.size})`).join(', ')}</p>}
           <button className="btn btn-o btn-sm" style={{ marginTop: 10 }} onClick={() => {
             const sample = filesOf(spec.sample)[0]

@@ -2,12 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Empty, Img, SampleNote, Sheet, Toggle, TopBar } from '../../components/ui'
-import { licRows, presetRows, MAX_FILES, SPECS, uploadRule, arr, checkListing, completion, filesOf, on, str, visible, sellTypeOf, specOf, SELL_TYPE_ORDER } from '../../data/listingSpec'
+import { newSpec, licRows, presetRows, MAX_FILES, SPECS, uploadRule, arr, checkListing, completion, filesOf, on, str, visible, sellTypeOf, specOf, SELL_TYPE_ORDER } from '../../data/listingSpec'
 import type { Field, ListingDraft, SellType, Spec, SpecValue, Step, UploadedFile } from '../../data/listingSpec'
 import { CATEGORIES, childrenOf } from '../../data/searchData'
 import { baht, ME, productById } from '../../data/sampleData'
 import { creatorStats, heroOf, optionsOf } from '../../data/productExtras'
-import { draftToProduct, sell } from '../../services/api'
+import { contentSig, draftToProduct, sell } from '../../services/api'
+import type { Product } from '../../data/types'
 import { getDb, uid, useDb } from '../../services/db'
 import { toast } from '../../services/toast'
 import { fileToDataUrl } from '../../utils/image'
@@ -31,8 +32,20 @@ const blank = (): ListingDraft => ({ id: uid('d'), type: null, step: 0, title: '
 function editDraft(productId: string, step: number): ListingDraft | undefined {
   const ex = getDb().drafts.find((x) => x.publishedId === productId)
   if (ex) return { ...ex, step }
-  const p = productById(productId)
-  if (!p || p.creatorId !== ME) return undefined
+  const live0 = productById(productId)
+  if (!live0 || live0.creatorId !== ME) return undefined
+  // an edit already waiting for review continues from that version; it must be reviewed again
+  const p = live0.rev?.next ?? live0
+  const dr = draftOf(p, step)
+  return { ...dr, origSig: live0.rev ? undefined : contentSig(dr) }
+}
+/** Step-6 preview. Editing a live listing keeps its real rating and sales, not “ใหม่”. */
+function previewOf(d: ListingDraft): Product {
+  const was = d.publishedId ? productById(d.publishedId) : undefined
+  const p = draftToProduct(d)
+  return was ? { ...was, ...p, mine: was.mine, rating: was.rating, mod: undefined, rev: undefined } : p
+}
+function draftOf(p: Product, step: number): ListingDraft {
   const covers = p.covers?.length ? p.covers : [heroOf(p)]
   if (p.listing) return { ...p.listing, free: p.listing.free && p.listing.type !== 'hire', covers, id: uid('d'), publishedId: p.id, step, updatedAt: Date.now() }
   const t = sellTypeOf(p)
@@ -54,7 +67,7 @@ export function Sell() {
     if (ed) return ed
     const t = sp.get('type') as SellType | null
     const b = blank()
-    return t && SPECS[t] ? { ...b, type: t, spec: { ...SPECS[t].defaults }, options: PRICE_OPTS[t].map((x) => ({ ...x })), step: 1 } : b
+    return t && SPECS[t] ? { ...b, type: t, spec: newSpec(t), options: PRICE_OPTS[t].map((x) => ({ ...x })), step: 1 } : b
   })
   const [saved, setSaved] = useState<'idle' | 'saving' | 'saved'>('idle')
   // same /sell screen re-targeted (deep link, “ทำต่อ” on another draft, back/forward): load what the URL asks for
@@ -68,7 +81,7 @@ export function Sell() {
       if (ex) { published.current = false; setDone(undefined); setD(ex) }
     } else if (!dId && ty && SPECS[ty] && ty !== d.type) {
       published.current = false; setDone(undefined)
-      setD({ ...blank(), type: ty, spec: { ...SPECS[ty].defaults }, options: PRICE_OPTS[ty].map((x) => ({ ...x })), step: 1 })
+      setD({ ...blank(), type: ty, spec: newSpec(ty), options: PRICE_OPTS[ty].map((x) => ({ ...x })), step: 1 })
     }
   }, [sp]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -91,7 +104,7 @@ export function Sell() {
     if (!d.type || published.current) return
     const exists = getDb().drafts.some((x) => x.id === d.id)
     const touched = !!(d.title.trim() || d.use.trim() || d.desc.trim() || d.tags.length || d.covers.length || d.step >= 2
-      || JSON.stringify(d.spec) !== JSON.stringify(SPECS[d.type].defaults))
+      || JSON.stringify(d.spec) !== JSON.stringify(newSpec(d.type)))
     if (!exists && !touched && !d.publishedId) { setSaved('idle'); return }
     setSaved('saving')
     const h = setTimeout(() => { if (published.current) return; sell.saveDraft(d).then(() => setSaved('saved')); if (!draftId && /^#\/sell(\?|$)/.test(window.location.hash)) setSp({ draft: d.id }, { replace: true }) }, 600) // never pull the user back if they already left /sell
@@ -109,7 +122,7 @@ export function Sell() {
   }
   const pickType = (k: SellType) => {
     if (d.type === k) return go(1)
-    setD((x) => ({ ...x, type: k, spec: { ...SPECS[k].defaults }, options: PRICE_OPTS[k].map((y) => ({ ...y })), step: 1 }))
+    setD((x) => ({ ...x, type: k, spec: newSpec(k), options: PRICE_OPTS[k].map((y) => ({ ...y })), step: 1 }))
     setDir(1)
   }
   const [payout, setPayout] = useState(false)
@@ -117,7 +130,8 @@ export function Sell() {
     if (missing.length) { setCheckOpen(true); return }
     // B5: before the first paid listing, say what real selling will need (ID check + payout account)
     const paid = !(d.free && d.type !== 'hire')
-    if (paid && !ack && !localStorage.getItem(PAYOUT_ACK)) { setPayout(true); return }
+    const firstPaid = !d.publishedId && !getDb().published.some((x) => x.price > 0)
+    if (paid && firstPaid && !ack && !localStorage.getItem(PAYOUT_ACK)) { setPayout(true); return }
     setBusy(true)
     try {
       published.current = true
@@ -181,9 +195,9 @@ export function Sell() {
         {d.step === 5 && t && <>
           <div className={s.prvb}><Icon name="eye" size={15} color="#fff" stroke={2} />ผู้ซื้อจะเห็นหน้านี้<span>กด “แก้ไข” เพื่อกลับไปแก้</span></div>
           <CheckList checks={checks} go={go} compact />
-          <div className={s.prvWrap}><ProductView p={draftToProduct(d)} preview /></div>
+          <div className={s.prvWrap}><ProductView p={previewOf(d)} preview /></div>
           <div className={s.bx}>
-            <Row icon="share" c="#6C2BD9" bg="#F3ECFF" t="แชร์ลงชุมชน LUMI" sub="โพสต์พร้อมลิงก์สินค้า" on={share} set={setShare} />
+            <Row icon="share" c="#6C2BD9" bg="#F3ECFF" t="แชร์ลงชุมชน LUMI" sub="โพสต์พร้อมลิงก์ผลงาน" on={share} set={setShare} />
             <Row icon="megaphone" c="#D6336C" bg="#FDEBF2" t={`แจ้งผู้ติดตาม ${creatorStats(ME).followersLabel} คน`} sub="ทดลอง · ยังไม่ส่งจริง" on={notify} set={setNotify} />
           </div>
           <SampleNote>ลงขายในโหมดทดลอง ผลงานเก็บในเครื่องนี้ ยังไม่มีผู้ซื้อจริง</SampleNote>
@@ -198,7 +212,7 @@ export function Sell() {
       <Sheet open={payout} onClose={() => setPayout(false)} title="ก่อนรับเงินจากการขายจริง" sub="ยืนยันตัวตนและผูกบัญชีรับเงิน · เร็ว ๆ นี้"
         footer={<button className="btn btn-p btn-block" onClick={() => { localStorage.setItem(PAYOUT_ACK, '1'); setPayout(false); publish(true) }}>รับทราบ ลงขายต่อ</button>}>
         <div className="list-row"><Icon name="user" size={20} color="var(--p)" /><span className="grow">ยืนยันตัวตน<small>ใช้บัตรประชาชน ตรวจครั้งเดียว · ป้องกันการแอบอ้างและโกง</small></span><span className="pill">เร็ว ๆ นี้</span></div>
-        <div className="list-row"><Icon name="coin" size={20} color="#B45309" /><span className="grow">ผูกบัญชีรับเงิน<small>บัญชีธนาคารหรือพร้อมเพย์ที่ชื่อตรงกับผู้ขาย</small></span><span className="pill">เร็ว ๆ นี้</span></div>
+        <div className="list-row"><Icon name="coin" size={20} color="#B45309" /><span className="grow">ผูกบัญชีรับเงิน<small>บัญชีธนาคารหรือพร้อมเพย์ที่ชื่อตรงกับบัญชีครีเอเตอร์</small></span><span className="pill">เร็ว ๆ นี้</span></div>
         <p className="hint" style={{ marginTop: 10 }}>ตอนนี้ลงขายในโหมดทดลองได้เลย ยังไม่มีการซื้อขายจริง · ของแจกฟรีไม่ต้องยืนยัน</p>
       </Sheet>
       <Sheet open={checkOpen} onClose={() => setCheckOpen(false)} title={missing.length ? `ตรวจอัตโนมัติ · ยังขาด ${missing.length} อย่าง` : 'ตรวจอัตโนมัติ · พร้อมลงขาย ✓'} sub={t ? `สิ่งที่ “${t.name}” ต้องมีก่อนลงขาย` : undefined} tall>
@@ -281,15 +295,25 @@ function Tags({ d, patch }: { d: ListingDraft; patch: (p: Partial<ListingDraft>)
   )
 }
 
+const isPromptOpt = (x?: { id: string; label: string }) => !!x && (x.id === 'both' || /พรอมต์/.test(x.label))
+
 function StepPrice({ d, patch, set }: { d: ListingDraft; patch: (p: Partial<ListingDraft>) => void; set: SetSpec }) {
   const t = SPECS[d.type!]
   const opts = d.options
   const live = opts.filter((x) => x.on && x.price > 0)
   const top = live.length ? Math.max(...live.map((x) => x.price)) : 0
-  const upd = (id: string, p: Partial<Opt>) => patch({ options: opts.map((x) => (x.id === id ? { ...x, ...p } : x)) })
+  const upd = (id: string, p: Partial<Opt>) => {
+    patch({ options: opts.map((x) => (x.id === id ? { ...x, ...p } : x)) })
+    // images: the “ภาพ + พรอมต์” option and “ขายพรอมต์ด้วย” are the same choice
+    if (d.type === 'img' && isPromptOpt(opts.find((x) => x.id === id)) && p.on !== undefined) set('sellPrompt', p.on)
+  }
+  const setP: SetSpec = (id, v) => {
+    set(id, v)
+    if (d.type === 'img' && id === 'sellPrompt' && typeof v === 'boolean' && !d.free) patch({ options: opts.map((x) => (isPromptOpt(x) ? { ...x, on: v } : x)) })
+  }
   return <>
     <H t="ตั้งราคาและแบบที่ขาย" s="เปิดเฉพาะแบบที่อยากขาย ผู้ซื้อเลือกเองบนหน้าผลงาน" />
-    {d.type === 'hire' ? <p className="hint" style={{ marginTop: 0 }}>งานจ้างต้องตั้งราคาอย่างน้อย 1 แพ็กเกจ · ผู้จ้างจ่ายเมื่อรับข้อเสนอ เงินพักไว้จนกว่าจะรับงาน</p> : <div className={`${s.bx} ${d.free ? s.freeOn : ''}`}>
+    {d.type === 'hire' ? <p className="hint" style={{ marginTop: 0 }}>งานจ้างต้องตั้งราคาอย่างน้อย 1 แพ็กเกจ · ผู้จ้างจ่ายเมื่อรับข้อเสนอ · เงินโอนให้คุณเมื่อผู้จ้างกดรับงาน หรือครบ 3 วันหลังส่งงาน</p> : <div className={`${s.bx} ${d.free ? s.freeOn : ''}`}>
       <Row icon="gift" c="#16A34A" bg="#E5F8EC" t="แจกฟรี" sub="ผู้ใช้กดรับได้เลย ยังต้องกรอกข้อมูลให้ครบเหมือนของขาย · สลับกลับเป็นขายได้ทุกเมื่อ" on={d.free} set={(v) => patch({ free: v })} />
       {d.free && FEATURES.tips && <Row icon="coin" c="#B45309" bg="#FFF4DB" t="เปิดรับทิป" sub="ผู้ใช้ให้ทิปได้ตามใจ" on={d.tips} set={(v) => patch({ tips: v })} />}
     </div>}
@@ -301,9 +325,9 @@ function StepPrice({ d, patch, set }: { d: ListingDraft; patch: (p: Partial<List
           {x.on && <div className={s.opP}><span>฿</span><input inputMode="numeric" value={x.price || ''} onChange={(e) => upd(x.id, { price: Math.min(999999, parseInt(e.target.value.replace(/\D/g, '')) || 0) })} aria-label={`ราคา ${x.label}`} placeholder="0" />{x.suffix && <em>{x.suffix}</em>}</div>}
         </div>
       ))}
-      {top > 0 && <><div className={s.earn}><div><small>ราคาสูงสุด</small><b>{baht(top)}</b></div><div><small>ค่าธรรมเนียม LUMI 10%</small><b>−{baht(Math.round(top * FEE))}</b></div><div><small>คุณได้รับ</small><b className={s.y}>{baht(top - Math.round(top * FEE))}</b></div></div><p className="hint" style={{ marginTop: 6 }}>ตัวอย่าง · ยังไม่รวม VAT และค่าธรรมเนียมการชำระเงิน</p></>}
+      {top > 0 && <><div className={s.earn}><div><small>ราคาสูงสุด</small><b>{baht(top)}</b></div><div><small>ค่าธรรมเนียม LUMI 10%</small><b>−{baht(Math.round(top * FEE))}</b></div><div><small>คุณได้รับ</small><b className={s.y}>{baht(top - Math.round(top * FEE))}</b></div></div><p className="hint" style={{ marginTop: 6, marginBottom: 14 }}>ตัวอย่าง · ยังไม่รวม VAT และค่าธรรมเนียมการชำระเงิน</p></>}
     </>}
-    <Fields fs={t.fields} step="price" spec={d.spec} set={set} />
+    <Fields fs={t.fields} step="price" spec={d.spec} set={setP} />
   </>
 }
 
@@ -431,13 +455,16 @@ function Success({ id, d, share, notify, onNext, edited }: { id: string; d: List
   const mod = useModStatus(id)
   const [reviewed] = useState(() => mod?.status === 'pending')
   const pending = mod?.status === 'pending', passed = reviewed && mod?.status === 'live'
+  const rev = useDb().published.find((x) => x.id === id)?.rev
+  const [revSent] = useState(() => rev?.status === 'pending')
+  const revPending = rev?.status === 'pending', revPassed = revSent && !rev
   return (
     <div className={`page has-bar ${s.page}`}>
       <TopBar title="" back={false} right={<button className="tb-btn" onClick={() => nav('/profile?mode=creator', { replace: true })} aria-label="ปิด"><Icon name="x" size={22} /></button>} />
       <div className={`narrow ${s.okp}`}>
-        <div className={`${s.okBg} pop-in`} style={pending ? { background: 'linear-gradient(135deg,#F59E0B,#B45309)' } : undefined}><Icon name={pending ? 'clock' : 'check'} size={48} color="#fff" stroke={3} /></div>
-        <h2 className="rise" data-success={pending ? 'pending' : passed || !edited ? 'live' : 'edited'}>{pending ? 'ส่งตรวจแล้ว!' : passed ? d.free && d.type !== 'hire' ? 'แจกฟรีแล้ว · ผ่านการตรวจ' : 'ลงขายแล้ว · ผ่านการตรวจ' : 'อัปเดตผลงานแล้ว!'}</h2>
-        <p className="rise" style={{ '--i': 1 } as React.CSSProperties}>{pending ? 'ทีม LUMI ตรวจทุกชิ้นก่อนขึ้นขาย ปกติไม่เกิน 24 ชม. (ตัวอย่างนี้ใช้เวลาราว 20 วินาที) · ระหว่างรอ ผลงานยังไม่ขึ้นหน้าแรกและหน้าค้นหา ผลตรวจจะแจ้งในการแจ้งเตือน' : passed ? 'ขึ้นหน้าร้าน ฟีด และหน้าค้นหาแล้ว · ถ้ามีคนรายงานว่าผิดกฎ ทีม LUMI จะตรวจซ้ำ' : 'การแก้ไขมีผลทันที · ถ้ามีคนรายงานว่าผิดกฎ ทีม LUMI จะตรวจซ้ำ'}</p>
+        <div className={`${s.okBg} pop-in`} style={pending || revPending ? { background: 'linear-gradient(135deg,#F59E0B,#B45309)' } : undefined}><Icon name={pending || revPending ? 'clock' : 'check'} size={48} color="#fff" stroke={3} /></div>
+        <h2 className="rise" data-success={pending || revPending ? 'pending' : passed || !edited ? 'live' : 'edited'}>{pending ? 'ส่งตรวจแล้ว!' : revPending ? 'ส่งการแก้ไขตรวจแล้ว' : revPassed ? 'อัปเดตผลงานแล้ว · ผ่านการตรวจ' : passed ? d.free && d.type !== 'hire' ? 'แจกฟรีแล้ว · ผ่านการตรวจ' : 'ลงขายแล้ว · ผ่านการตรวจ' : 'อัปเดตผลงานแล้ว!'}</h2>
+        <p className="rise" style={{ '--i': 1 } as React.CSSProperties}>{pending ? 'ทีม LUMI ตรวจทุกชิ้นก่อนขึ้นขาย ปกติไม่เกิน 24 ชม. (ตัวอย่างนี้ใช้เวลาราว 20 วินาที) · ระหว่างรอ ผลงานยังไม่ขึ้นหน้าแรก หน้าค้นหา และหน้าร้าน · ผลตรวจจะแจ้งในการแจ้งเตือน' : revPending ? 'ส่งการแก้ไขให้ทีม LUMI ตรวจแล้ว ปกติไม่เกิน 24 ชม. (ตัวอย่างนี้ราว 20 วินาที) · ระหว่างรอ ผู้ซื้อยังเห็นฉบับเดิม' : revPassed ? 'การแก้ไขผ่านการตรวจแล้ว · ผู้ซื้อเห็นฉบับใหม่แล้ว' : passed ? 'ขึ้นหน้าแรก หน้าค้นหา และหน้าร้านแล้ว · ถ้าพบว่าผิดกฎภายหลัง LUMI ลบได้' : 'แก้ราคาและเงื่อนไขแล้ว มีผลทันที · การแก้รูป ไฟล์ ชื่อ หรือรายละเอียด จะส่งให้ทีม LUMI ตรวจก่อน'}</p>
         {reviewed && <div className="rise" data-mod-steps style={{ '--i': 1, display: 'flex', justifyContent: 'center', gap: 6, fontSize: 12, margin: '4px 0 10px' } as React.CSSProperties}>
           {['ส่งตรวจ', 'รอตรวจ', 'ขึ้นขาย'].map((x, i) => { const done = i === 0 || (i === 1 && !pending) || (i === 2 && passed); const cur = (i === 1 && pending) || (i === 2 && passed); return <span key={x} className={`pill ${done ? 'pill-g' : cur ? 'pill-w' : ''}`}>{done && <Icon name="check" size={11} stroke={3} />}{x}</span> })}
         </div>}

@@ -40,8 +40,8 @@ export const PRODUCTS: Product[] = [
   { id: 'p01', kind: 'image', type: 'img', label: 'ภาพ + พรอมต์', title: 'ภาพบัวชมพูสีน้ำ โทนพาสเทล', use: 'ภาพแต่งผนัง ปกเพจ', creatorId: 'fasai', price: 390, image: img('g_lotus.jpg', 864, 1152), hasPrompt: true, instant: true },
   { id: 'p02', kind: 'image', type: 'img', label: 'สติกเกอร์ PNG', title: 'สติกเกอร์ชิบะทักทาย 24 ตัว', use: 'ไฟล์ PNG พื้นใส ใช้โพสต์และทำสื่อได้', creatorId: 'pim', price: 59, image: img('shiba.jpg', 900, 900), instant: true },
   { id: 'p03', kind: 'tool', type: 'tool', label: 'ระบบอัตโนมัติ', title: 'ลงออเดอร์อัตโนมัติจาก LINE', use: 'ออเดอร์เข้า Sheets เอง ไม่ต้องพิมพ์', creatorId: 'ton', price: 590, ratio: '4/3', gradient: 'linear-gradient(160deg,#6366F1,#0EA5E9)', icon: 'flow', platforms: ['n8n', 'Sheets', 'LINE'], rating: 4.9, tryable: true },
-  { id: 'p04', kind: 'image', type: 'img', title: 'วอลเปเปอร์ชาไทยสาดน้ำ', use: 'ตั้งพื้นหลังมือถือ', creatorId: 'nova', price: 0, image: img('splashbg.jpg', 506, 900), instant: true },
-  { id: 'p05', kind: 'bot', type: 'bot', label: 'บอท LINE', title: 'บอทร้านอาหาร', use: 'ตอบเมนู รับออเดอร์ จองโต๊ะ', creatorId: 'kenji', price: 1500, ratio: '1/1', chat: { q: 'มีเมนูแนะนำไหมคะ', a: 'วันนี้แนะนำข้าวเหนียวมะม่วง สั่งเลยไหมคะ' }, tryable: true },
+  { id: 'p04', kind: 'image', type: 'img', title: 'วอลเปเปอร์คริสตัลบัวม่วง', use: 'ตั้งพื้นหลังมือถือ', creatorId: 'nova', price: 0, image: img('splashbg.jpg', 506, 900), instant: true },
+  { id: 'p05', kind: 'bot', type: 'bot', label: 'บอทแชต', title: 'บอทร้านอาหาร', use: 'ตอบเมนู รับออเดอร์ จองโต๊ะ', creatorId: 'kenji', price: 1500, ratio: '1/1', chat: { q: 'มีเมนูแนะนำไหมคะ', a: 'วันนี้แนะนำข้าวเหนียวมะม่วง สั่งเลยไหมคะ' }, tryable: true },
   { id: 'p06', kind: 'image', type: 'img', label: 'สติกเกอร์ PNG', title: 'สติกเกอร์กบน้อย 6 อารมณ์', use: 'ไฟล์ PNG พื้นใส ใช้โพสต์และทำสื่อได้', creatorId: 'fasai', price: 0, image: img('g_frogs.jpg', 1024, 1024), instant: true },
   { id: 'p07', kind: 'template', type: 'tpl', title: 'เทมเพลตโพสต์ร้านกาแฟ 30 แบบ', use: 'โพสต์โปรโมชันรายวัน', creatorId: 'mint', price: 199, ratio: '4/5', image: img('cafe.jpg', 900, 675), files: ['CANVA', 'PSD'], tryable: true, instant: true },
   { id: 'p08', kind: 'course', type: 'course', title: 'สร้างภาพสินค้าด้วย AI ใน 1 วัน', use: 'ทำภาพขายของเองไม่ต้องจ้าง', creatorId: 'nova', price: 590, image: img('g_cyber.jpg', 1280, 720), video: true, meta: '6 ตอน · 1.5 ชม.', freeFirst: 'บทแรกฟรี', tryable: true },
@@ -54,7 +54,7 @@ export const PRODUCTS: Product[] = [
   { id: 'p15', kind: 'image', type: 'img', title: 'ภาพโปรโมตเซรั่ม โทนพาสเทล', use: 'โพสต์ขายของ แบนเนอร์ Shopee', creatorId: 'nova', price: 129, image: img('serum.jpg', 675, 900), instant: true },
   { id: 'p16', kind: 'image', type: 'img', title: 'ภาพเมนูผัดไทย', use: 'ทำเมนู โพสต์ร้านอาหาร', creatorId: 'mint', price: 99, image: img('padthai.jpg', 900, 675), instant: true },
   { id: 'p17', kind: 'image', type: 'img', title: 'ภาพชาไทยสาดน้ำ', use: 'โฆษณาเครื่องดื่ม', creatorId: 'pim', price: 0, image: img('thaitea.jpg', 675, 900), instant: true },
-  { id: 'p18', kind: 'bot', type: 'bot', label: 'บอท LINE', title: 'บอทคลินิกความงาม', use: 'นัดคิว แจ้งโปรโมชัน', creatorId: 'kenji', price: 2900, ratio: '1/1', chat: { q: 'ว่างวันเสาร์ไหมคะ', a: 'เสาร์นี้ว่าง 13:00 และ 15:30 ค่ะ' }, tryable: true },
+  { id: 'p18', kind: 'bot', type: 'bot', label: 'บอทแชต', title: 'บอทคลินิกความงาม', use: 'นัดคิว แจ้งโปรโมชัน', creatorId: 'kenji', price: 2900, ratio: '1/1', chat: { q: 'ว่างวันเสาร์ไหมคะ', a: 'เสาร์นี้ว่าง 13:00 และ 15:30 ค่ะ' }, tryable: true },
   { id: 'p19', kind: 'template', type: 'tpl', label: 'ไฟล์พิมพ์', title: 'สมุดระบายสีสัตว์ไทย 40 หน้า', use: 'พิมพ์ให้เด็กระบายสี', creatorId: 'pim', price: 89, ratio: '3/4', image: img('elephant.jpg', 900, 900), files: ['PDF', 'A4'], tryable: true, instant: true },
   { id: 'p20', kind: 'commission', type: 'svc', title: 'ทำภาพโปรโมต 5 ภาพ', use: 'ภาพโฆษณาเพจและแบนเนอร์', creatorId: 'nova', price: 450, image: img('g_product.jpg', 1152, 864), days: 3, revisions: 2 },
   { id: 'p21', kind: 'image', type: 'img', title: 'ภาพเทพธิดาชุดไทยแฟนตาซี', use: 'ปกนิยาย ปกเกม', creatorId: 'fasai', price: 190, image: img('fantasy.jpg', 675, 900), hasPrompt: true, instant: true },
@@ -111,7 +111,6 @@ export const QUICK_FILTERS: { id: string; label: string; match: (p: Product) => 
   { id: 'instant', label: 'ใช้ได้ทันที', match: (p) => !!p.instant },
   { id: 'prompt', label: 'มีพรอมต์', match: (p) => !!p.hasPrompt },
   { id: 'u200', label: 'ต่ำกว่า ฿200', match: (p) => p.price < 200 },
-  { id: 'hire', label: 'งานจ้าง', match: (p) => p.kind === 'commission' },
 ]
 
 /** Only reviewed (or sample) works show in the home feed, search and similar lists. */

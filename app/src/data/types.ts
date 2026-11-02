@@ -58,6 +58,8 @@ export interface Product {
   listing?: Omit<import('./listingSpec').ListingDraft, 'covers'>
   /** Listing review (A2). Absent = live (sample works). pending = รอตรวจ, rejected = ไม่ผ่าน (with reason). */
   mod?: { status: 'pending' | 'live' | 'rejected'; reason?: string; at: number; share?: boolean }
+  /** An edit of a live listing waiting for review. Buyers keep seeing this (old) version until it passes. */
+  rev?: { status: 'pending' | 'rejected'; reason?: string; at: number; next: Product }
 }
 
 /** The 8 product-page layouts (approved product-b). */

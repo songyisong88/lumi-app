@@ -142,4 +142,6 @@ export interface DB {
   drafts: ListingDraft[]
   published: Product[]
   missions: string[]
+  /** creator replies to reviews, key `${productId}:${reviewIndex}` */
+  replies?: Record<string, string>
 }

@@ -88,8 +88,8 @@ function ensureThread(d: DB, partnerId: string, productId?: string): Thread {
   const p = productId ? productById(productId) : undefined
   const t: Thread = {
     id: uid('t'), partnerId, role: 'creator', title: p?.title ?? 'แชตกับครีเอเตอร์', image: p?.image?.src ?? p?.covers?.[0], productId,
-    status: 'ถามเรื่องสินค้า', tone: 'info', unread: 0, online: Math.random() > 0.4,
-    quick: ['สินค้ายังมีอยู่ไหมครับ', 'ใช้กับมือถือได้ไหม', 'ลดราคาได้ไหมครับ'], updatedAt: now(),
+    status: 'ถามเรื่องผลงาน', tone: 'info', unread: 0, online: Math.random() > 0.4,
+    quick: ['ผลงานนี้ยังขายอยู่ไหมครับ', 'ใช้กับมือถือได้ไหม', 'ลดราคาได้ไหมครับ'], updatedAt: now(),
   }
   d.threads.unshift(t)
   d.messages[t.id] = []
@@ -147,7 +147,7 @@ class LocalCart implements CartService {
 }
 
 export const COUPONS: Record<string, { label: string; pct: number; creator?: string }> = {
-  PIM15: { label: 'ลด 15% สินค้าร้านพิมพ์ดาว', pct: 15, creator: 'pim' },
+  PIM15: { label: 'ลด 15% ผลงานร้านพิมพ์ดาว', pct: 15, creator: 'pim' },
   ...(FEATURES.platformCoupons ? { LUMI10: { label: 'ลด 10% ทุกชิ้น (ทดลอง)', pct: 10 } } : {}),
 }
 export function discountOf(items: CartItem[], code?: string) {
@@ -172,7 +172,7 @@ class LocalCheckout implements CheckoutService {
         if (it.offerThreadId) {
           const t = thr(d, it.offerThreadId)
           t.step = 3; t.status = 'กำลังทำงาน'; t.tone = 'info'; t.orderNo ??= order.no
-          push(d, t.id, { from: 'system', kind: 'system', text: `ชำระเงิน ฿${it.price.toLocaleString('th-TH')} แล้ว (ทดลอง) · เงินพักไว้จนกว่าคุณจะกดรับงาน หรือครบ 3 วันหลังส่งงาน` })
+          push(d, t.id, { from: 'system', kind: 'system', text: `ชำระเงิน ฿${it.price.toLocaleString('th-TH')} แล้ว (ทดลอง) · เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงาน` })
           sims.push(t.id)
           continue
         }
@@ -255,7 +255,7 @@ class LocalChat implements ChatService {
       }
       d.threads.unshift(t)
       d.messages[t.id] = []
-      push(d, t.id, { from: 'me', kind: 'brief', title: `คำขอจ้างงาน (บรีฟ) · ${pkg}`, items: brief, image: p?.image?.src })
+      push(d, t.id, { from: 'me', kind: 'brief', title: `บรีฟงานจ้าง · ${pkg}`, items: brief, image: p?.image?.src })
       id = t.id
     })
     const p = productById(productId)
@@ -423,7 +423,7 @@ class LocalOrders implements OrderService {
       const m = d.messages[threadId]?.find((x) => x.id === msgId)
       if (!m || m.extended) return
       m.extended = true
-      push(d, threadId, { from: 'system', kind: 'system', text: 'คุณขอเวลาตรวจงานเพิ่ม 3 วัน · เงินยังพักไว้จนกว่าคุณจะกดรับงาน (ตัวอย่าง)' })
+      push(d, threadId, { from: 'system', kind: 'system', text: 'คุณขอเวลาตรวจงานเพิ่ม 3 วัน · ยังไม่โอนเงินให้ครีเอเตอร์จนกว่าคุณจะกดรับงาน (ตัวอย่าง)' })
     })
   }
 }
@@ -447,6 +447,14 @@ const TYPE_MAP: Record<string, Pick<Product, 'kind' | 'type'> & { label: string 
   data: { kind: 'image', type: 'data', label: 'ชุดข้อมูล' },
 }
 
+/** What buyers judge a listing by. Changing any of it on a live listing sends the edit to review;
+ *  price, options, free ⇄ paid, tags, delivery time and revisions apply at once. */
+const TERMS_ONLY = new Set(['timeline', 'revisions'])
+export function contentSig(dr: ListingDraft) {
+  const spec = Object.fromEntries(Object.entries(dr.spec).filter(([k]) => !TERMS_ONLY.has(k)).sort(([a], [b]) => a.localeCompare(b)))
+  return JSON.stringify([dr.type, dr.title.trim(), dr.use.trim(), (dr.desc ?? '').trim(), dr.covers, spec])
+}
+
 /** Turn a wizard draft into a Product (also used for the live preview). */
 export function draftToProduct(dr: ListingDraft, id = dr.publishedId ?? `u-${dr.id}`): Product {
   const t = dr.type ?? 'img'
@@ -456,13 +464,16 @@ export function draftToProduct(dr: ListingDraft, id = dr.publishedId ?? `u-${dr.
   const price = free ? 0 : opts.length ? Math.min(...opts.map((o) => o.price)) : 0
   const sub = typeof dr.spec.sub === 'string' ? dr.spec.sub : undefined
   const cover = dr.covers[0] ?? 'g_lotus.jpg'
+  // a prompt is only sold when the “ภาพ + พรอมต์” option is on (or the work is free)
+  const promptOn = on(dr.spec.sellPrompt) && (t !== 'img' || free || opts.some((o) => o.id === 'both' || /พรอมต์/.test(o.label)))
+  const spec = t === 'img' ? { ...dr.spec, sellPrompt: promptOn } : dr.spec
   const days = typeof dr.spec.timeline === 'string' ? parseInt(dr.spec.timeline.split('–')[1] ?? '7') : undefined
   return {
     id, kind: m.kind, type: m.type, label: sub && t !== 'hire' ? sub : m.label, st: t,
     title: dr.title || 'ผลงานใหม่ (ยังไม่ตั้งชื่อ)', use: dr.use || '—', desc: dr.desc, tags: dr.tags,
-    creatorId: ME, price, image: { src: cover, w: 900, h: 1100 }, covers: dr.covers, spec: dr.spec,
+    creatorId: ME, price, image: { src: cover, w: 900, h: 1100 }, covers: dr.covers, spec,
     options: free ? undefined : opts.map(({ id, label, sub, price, suffix }) => ({ id, label, sub, price, suffix })),
-    hasPrompt: on(dr.spec.sellPrompt), tryable: on(dr.spec.trial), instant: t !== 'hire',
+    hasPrompt: promptOn, tryable: on(dr.spec.trial), instant: t !== 'hire',
     days, revisions: typeof dr.spec.revisions === 'string' ? parseInt(dr.spec.revisions) : undefined,
     mine: true, createdAt: now(),
   }
@@ -482,28 +493,41 @@ class LocalSell implements SellService {
     if (checkListing(dr).some((c) => !c.ok)) throw new Error('listing incomplete')
     const { covers: _c, ...listing } = dr; void _c
     const was = productById(dr.publishedId ?? '')
-    // new listings and fixes of rejected ones go to review; edits of a live listing stay live
+    // new listings and fixes of rejected ones go to review
     const review = !was || was.mod?.status === 'rejected' || was.mod?.status === 'pending'
+    // a live listing whose content changed: the edit is reviewed, buyers keep the old version meanwhile
+    const editReview = !review && (!dr.origSig || contentSig(dr) !== dr.origSig)
     const mod: Product['mod'] = review ? { status: 'pending', at: now(), share } : was?.mod
-    const p: Product = { ...draftToProduct(dr), listing: { ...listing, step: 1 }, createdAt: was?.createdAt ?? now(), mod }
-    if (review) share = false // the post goes out when the listing passes review
+    const base = draftToProduct(dr)
+    const p: Product = { ...(was ?? {}), ...base, mine: was ? was.mine : true, rating: was?.rating, listing: { ...listing, origSig: undefined, step: 1 }, createdAt: was?.createdAt ?? now(), mod, rev: undefined }
+    if (review || editReview) share = false // the post goes out when the listing passes review
     update((d) => {
-      d.published = [p, ...d.published.filter((x) => x.id !== p.id)]
+      if (editReview && was) {
+        const live = { ...(d.published.find((x) => x.id === was.id) ?? was), rev: { status: 'pending' as const, at: now(), next: { ...p, mod: { status: 'live' as const, at: now() } } } }
+        d.published = [live, ...d.published.filter((x) => x.id !== was.id)]
+      } else d.published = [p, ...d.published.filter((x) => x.id !== p.id)]
       d.drafts = d.drafts.filter((x) => x.id !== dr.id)
       if (share) d.posts.unshift({ id: uid('u'), authorId: ME, at: now(), tag: p.price === 0 ? 'แจกฟรี' : 'โชว์ผลงาน', text: was ? `อัปเดตผลงาน “${p.title}” ${p.price === 0 ? '· ตอนนี้แจกฟรีแล้ว 🎁' : '✨'} ${p.use}` : `ลงผลงานใหม่ “${p.title}” 🎉 ${p.use}`, images: dr.covers.slice(0, 3), productIds: [p.id], likes: 0, comments: 0, shares: 0, mine: true })
-      notify(d, { kind: 'system', text: review ? `ส่ง “${p.title}” ให้ทีม LUMI ตรวจแล้ว · ผลตรวจจะแจ้งที่นี่` : `อัปเดต “${p.title}” แล้ว${notifyFollowers ? ` · แจ้งผู้ติดตาม ${creatorStats(ME).followersLabel} คน (ทดลอง)` : ''}`, link: `/product/${p.id}`, image: dr.covers[0] })
+      notify(d, { kind: 'system', text: review ? `ส่ง “${p.title}” ให้ทีม LUMI ตรวจแล้ว · ผลตรวจจะแจ้งที่นี่` : editReview ? `ส่งการแก้ไข “${p.title}” ให้ทีม LUMI ตรวจแล้ว · ระหว่างรอ ผู้ซื้อยังเห็นฉบับเดิม` : `อัปเดต “${p.title}” แล้ว${notifyFollowers ? ` · แจ้งผู้ติดตาม ${creatorStats(ME).followersLabel} คน (ทดลอง)` : ''}`, link: `/product/${p.id}`, image: dr.covers[0] })
     })
-    if (review) autoReview(p.id, REVIEW_MS)
+    if (review || editReview) autoReview(p.id, REVIEW_MS)
     return p.id
   }
   async review(productId: string, pass: boolean, reason?: string) {
     update((d) => {
       const p = d.published.find((x) => x.id === productId)
+      if (p?.rev?.status === 'pending') {
+        const next = p.rev.next
+        if (pass) d.published = d.published.map((x) => (x.id === productId ? { ...next, mod: { status: 'live', at: now() } } : x))
+        else p.rev = { ...p.rev, status: 'rejected', reason: reason ?? REVIEW_REASONS[0], at: now() }
+        notify(d, { kind: 'system', text: pass ? `การแก้ไข “${next.title}” ผ่านการตรวจแล้ว · ผู้ซื้อเห็นฉบับใหม่แล้ว` : `การแก้ไข “${next.title}” ยังไม่ผ่านการตรวจ: ${reason ?? REVIEW_REASONS[0]} · ผู้ซื้อยังเห็นฉบับเดิม`, link: `/product/${productId}`, image: next.covers?.[0] })
+        return
+      }
       if (!p || p.mod?.status !== 'pending') return
       const share = p.mod.share
       p.mod = pass ? { status: 'live', at: now() } : { status: 'rejected', reason: reason ?? REVIEW_REASONS[0], at: now() }
       if (pass && share) d.posts.unshift({ id: uid('u'), authorId: ME, at: now(), tag: p.price === 0 ? 'แจกฟรี' : 'โชว์ผลงาน', text: `ลงผลงานใหม่ “${p.title}” 🎉 ${p.use}`, images: (p.covers ?? []).slice(0, 3), productIds: [p.id], likes: 0, comments: 0, shares: 0, mine: true })
-      notify(d, { kind: 'system', text: pass ? `“${p.title}” ผ่านการตรวจแล้ว · ขึ้นขายบนหน้าแรกและหน้าค้นหาแล้ว` : `“${p.title}” ยังไม่ผ่านการตรวจ: ${p.mod.reason} · แก้ไขแล้วส่งตรวจใหม่ได้`, link: `/product/${p.id}`, image: p.covers?.[0] })
+      notify(d, { kind: 'system', text: pass ? `“${p.title}” ผ่านการตรวจแล้ว · ขึ้นขายบนหน้าแรก หน้าค้นหา และหน้าร้านแล้ว` : `“${p.title}” ยังไม่ผ่านการตรวจ: ${p.mod.reason} · แก้ไขแล้วส่งตรวจใหม่ได้`, link: `/product/${p.id}`, image: p.covers?.[0] })
     })
   }
   async unpublish(productId: string) {
@@ -516,7 +540,10 @@ function autoReview(id: string, ms: number) {
   later(Math.max(500, ms), () => { void sell.review(id, true) })
 }
 // pending listings from an earlier visit finish their (demo) review after a reload
-for (const p of getDb().published) if (p.mod?.status === 'pending') autoReview(p.id, p.mod.at + REVIEW_MS - Date.now())
+for (const p of getDb().published) {
+  if (p.mod?.status === 'pending') autoReview(p.id, p.mod.at + REVIEW_MS - Date.now())
+  else if (p.rev?.status === 'pending') autoReview(p.id, p.rev.at + REVIEW_MS - Date.now())
+}
 
 export const follows: FollowService = new LocalFollows()
 export const cart: CartService = new LocalCart()
@@ -526,6 +553,15 @@ export const community: CommunityService = new LocalCommunity()
 export const notifications: NotificationService = new LocalNotifs()
 export const orders: OrderService = new LocalOrders()
 export const sell: SellService = new LocalSell()
+/** Creator's public reply under a buyer review (demo: stored locally). Empty text removes it. */
+export async function replyToReview(key: string, text: string) {
+  update((d) => {
+    const r = { ...(d.replies ?? {}) }
+    if (text.trim()) r[key] = text.trim().slice(0, 500)
+    else delete r[key]
+    d.replies = r
+  })
+}
 export function resetAll() {
   timers.forEach((h) => clearTimeout(h))
   timers.clear()

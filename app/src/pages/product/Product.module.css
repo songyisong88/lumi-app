@@ -46,8 +46,9 @@
 .sw{display:flex;border-radius:12px;overflow:hidden;height:36px}
 .sw div{flex:1}
 .blur{background:#16132B;color:#E9D5FF;border-radius:14px;padding:12px;font-family:ui-monospace,monospace;font-size:12px;line-height:1.6;position:relative;overflow:hidden;word-break:break-word}
+.blur button.lk{min-height:44px;padding:0 14px;font-size:12px;border:0;cursor:pointer;margin:-6px -6px 6px 10px}
 .blur em{font-style:normal;filter:blur(5px);user-select:none}
-.lk{position:absolute;right:10px;top:10px;font-family:Prompt;font-size:11px;font-weight:600;background:rgba(255,255,255,.14);color:#fff;border-radius:9px;padding:2px 8px;display:flex;gap:4px;align-items:center}
+.lk{float:right;margin:-2px -2px 6px 10px;font-family:Prompt;font-size:11px;font-weight:600;background:rgba(255,255,255,.14);color:#fff;border-radius:9px;padding:2px 8px;display:flex;gap:4px;align-items:center}
 .spec{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .spec div{background:#F7F7FA;border-radius:12px;padding:8px 10px;font-size:11px;color:var(--mut);min-width:0}
 .spec b{display:block;font-size:13.5px;color:var(--ink);overflow-wrap:anywhere}
@@ -85,6 +86,9 @@
 .rvh{display:flex;gap:8px;align-items:center;font-size:12.5px;font-weight:600;margin-bottom:3px}
 .rvh small{color:var(--mut);font-weight:400;margin-left:auto}
 .rv p{margin-top:4px;color:var(--ink2)}
+.rvReply{margin-top:8px;background:#F6F4FB;border-radius:12px;padding:8px 10px;font-size:12.5px;color:var(--ink2)}
+.rvReply b{display:block;font-size:11.5px;color:var(--p);margin-bottom:2px}
+.rvBtn{margin-top:8px}
 .rvpic{width:64px;height:64px;border-radius:10px;margin-top:6px}
 .sim{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(min-width:720px){.sim{grid-template-columns:repeat(3,1fr)}}

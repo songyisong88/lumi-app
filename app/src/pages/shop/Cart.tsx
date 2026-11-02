@@ -145,7 +145,7 @@ export function Checkout() {
             <div className={s.blk}>
               <div className={s.cp}><input className="inp" value={code} onChange={(e) => setCode(e.target.value)} placeholder="ใส่โค้ด" aria-label="โค้ดส่วนลด" /><button className="btn btn-d" style={{ height: 46 }} onClick={() => apply()}>ใช้โค้ด</button></div>
               {coupon ? <div className={`${s.cpok} pop-in`}><Icon name="check" size={16} color="#16A34A" stroke={2.6} />{COUPONS[coupon].label} · ลด {baht(disc)}<button className="btn btn-xs btn-o" style={{ marginLeft: 'auto' }} onClick={() => { setCoupon(undefined); setCode('') }}>เอาออก</button></div>
-                : <div className={s.cps}>{Object.entries(COUPONS).map(([k, c]) => <button key={k} className="chip" onClick={() => apply(k)}><Icon name="tag" size={13} />{k} · {c.label}</button>)}</div>}
+                : <div className={s.cps}>{Object.entries(COUPONS).filter(([k]) => discountOf(items, k) > 0).map(([k, c]) => <button key={k} className="chip" onClick={() => apply(k)}><Icon name="tag" size={13} />{k} · {c.label}</button>)}</div>}
             </div>
             <div className={s.h}>วิธีชำระเงิน</div>
             <div className={s.blk}>
@@ -166,7 +166,7 @@ export function Checkout() {
           </>
         ) : null}
         <div className={s.sum}>
-          <div><span>ราคาสินค้า</span><span>{baht(sub)}</span></div>
+          <div><span>ราคาผลงาน</span><span>{baht(sub)}</span></div>
           {disc > 0 && <div className={s.disc}><span>ส่วนลด {coupon}</span><span>−{baht(disc)}</span></div>}
           <div><span>ค่าธรรมเนียม</span><span>฿0</span></div>
           <div className={s.grand}><span>ยอดชำระ</span><span>{baht(total)}</span></div>
@@ -203,7 +203,7 @@ function Success({ order }: { order: Order }) {
         <div className={s.done}>
           <span className={`${s.bigOk} pop-in`}><Icon name="check" size={44} color="#fff" stroke={3} /></span>
           <h1>{order.total === 0 ? 'รับฟรีเรียบร้อย!' : tipOnly ? 'ส่งทิปแล้ว ขอบคุณค่ะ!' : 'ชำระเงินสำเร็จ!'}</h1>
-          <p>{hireThread ? 'ครีเอเตอร์เริ่มงานได้แล้ว ติดตามงานได้ในแชต · เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงานถ้าไม่ได้ขอแก้หรือแจ้งปัญหา' : tipOnly ? 'ครีเอเตอร์ได้รับทิปหลังหักค่าธรรมเนียมการชำระเงิน (ทดลอง)' : 'ไฟล์ คีย์ และลิงก์อยู่ในคลังของที่ซื้อแล้ว · เปิดโหลดซ้ำได้ตลอด พร้อมใบเสร็จ · มีคำถามทักครีเอเตอร์ในแชตได้'}</p>
+          <p>{hireThread ? 'ครีเอเตอร์เริ่มงานได้แล้ว ติดตามงานได้ในแชต · เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงานถ้าไม่ได้ขอแก้หรือแจ้งปัญหา' : tipOnly ? 'ครีเอเตอร์ได้รับทิปหลังหักค่าธรรมเนียมการชำระเงิน (ทดลอง)' : 'ไฟล์ คีย์ และลิงก์อยู่ในคลังของที่ซื้อแล้ว พร้อมใบเสร็จ · เปิดโหลดซ้ำได้จากคลังของที่ซื้อ แนะนำให้ดาวน์โหลดเก็บไว้ · มีคำถามทักครีเอเตอร์ในแชตได้'}</p>
         </div>
         <div className={`${s.rcp} rise`}>
           <div><span>เลขออเดอร์</span><b>#{order.no}</b></div>

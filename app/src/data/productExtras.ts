@@ -1,5 +1,5 @@
 /** Presentation helpers for the product page: options, hero image, highlights, reviews. */
-import { layoutOf, pageContent, sellTypeOf, specOf, str, arr, on } from './listingSpec'
+import { SPECS, layoutOf, pageContent, sellTypeOf, specOf, str, arr, on } from './listingSpec'
 import { ALL_PRODUCTS, creatorById, isLive } from './sampleData'
 import type { Product, ProductOption } from './types'
 
@@ -13,6 +13,8 @@ export const galleryOf = (p: Product): string[] => {
   return [h, ...more.filter((m) => m !== h).slice(0, 2)]
 }
 
+/** The update promise exactly as the creator wrote it (first part of the support field), or nothing. */
+const supportShort = (p: Product) => { const x = str(specOf(p).support).split('·')[0].trim(); return x ? ` · ${x}` : '' }
 const r10 = (n: number) => Math.max(9, Math.round(n / 10) * 10 - 1)
 export function optionsOf(p: Product): ProductOption[] {
   if (p.options?.length) return p.options
@@ -23,16 +25,16 @@ export function optionsOf(p: Product): ProductOption[] {
       return p.hasPrompt
         ? [{ id: 'both', label: 'ภาพ + พรอมต์', sub: 'ไฟล์ความละเอียดสูง และสูตรครบ', price: x, best: 'คุ้มสุด' }, { id: 'prompt', label: 'พรอมต์อย่างเดียว', sub: 'สูตรภาพ ไม่รวมไฟล์', price: r10(x * 0.4) }]
         : [{ id: 'personal', label: 'ใช้ส่วนตัว', sub: 'ไฟล์เต็ม ไม่มีลายน้ำ', price: x }, { id: 'commercial', label: 'เชิงพาณิชย์', sub: 'ใช้ขายของ โฆษณาได้', price: r10(x * 2.2), best: 'คุ้มสุด' }]
-    case 'tpl': return [{ id: 'full', label: 'ชุดเต็ม', sub: /พิมพ์/.test(p.label ?? '') ? 'ไฟล์ PDF พร้อมพิมพ์ · พิมพ์ได้ไม่จำกัด' : /เว็บ/.test(p.label ?? '') ? 'ไฟล์เว็บ (HTML) + ไฟล์ Figma' : 'ลิงก์ Canva + ไฟล์ทุกแบบ', price: x }]
+    case 'tpl': return [{ id: 'full', label: 'ชุดเต็ม', sub: /พิมพ์/.test(p.label ?? '') ? 'ไฟล์ PDF พร้อมพิมพ์ · พิมพ์ใช้เองได้ไม่จำกัดจำนวน · ดูตารางสิทธิ์สำหรับงานขาย' : /เว็บ/.test(p.label ?? '') ? 'ไฟล์เว็บ (HTML) + ไฟล์ Figma' : 'ลิงก์ Canva + ไฟล์ทุกแบบ', price: x }]
     case 'sw': return [
-      { id: 'one', label: p.label === 'เกม' ? 'ซอร์สโค้ด 1 โปรเจกต์' : '1 เครื่อง', sub: 'ซื้อขาด · อัปเดตฟรี 1 ปี', price: x },
+      { id: 'one', label: p.label === 'เกม' ? 'ซอร์สโค้ด 1 โปรเจกต์' : '1 เครื่อง', sub: `ซื้อขาด${supportShort(p)}`, price: x },
       { id: 'three', label: p.label === 'เกม' ? 'สิทธิ์ทีม (3 คน)' : '3 เครื่อง', sub: 'สำหรับหลายสาขา / หลายคน', price: r10(x * 2.3), best: 'คุ้มสุด' },
       { id: 'month', label: 'รายเดือน', sub: 'ยกเลิกได้ทุกเมื่อ ใช้ได้ถึงสิ้นรอบที่จ่ายแล้ว', price: r10(x / 8), suffix: '/เดือน' }]
     case 'bot': return [{ id: 'setup', label: 'ติดตั้งให้ + ใช้ 1 เดือน', sub: `ต่อเดือน ฿${r10(x / 6)}`, price: x, best: 'คุ้มสุด' }, { id: 'diy', label: 'ติดตั้งเอง (ไฟล์ + คู่มือ)', sub: 'ทำตามคลิปทีละขั้น', price: r10(x * 0.6) }]
     case 'media': return [{ id: 'social', label: 'ใช้โซเชียล / ส่วนตัว', sub: 'Reels TikTok YouTube ของคุณ', price: x }, { id: 'ads', label: 'โฆษณา + ลูกค้า', sub: 'ยิงแอด ทำงานให้ลูกค้าได้', price: r10(x * 2.5), best: 'คุ้มสุด' }]
-    case 'skill': return [{ id: 'one', label: 'ใช้คนเดียว', sub: 'อัปเดตฟรีตามรอบซัพพอร์ต', price: x }, { id: 'team', label: 'ทีม (สูงสุด 5 คน)', sub: 'ติดตั้งให้ทั้งทีมได้', price: r10(x * 3), best: 'คุ้มสุด' }]
+    case 'skill': return [{ id: 'one', label: 'ใช้คนเดียว', sub: `1 ผู้ใช้${supportShort(p)}`, price: x }, { id: 'team', label: 'ทีม (สูงสุด 5 คน)', sub: 'ติดตั้งให้ทั้งทีมได้', price: r10(x * 3), best: 'คุ้มสุด' }]
     case 'data': return [{ id: 'std', label: 'ใช้ภายในองค์กร', sub: 'วิเคราะห์ ทำแอปของตัวเอง', price: x }, { id: 'ext', label: 'ใช้ในผลิตภัณฑ์/เทรนโมเดล', sub: 'นำไปใส่สินค้าที่ขายได้', price: r10(x * 3), best: 'คุ้มสุด' }]
-    case 'course': return /อีบุ๊ก/.test(p.label ?? '') ? [{ id: 'life', label: 'อีบุ๊กฉบับเต็ม', sub: 'ไฟล์ PDF + EPUB ดาวน์โหลดเก็บไว้ได้', price: x }] : [{ id: 'life', label: 'คอร์สเต็ม ดูได้ไม่จำกัดเวลา', sub: 'ทุกตอน + ไฟล์ประกอบ · ตราบที่คอร์สยังเปิดบน LUMI', price: x }]
+    case 'course': return /อีบุ๊ก/.test(p.label ?? '') ? [{ id: 'life', label: 'อีบุ๊กฉบับเต็ม', sub: 'ไฟล์ PDF + EPUB ดาวน์โหลดเก็บไว้ได้', price: x }] : [{ id: 'life', label: 'คอร์สเต็ม · ทุกตอน', sub: 'ดูได้ไม่จำกัดเวลา ตราบที่คอร์สยังเปิดบน LUMI · ถ้าจะปิด จะแจ้งล่วงหน้า', price: x }]
     case 'font': return [{ id: 'personal', label: 'สิทธิ์ส่วนตัว', sub: 'งานส่วนตัว การบ้าน', price: x }, { id: 'commercial', label: 'เชิงพาณิชย์', sub: 'โฆษณา สินค้า งานธุรกิจ ตามตารางสิทธิ์', price: r10(x * 2.5), best: 'คุ้มสุด' }]
     case 'hire': return x === 0 ? [{ id: 'free', label: 'งานฟรี', sub: `${p.days ?? 5} วัน · แก้ ${p.revisions ?? 2} ครั้ง · ไม่มีค่าใช้จ่าย`, price: 0 }] : [
       { id: 'basic', label: 'เริ่มต้น', sub: `${p.days ? Math.max(2, p.days - 2) : 3} วัน · แก้ 1 ครั้ง`, price: x },
@@ -48,11 +50,11 @@ export function highlightsOf(p: Product): [string, string, string][] {
   const t = sellTypeOf(p)
   const L = layoutOf(p)
   const lic = arr(s.licAllowed).length > 1 ? 'เชิงพาณิชย์' : 'ใช้ส่วนตัว'
-  if (L === 'free') return [['gift', 'ราคา', 'ฟรี'], ['file', 'ไฟล์', arr(s.formats).slice(0, 2).join(' · ') || 'พร้อมโหลด'], ['shield', 'สิทธิ์', lic]]
+  if (L === 'free') return [t === 'img' ? ['image', 'สัดส่วน', str(s.aspect) || '-'] : ['grid', 'ประเภท', SPECS[t].name], ['file', 'ไฟล์', arr(s.formats).slice(0, 2).join(' · ') || 'พร้อมโหลด'], ['shield', 'สิทธิ์', lic]]
   switch (t) {
     case 'img': return [['image', 'ไฟล์', `${str(s.resolution).split(' ')[0]} ${arr(s.formats)[0] ?? ''}`], ['sparkle', 'โมเดล', on(s.sellPrompt) ? str(s.model) : 'ภาพสำเร็จ'], ['shield', 'สิทธิ์', lic]]
     case 'tpl': return [['grid', 'จำนวน', str(s.count).split(' ').slice(0, 2).join(' ')], ['pen', 'แก้ใน', arr(s.apps)[0] ?? '-'], ['file', 'ไฟล์', arr(s.formats).slice(0, 2).join(' · ')]]
-    case 'sw': case 'game': return [['monitor', 'รองรับ', arr(s.platforms).slice(0, 2).join(' · ')], ['rocket', 'เวอร์ชัน', str(s.version)], ['shield', 'ไวรัส', 'สแกนแล้ว']]
+    case 'sw': case 'game': return [['monitor', 'รองรับ', arr(s.platforms).slice(0, 2).join(' · ')], ['rocket', 'เวอร์ชัน', str(s.version)], ['shield', 'ไฟล์', 'สแกนเบื้องต้น']]
     case 'bot': return [['robot', 'แพลตฟอร์ม', arr(s.platform)[0] ?? '-'], ['cal', 'ติดตั้ง', str(s.setupMode).split(' ')[0]], ['qr', 'ทดลอง', on(s.trial) ? str(s.trialDays) : 'ไม่มี']]
     case 'course': return [['play', /อีบุ๊ก/.test(p.label ?? '') ? 'เนื้อหา' : 'บทเรียน', /อีบุ๊ก/.test(p.label ?? '') ? `${arr(s.lessons).length} บท · ${str(s.duration)}` : `${arr(s.lessons).length} ตอน`], ['clock', 'ดูได้', str(s.access)], ['cap', 'ใบรับรอง', on(s.certificate) ? 'มีให้' : 'ไม่มี']]
     case 'font': return [['font', 'ชุด', str(s.count).split(' ').slice(0, 2).join(' ')], ['file', 'ไฟล์', arr(s.formats).slice(0, 2).join(' · ')], ['globe', 'รองรับ', arr(s.languages).slice(0, 2).join(' + ') || '-']]
@@ -64,12 +66,12 @@ export function highlightsOf(p: Product): [string, string, string][] {
 }
 
 export function statsOf(p: Product) {
-  const n = parseInt(p.id.replace(/\D/g, '') || '7')
+  const n = parseInt(p.id.replace(/\D/g, '') || '7') + (p.id.startsWith('n') ? 24 : 0) // n01 must not mirror p01
   const rating = p.rating ?? Math.min(5, 4.6 + (n % 4) / 10)
   const reviews = 20 + ((n * 37) % 280)
   const sold = p.mine ? 0 : 60 + ((n * 131) % 2400)
   const L = layoutOf(p)
-  const soldLabel = p.mine ? 'เพิ่งลงขาย' : L === 'free' ? `โหลดแล้ว ${k(sold)}` : L === 'hire' ? `จ้างแล้ว ${sold % 300} งาน` : L === 'course' ? `ผู้เรียน ${k(sold)}` : L === 'sw' ? `ติดตั้งแล้ว ${k(sold)}` : `ขายแล้ว ${k(sold)}`
+  const soldLabel = p.mod?.status === 'pending' ? 'รอตรวจ' : p.mod?.status === 'rejected' ? 'ยังไม่ขึ้นขาย' : p.mine ? 'เพิ่งลงขาย' : L === 'free' ? `โหลดแล้ว ${k(sold)}` : L === 'hire' ? `จ้างแล้ว ${sold % 300} งาน` : L === 'course' ? `ผู้เรียน ${k(sold)}` : L === 'sw' ? `ติดตั้งแล้ว ${k(sold)}` : `ขายแล้ว ${k(sold)}`
   return { rating: Math.round(rating * 10) / 10, reviews: p.mine ? 0 : reviews, soldLabel, likes: p.mine ? 0 : 40 + ((n * 53) % 900) }
 }
 

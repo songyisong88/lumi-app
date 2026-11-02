@@ -70,7 +70,7 @@ a{-webkit-tap-highlight-color:transparent}
 @media(min-width:720px){.sheet{left:50%;width:520px;margin-left:-260px;border-radius:22px;bottom:24px;max-height:80vh}.sheet::after{display:none}}
 
 /* toast */
-.toast2{position:fixed;left:50%;bottom:calc(var(--tabbar-h) + 22px + env(safe-area-inset-bottom));z-index:300;transform:translate3d(-50%,20px,0) scale(.96);opacity:0;transition:transform .42s var(--spring),opacity .25s;background:rgba(22,19,43,.94);color:#fff;font-size:13.5px;border-radius:14px;padding:10px 16px;max-width:calc(100% - 32px);text-align:center;pointer-events:none;box-shadow:0 10px 30px rgba(22,19,43,.25)}
+.toast2{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 64px);z-index:300;transform:translate3d(-50%,-16px,0) scale(.96);opacity:0;transition:transform .42s var(--spring),opacity .25s;background:rgba(22,19,43,.94);color:#fff;font-size:13.5px;border-radius:14px;padding:10px 16px;max-width:calc(100% - 32px);text-align:center;pointer-events:none;box-shadow:0 10px 30px rgba(22,19,43,.25)}
 .toast2.show{transform:translate3d(-50%,0,0);opacity:1}
 
 @media (prefers-reduced-motion: reduce){

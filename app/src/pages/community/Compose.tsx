@@ -64,17 +64,17 @@ export function Compose() {
         </div>
         {showPrompt && <div className="field" style={{ padding: '12px 16px 0' }}><label className="flabel">พรอมต์ที่ใช้ (ไม่บังคับ)</label><textarea className="ta" rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="/imagine prompt: …" /><span className="hint">คนอ่านกดคัดลอกได้จากหน้าโพสต์</span></div>}
         {prods.map((id) => { const p = productById(id); return p && (
-          <div key={id} className={s.prod}><Img src={heroOf(p)} className={s.prodI} /><span className="grow"><b className="ell">{p.title}</b><small>แท็กสินค้า · {p.price ? baht(p.price) : 'ฟรี'}</small></span><button onClick={() => setProds(prods.filter((x) => x !== id))} aria-label="เอาแท็กออก"><Icon name="x" size={18} /></button></div>
+          <div key={id} className={s.prod}><Img src={heroOf(p)} className={s.prodI} /><span className="grow"><b className="ell">{p.title}</b><small>แท็กผลงาน · {p.price ? baht(p.price) : 'ฟรี'}</small></span><button onClick={() => setProds(prods.filter((x) => x !== id))} aria-label="เอาแท็กออก"><Icon name="x" size={18} /></button></div>
         ) })}
         <div className={s.cTools}>
           <button className={`${s.cTool} press`} onClick={() => fileRef.current?.click()}><Icon name="image" size={16} />รูปภาพ</button>
-          <button className={`${s.cTool} ${prods.length ? s.on : ''} press`} onClick={() => setSheet('prod')}><Icon name="tag" size={16} />แท็กสินค้า{prods.length ? ` (${prods.length})` : ''}</button>
+          <button className={`${s.cTool} ${prods.length ? s.on : ''} press`} onClick={() => setSheet('prod')}><Icon name="tag" size={16} />แท็กผลงาน{prods.length ? ` (${prods.length})` : ''}</button>
           <button className={`${s.cTool} ${showPrompt ? s.on : ''} press`} onClick={() => setShowPrompt(!showPrompt)}><Icon name="sparkle" size={16} />ใส่พรอมต์</button>
           <button className={`${s.cTool} ${room ? s.on : ''} press`} onClick={() => setSheet('room')}><Icon name="users" size={16} />{r ? r.name : 'เลือกห้อง'}</button>
         </div>
         <div style={{ padding: '4px 16px 24px' }}><SampleNote>โพสต์จะถูกเก็บในเครื่องนี้เท่านั้น (ตัวอย่าง) ยังไม่ส่งขึ้นเซิร์ฟเวอร์</SampleNote></div>
       </div>
-      <Sheet open={sheet === 'prod'} onClose={() => setSheet(null)} title="แท็กสินค้าในโพสต์" sub="คนอ่านกดซื้อได้จากโพสต์ทันที" tall>
+      <Sheet open={sheet === 'prod'} onClose={() => setSheet(null)} title="แท็กผลงานในโพสต์" sub="คนอ่านกดซื้อได้จากโพสต์ทันที" tall>
         <input className="inp" value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาผลงาน…" aria-label="ค้นหาผลงาน" />
         <div className="chips" style={{ margin: '10px 0 4px' }}><button className={`chip ${mineOnly ? 'on' : ''}`} onClick={() => setMineOnly(true)}>ผลงานของฉัน</button><button className={`chip ${!mineOnly ? 'on' : ''}`} onClick={() => setMineOnly(false)}>ทั้งหมด</button></div>
         {list.map((p) => {

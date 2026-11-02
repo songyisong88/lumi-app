@@ -27,7 +27,7 @@ export function IssueSheet({ open, onClose, purchaseId, threadId, hire = false, 
     toast('ส่งเรื่องแล้ว · ครีเอเตอร์ต้องตอบภายใน 3 วัน (ตัวอย่าง)')
   }
   return (
-    <Sheet open={open} onClose={onClose} title="แจ้งปัญหา / ขอคืนเงิน" sub={hire ? 'เงินยังพักไว้ระหว่างตรวจสอบ' : `แจ้งได้ภายใน ${ISSUE_DAYS} วันหลังซื้อ`}
+    <Sheet open={open} onClose={onClose} title="แจ้งปัญหา / ขอคืนเงิน" sub={hire ? 'ยังไม่โอนเงินให้ครีเอเตอร์ระหว่างตรวจสอบ' : `แจ้งได้ภายใน ${ISSUE_DAYS} วันหลังซื้อ`}
       footer={<button className="btn btn-p btn-block" disabled={!reason || (reason === 'อื่น ๆ' && !note.trim())} onClick={send}>ส่งเรื่อง</button>}>
       <div className="chips" role="radiogroup" aria-label="ปัญหาที่พบ">
         {REASONS[hire ? 'hire' : 'file'].map((r) => <button key={r} role="radio" aria-checked={reason === r} className={`chip ${reason === r ? 'on' : ''}`} onClick={() => setReason(r)}>{r}</button>)}

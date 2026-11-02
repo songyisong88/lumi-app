@@ -11,6 +11,7 @@ import { community } from '../../services/api'
 import { useDb } from '../../services/db'
 import { toast } from '../../services/toast'
 import { ago } from '../../utils/time'
+import { catLabel } from '../../data/searchData'
 import s from './Community.module.css'
 
 export const TAG_COLOR: Record<string, [string, string]> = {
@@ -40,7 +41,7 @@ export function PostCard({ p, full, i = 0 }: { p: Post; full?: boolean; i?: numb
       <div className={s.ph}>
         <Link to={`/creator/${a.id}`}><Av src={a.avatar} size={42} /></Link>
         <div className={s.pm}>
-          <Link to={`/creator/${a.id}`}><b>{a.name}</b></Link>
+          <Link to={`/creator/${a.id}`} className="hit44"><b>{a.name}</b></Link>
           <small>{ago(p.at)} · <span className={s.tag} style={{ color: tc, background: tb }}>{p.tag}</span></small>
         </div>
         {p.authorId !== ME && <FollowButton id={p.authorId} />}
@@ -71,8 +72,8 @@ export function PostCard({ p, full, i = 0 }: { p: Post; full?: boolean; i?: numb
         return (
           <Link key={id} to={`/product/${id}`} className={`${s.prod} press`}>
             <Img src={heroOf(pr)} className={s.prodI} />
-            <span className="grow"><b className="ell">{pr.title}</b><small>{pr.label ?? 'ผลงาน'} · {pr.price === 0 ? 'ฟรี' : pr.type === 'svc' ? `เริ่ม ${baht(pr.price)}` : baht(pr.price)}</small></span>
-            <span className="btn btn-xs btn-p">{pr.price === 0 ? 'รับฟรี' : pr.type === 'svc' ? 'จ้างเลย' : 'ซื้อ'}</span>
+            <span className="grow"><b className="ell">{pr.title}</b><small>{catLabel(pr)} · {pr.price === 0 ? 'ฟรี' : pr.type === 'svc' ? `เริ่ม ${baht(pr.price)}` : baht(pr.price)}</small></span>
+            <span className={`btn btn-xs ${pr.creatorId === ME ? 'btn-o' : 'btn-p'}`}>{pr.creatorId === ME ? 'ของฉัน' : pr.price === 0 ? 'รับฟรี' : pr.type === 'svc' ? 'จ้างเลย' : 'ซื้อ'}</span>
           </Link>
         )
       })}

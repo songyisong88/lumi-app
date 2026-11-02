@@ -17,10 +17,10 @@
 .n3{grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;aspect-ratio:3/2}.n3>span:first-child{grid-row:1/3}
 @media(min-width:700px){.imgs{margin:10px 16px 0;border-radius:14px}}
 .code{margin:10px 16px 0;background:#17132B;border-radius:14px;padding:8px 0;font-size:12.5px;color:#E9E3FF}
-.code div{display:flex;align-items:center;gap:10px;padding:5px 12px}
+.code div{display:flex;align-items:center;gap:10px;padding:0 12px;min-height:34px}
 .code i{font-style:normal;color:#7C70A8;width:12px}
-.code code{flex:1;font-family:ui-monospace,Menlo,monospace;overflow-x:auto;white-space:nowrap}
-.code button{color:#B9AEE6;padding:4px}
+.code code{flex:1;min-width:0;font-family:ui-monospace,Menlo,monospace;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+.code button{color:#B9AEE6;padding:0;min-width:44px;min-height:34px;margin:0 -8px 0 0;display:flex;align-items:center;justify-content:center}
 .prompt{margin:12px 16px 0;padding:14px;border-radius:16px;background:linear-gradient(135deg,#1E1538,#3B1D6E);color:#fff;display:flex;flex-direction:column;gap:8px}
 .prh{display:flex;gap:6px;align-items:center;font-size:12.5px;font-weight:700;color:#E2D5FF}
 .prompt p{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.55;color:#F4EEFF}
@@ -55,6 +55,7 @@
 .leadH{display:flex;justify-content:space-between;align-items:center}
 .leadH b{font-size:15.5px}
 .leadH span,.leadH a{font-size:12.5px;color:var(--p);font-weight:700}
+.leadH a{padding:13px 0 13px 12px;margin:-13px 0}
 .pod{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:end;gap:8px;margin-top:12px;text-align:center}
 .pod>div{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;border-radius:14px;background:#F8F7FB;min-width:0}
 .pod .p1{background:#FFF6DD;padding-top:14px}
@@ -85,7 +86,7 @@
 .cmBubble b{font-size:13px;display:flex;gap:6px;align-items:center}
 .cmBubble p{font-size:14px;line-height:1.5}
 .cmA{display:flex;gap:14px;font-size:12px;color:var(--mute);padding:4px 6px;align-items:center}
-.cmA button{display:flex;gap:3px;align-items:center;font-weight:700;color:var(--mute)}
+.cmA button{display:flex;gap:3px;align-items:center;font-weight:700;color:var(--mute);min-height:44px;margin:-12px 0;padding:0 4px}
 .cmA .on{color:#F0508A}
 .rep{padding-left:40px}
 .cin{display:flex;align-items:center;gap:8px}

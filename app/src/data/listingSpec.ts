@@ -60,7 +60,7 @@ const VIS_ROWS = ['งานส่วนตัว การบ้าน', 'โ�
 const LIC_BY_TYPE: Record<SellType, string[]> = {
   img: VIS_ROWS,
   tpl: ['งานส่วนตัว การบ้าน', 'โพสต์ขายของ โฆษณา', 'ทำงานให้ลูกค้า', 'สินค้าที่พิมพ์ขาย', 'ขายต่อหรือแจกต่อไฟล์'],
-  font: ['ติดตั้งในเครื่อง งานส่วนตัว', 'โพสต์ขายของ โฆษณา', 'ใช้ในโลโก้', 'ฝังบนเว็บ / แอป', 'สินค้าที่พิมพ์ขาย', 'ขายต่อหรือแจกต่อไฟล์'],
+  font: ['งานส่วนตัว การบ้าน', 'โพสต์ขายของ โฆษณา', 'ฝังบนเว็บ / แอป', 'สินค้าที่พิมพ์ขาย', 'โลโก้ ป้ายร้าน', 'ขายต่อหรือแจกต่อไฟล์'],
   media: ['ใช้ส่วนตัว', 'คลิปโซเชียลของตัวเอง', 'โฆษณา และงานให้ลูกค้า', 'ขายต่อหรือแจกต่อไฟล์'],
   sw: ['ใช้ส่วนตัว', 'ใช้ในธุรกิจตัวเอง', 'ติดตั้งให้ลูกค้า', 'ขายต่อหรือแจกต่อ'],
   game: ['เล่น / ใช้ส่วนตัว', 'ใช้ในงานหรือโปรเจกต์ที่ขาย', 'แก้ไขซอร์สโค้ด', 'ขายต่อหรือแจกต่อไฟล์'],
@@ -82,7 +82,7 @@ export function presetRows(t: SellType | null, preset: string): string[] {
 const licDefaults = (t: SellType, preset = 'ใช้ในธุรกิจ (ไม่ขายต่อไฟล์)'): Spec => ({ licPreset: preset, licAllowed: presetRows(t, preset) })
 
 /** Every listing confirms it doesn't use other people's IP (legal review §3). */
-const IP_OK: Field = { id: 'ipOk', label: 'ยืนยัน: ไม่มีตัวละคร โลโก้ แบรนด์ หรือหน้า/เสียงของคนจริงที่ไม่ได้รับอนุญาต และไม่มีเนื้อหาทางเพศ', kind: 'toggle', step: 'license', required: true, mustBeOn: true, hint: 'ถ้าถูกแจ้งละเมิด LUMI ซ่อนสินค้าระหว่างตรวจสอบ' }
+const IP_OK: Field = { id: 'ipOk', label: 'ยืนยัน: ไม่มีตัวละคร โลโก้ แบรนด์ หรือหน้า/เสียงของคนจริงที่ไม่ได้รับอนุญาต และไม่มีเนื้อหาทางเพศ', kind: 'toggle', step: 'license', required: true, mustBeOn: true, hint: 'ถ้าถูกแจ้งละเมิด LUMI ซ่อนผลงานระหว่างตรวจสอบ' }
 // Fields every type shares on the license step.
 const LICENSE = (t: SellType): Field[] => [
   { id: 'licPreset', label: 'แบบสิทธิ์การใช้งาน', kind: 'chips', step: 'license', options: LIC_PRESET_NAMES, required: true },
@@ -195,7 +195,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
     defaults: { sub: 'คอร์สวิดีโอ', freeLessons: '1 ตอน', materials: ['สรุป PDF'], level: 'มือใหม่', access: 'ไม่จำกัดเวลา', certificate: true, refund: 'คืนเงินได้ภายใน 7 วัน ถ้าเรียนไม่เกิน 2 ตอน', ...licDefaults('course', 'ใช้ส่วนตัว') },
   },
   font: {
-    key: 'font', name: 'ฟอนต์ · สติกเกอร์', sub: 'ไอคอน พรีเซ็ต ตารางสิทธิ์', icon: 'font', color: '#D6336C', bg: '#FDEBF2', layout: 'font',
+    key: 'font', name: 'ฟอนต์ · สติกเกอร์', sub: 'ฟอนต์ สติกเกอร์ PNG ไอคอน พรีเซ็ต', icon: 'font', color: '#D6336C', bg: '#FDEBF2', layout: 'font',
     fields: [
       { id: 'sub', label: 'เป็นแบบไหน', kind: 'chips', step: 'files', options: ['ฟอนต์', 'สติกเกอร์ PNG', 'ไอคอน', 'พรีเซ็ต / LUT', 'แปรง'], required: true, hint: 'ใช้จัดหมวดย่อยบนหน้าค้นหา: สติกเกอร์ · ฟอนต์ พรีเซ็ต ไอคอน' },
       FILES('ไฟล์ที่ผู้ซื้อได้รับ', 'OTF TTF PNG SVG CUBE XMP ABR'),
@@ -217,11 +217,11 @@ export const SPECS: Record<SellType, TypeSpec> = {
       { id: 'timeline', label: 'ส่งงานภายใน', kind: 'chips', step: 'price', options: ['1–3 วัน', '3–7 วัน', '7–14 วัน', '14–30 วัน'], required: true },
       { id: 'revisions', label: 'แก้ไขได้', kind: 'chips', step: 'price', options: ['1 ครั้ง', '2 ครั้ง', '3 ครั้ง', '5 ครั้ง'], required: true },
       { id: 'rights', label: 'สิทธิ์ในงานที่ส่ง', kind: 'chips', step: 'license', options: ['ใช้เชิงพาณิชย์ได้ + ไฟล์ต้นฉบับ', 'ใช้เชิงพาณิชย์ได้', 'ใช้ส่วนตัวเท่านั้น'], required: true },
-      { id: 'copyright', label: 'ลิขสิทธิ์งานที่ส่งเป็นของใคร', kind: 'chips', step: 'license', options: ['โอนให้ผู้ซื้อเมื่อชำระครบ', 'ครีเอเตอร์ถือไว้ ผู้ซื้อได้สิทธิ์ใช้'], required: true },
+      { id: 'copyright', label: 'ลิขสิทธิ์งานที่ส่งเป็นของใคร', kind: 'chips', step: 'license', options: ['โอนสิทธิ์ทั้งหมดที่ครีเอเตอร์มีให้ผู้ซื้อเมื่อชำระครบ', 'ครีเอเตอร์ถือไว้ ผู้ซื้อได้สิทธิ์ใช้'], required: true },
       { id: 'portfolio', label: 'ขอนำไปโชว์ในพอร์ต', kind: 'toggle', step: 'license' },
       IP_OK, refundField(REFUND_HIRE),
     ],
-    defaults: { formats: ['PNG', 'AI'], timeline: '3–7 วัน', revisions: '3 ครั้ง', rights: 'ใช้เชิงพาณิชย์ได้', copyright: 'โอนให้ผู้ซื้อเมื่อชำระครบ', portfolio: true, briefNeeds: ['ชื่อร้านหรือแบรนด์', 'สีหรือสไตล์ที่ชอบ', 'ภาพอ้างอิง 1–3 ภาพ', 'จะเอาไปใช้ทำอะไร'], refund: 'คืนเต็มจำนวนถ้ายังไม่เริ่มงาน หรือส่งงานไม่ตรงบรีฟ' },
+    defaults: { formats: ['PNG', 'AI'], timeline: '3–7 วัน', revisions: '3 ครั้ง', rights: 'ใช้เชิงพาณิชย์ได้', copyright: 'โอนสิทธิ์ทั้งหมดที่ครีเอเตอร์มีให้ผู้ซื้อเมื่อชำระครบ', portfolio: true, briefNeeds: ['ชื่อร้านหรือแบรนด์', 'สีหรือสไตล์ที่ชอบ', 'ภาพอ้างอิง 1–3 ภาพ', 'จะเอาไปใช้ทำอะไร'], refund: 'คืนเต็มจำนวนถ้ายังไม่เริ่มงาน หรือส่งงานไม่ตรงบรีฟ' },
   },
   // filled in below (added 2 Nov 2026)
   media: undefined as unknown as TypeSpec,
@@ -240,7 +240,7 @@ SPECS.media = {
   key: 'media', name: 'วิดีโอ เสียง เพลง', sub: 'วิดีโอ AI เพลง เสียงพากย์', icon: 'play', color: '#9333EA', bg: '#F5EBFF', layout: 'media',
   fields: [
     { id: 'sub', label: 'เป็นแบบไหน', kind: 'chips', step: 'files', options: ['วิดีโอ AI', 'เสียงพากย์ AI', 'เพลงต้นฉบับ', 'เอฟเฟกต์เสียง', 'เทมเพลตตัดต่อวิดีโอ'], required: true },
-    FILES('ไฟล์ที่ผู้ซื้อได้รับ', 'MP4 MOV WAV MP3 หรือไฟล์เทมเพลต · ไม่มีลายน้ำ · สแกนไวรัสทุกไฟล์'),
+    FILES('ไฟล์ที่ผู้ซื้อได้รับ', 'MP4 MOV WAV MP3 หรือไฟล์เทมเพลต · ไม่มีลายน้ำ · สแกนไวรัสเบื้องต้นทุกไฟล์'),
     { id: 'count', label: 'จำนวนชิ้นในชุด', kind: 'text', step: 'files', required: true, placeholder: 'เช่น 1 คลิป หรือ 10 เพลง' },
     { id: 'duration', label: 'ความยาว', kind: 'text', step: 'files', required: true, placeholder: 'เช่น 15 วินาที · หรือ รวม 32 นาที (เพลงละ 2–4 นาที)' },
     { id: 'formats', label: 'นามสกุลไฟล์', kind: 'multi', step: 'files', options: ['MP4', 'MOV', 'WAV', 'MP3', 'เทมเพลต CapCut', 'Premiere (.prproj)', 'After Effects (.aep)', 'SRT (ซับไตเติล)'], required: true },
@@ -249,7 +249,7 @@ SPECS.media = {
     { id: 'aiTool', label: 'สร้างด้วยเครื่องมือ AI อะไร', kind: 'chips', step: 'details', options: ['Runway', 'Kling', 'Sora', 'Veo', 'Suno', 'ElevenLabs', 'CapCut AI', 'ไม่ได้ใช้ AI', 'อื่น ๆ'], required: true, hint: 'แสดงบนหน้าผลงานให้ผู้ซื้อรู้ที่มา' },
     { id: 'aiPlan', label: 'ใช้แผนไหนของเครื่องมือ AI', kind: 'chips', step: 'details', options: ['แผนเสียเงิน (ใช้เชิงพาณิชย์ได้)', 'แผนฟรี'], when: (s) => !['', 'ไม่ได้ใช้ AI'].includes(str(s.aiTool)), required: (s) => !['', 'ไม่ได้ใช้ AI'].includes(str(s.aiTool)), pattern: /^แผนเสียเงิน/, patternNote: 'แผนฟรีของเครื่องมือส่วนใหญ่ห้ามนำผลงานไปขาย · ลงขายไม่ได้', hint: 'ผลงานจากแผนฟรีมักขายเชิงพาณิชย์ไม่ได้' },
     { id: 'howUse', label: 'วิธีใช้งาน (ทีละขั้น)', kind: 'list', step: 'details', required: true },
-    { id: 'noClone', label: 'ยืนยัน: ไม่ได้เลียนเสียงหรือหน้าบุคคลจริงโดยไม่ได้รับอนุญาต', kind: 'toggle', step: 'license', required: true, mustBeOn: true, hint: 'ห้ามโคลนเสียงคนดัง/บุคคลจริง · ฝ่าฝืนถูกถอดสินค้า' },
+    { id: 'noClone', label: 'ยืนยัน: ไม่ได้เลียนเสียงหรือหน้าบุคคลจริงโดยไม่ได้รับอนุญาต', kind: 'toggle', step: 'license', required: true, mustBeOn: true, hint: 'ห้ามโคลนเสียงคนดัง/บุคคลจริง · ฝ่าฝืนถูกถอดผลงาน' },
     { id: 'musicLic', label: 'สิทธิ์เพลง / เสียง', kind: 'chips', step: 'license', options: ['ผู้ขายรับรองว่าใช้ในคลิปโซเชียลได้', 'ผู้ขายรับรองว่าใช้ในโฆษณา ทีวี และสตรีมได้', 'ใช้ส่วนตัวเท่านั้น'], required: true, hint: 'หากผู้ซื้อถูกระบบแพลตฟอร์มแจ้งลิขสิทธิ์ ผู้ซื้อติดต่อคุณหรือขอคืนเงินได้' },
     REFUND, ...LICENSE('media'),
   ],
@@ -283,7 +283,7 @@ SPECS.data = {
     { id: 'updates', label: 'การอัปเดต', kind: 'chips', step: 'details', options: ['ครั้งเดียว', 'อัปเดตรายเดือน', 'อัปเดตรายไตรมาส'], required: true },
     { id: 'useCases', label: 'นำไปใช้ทำอะไรได้', kind: 'list', step: 'details', required: true },
     { id: 'rights', label: 'ยืนยัน: ฉันมีสิทธิ์นำข้อมูลนี้มาขาย/แจกต่อ', kind: 'toggle', step: 'license', required: true, mustBeOn: true },
-    { id: 'noPII', label: 'ยืนยัน: ไม่มีข้อมูลส่วนบุคคล (ชื่อ เบอร์ อีเมล เลขบัตร ที่อยู่)', kind: 'toggle', step: 'license', required: true, mustBeOn: true, hint: 'ตาม PDPA · LUMI สุ่มตรวจและลบสินค้าได้ทันทีถ้าพบข้อมูลส่วนบุคคล' },
+    { id: 'noPII', label: 'ยืนยัน: ไม่มีข้อมูลส่วนบุคคล (ชื่อ เบอร์ อีเมล เลขบัตร ที่อยู่)', kind: 'toggle', step: 'license', required: true, mustBeOn: true, hint: 'ตาม PDPA · ทีม LUMI ตรวจก่อนขึ้นขาย และลบได้ทันทีถ้าพบข้อมูลส่วนบุคคลภายหลัง' },
     REFUND, ...LICENSE('data'),
   ],
   defaults: { formats: ['CSV'], updates: 'ครั้งเดียว', refund: REFUND_STD[0], ...licDefaults('data') },
@@ -294,6 +294,11 @@ const AI_USE: Field = { id: 'aiUse', label: 'ใช้ AI ทำไหม', kind
 const AI_TOOLS: Field = { id: 'aiTools', label: 'เครื่องมือ AI ที่ใช้', kind: 'text', step: 'details', when: (s) => !!str(s.aiUse) && str(s.aiUse) !== 'ไม่ได้ใช้ AI', required: (s) => !!str(s.aiUse) && str(s.aiUse) !== 'ไม่ได้ใช้ AI', placeholder: 'เช่น Midjourney, ChatGPT, Claude, Suno' }
 for (const sp of Object.values(SPECS)) if (sp.key !== 'media' && !sp.fields.some((f) => f.id === 'aiUse')) sp.fields.push(AI_USE, AI_TOOLS)
 SPECS.img.defaults = { ...SPECS.img.defaults, aiUse: 'ใช้ AI ทั้งหมด' }
+/** Starting values for a NEW listing. Support/update terms are left for the creator to write (never pre-promised). */
+export function newSpec(t: SellType): Spec {
+  const { support: _support, ...rest } = SPECS[t].defaults
+  return { ...rest }
+}
 
 export const SELL_TYPES = Object.values(SPECS)
 
@@ -342,6 +347,8 @@ export interface ListingDraft {
   options: { id: string; label: string; sub: string; price: number; on: boolean; suffix?: string }[]
   updatedAt: number
   publishedId?: string
+  /** Content fingerprint of the live version when an edit started (see contentSig). */
+  origSig?: string
 }
 
 export interface CheckItem { id: string; label: string; ok: boolean; step: number; note?: string }
@@ -413,13 +420,15 @@ export function layoutOf(p: Product): DetailKind {
 }
 
 /** Plausible complete spec for the built-in SAMPLE works (they predate the wizard). */
+/** English subject for sample prompts, from the image file name (sample prompts are English-only). */
+const engSubject = (p: Product) => `detailed illustration of ${(p.image?.src ?? 'artwork').replace(/^.*\//, '').replace(/\.\w+$/, '').replace(/^[a-z]_/, '').replace(/[_-]+/g, ' ')}`
 export function specOf(p: Product): Spec {
   if (p.spec) return p.spec
   const t = sellTypeOf(p)
   const d: Spec = { ...SPECS[t].defaults, ipOk: true, ...(t === 'media' || t === 'img' ? {} : { aiUse: 'ใช้ AI บางส่วน แล้วแต่งต่อเอง', aiTools: 'ChatGPT, Claude' }) }
   const slug = p.id
   const l = p.label ?? ''
-  if (t === 'img') Object.assign(d, { count: /ชุด (\d+)/.exec(p.title)?.[1] ? `${/ชุด (\d+)/.exec(p.title)![1]} ภาพ` : '1 ภาพ', files: [JSON.stringify({ name: `${slug}-4k.png`, size: '8.4 MB', scan: 'ok' })], sellPrompt: !!p.hasPrompt, prompt: p.hasPrompt ? `/imagine prompt: ${p.title}, soft cinematic light, rich thai details, ultra detailed --ar 3:4 --stylize 600` : undefined, model: p.hasPrompt ? 'Midjourney v7' : undefined, aiTools: p.hasPrompt ? 'Midjourney v7' : 'Midjourney, Photoshop', settings: p.hasPrompt ? '--ar 3:4 --stylize 600 --seed 2569' : undefined, aspect: p.image && p.image.w > p.image.h ? '16:9' : p.image && p.image.w === p.image.h ? '1:1' : '3:4' })
+  if (t === 'img') Object.assign(d, { count: /ชุด (\d+)/.exec(p.title)?.[1] ? `${/ชุด (\d+)/.exec(p.title)![1]} ภาพ` : '1 ภาพ', files: [JSON.stringify(/ชุด (\d+)/.exec(p.title) ? { name: `${slug}-${/ชุด (\d+)/.exec(p.title)![1]}views.zip`, size: '38 MB', scan: 'ok' } : { name: `${slug}-4k.png`, size: '8.4 MB', scan: 'ok' })], ...(/ชุด (\d+)/.exec(p.title) ? { formats: ['PNG', 'ZIP'] } : {}), sellPrompt: !!p.hasPrompt, prompt: p.hasPrompt ? `/imagine prompt: ${engSubject(p)}, soft cinematic light, rich thai details, ultra detailed --ar 3:4 --stylize 600` : undefined, model: p.hasPrompt ? 'Midjourney v7' : undefined, aiTools: p.hasPrompt ? 'Midjourney v7' : 'Midjourney, Photoshop', settings: p.hasPrompt ? '--ar 3:4 --stylize 600 --seed 2569' : undefined, aspect: p.image && p.image.w > p.image.h ? '16:9' : p.image && p.image.w === p.image.h ? '1:1' : '3:4' })
   if (t === 'tpl') {
     const web = /เว็บ/.test(l), print = /พิมพ์/.test(l)
     Object.assign(d, web ? { apps: ['เว็บ (HTML)', 'Figma'], appVersion: 'เบราว์เซอร์ใดก็ได้ · Figma ฟรี', formats: ['HTML', 'FIG'], count: '1 หน้า · 6 ส่วน', size: 'รองรับมือถือและคอม', files: [JSON.stringify({ name: 'bakery-site.zip', size: '6.1 MB', scan: 'ok' })], howOpen: ['แตกไฟล์ ZIP', 'เปิด index.html ด้วยเบราว์เซอร์เพื่อดู', 'แก้ข้อความใน Figma หรือไฟล์ HTML แล้วอัปโหลดขึ้นโฮสต์ (เช่น GitHub Pages ฟรี)'] }
@@ -487,7 +496,7 @@ export function pageContent(p: Product): PageContent {
       deliver.push(`ไฟล์ภาพ ${str(s.count)} · ${str(s.resolution)} · ${list(fm)}`)
       if (files.length) deliver.push(`ไฟล์: ${files.join(', ')}`)
       if (on(s.sellPrompt)) deliver.push('พรอมต์ฉบับเต็ม (ปลดล็อกหลังซื้อ)', `โมเดล ${str(s.model)} + ค่าตั้ง ${str(s.settings)}`)
-      deliver.push(lic.length > 1 ? 'ใบอนุญาตใช้เชิงพาณิชย์ (PDF)' : 'ใบอนุญาตใช้ส่วนตัว (PDF)')
+      deliver.push('ตารางสิทธิ์การใช้งาน (ดูได้ในคลัง)')
       howto.push('ดาวน์โหลดไฟล์จากคลังของที่ซื้อ', 'เปิดด้วยแอปดูรูป Canva หรือ Photoshop ได้ทันที')
       if (on(s.sellPrompt)) howto.push(`คัดลอกพรอมต์ไปวางใน ${str(s.model)} แล้วใส่ค่าตั้ง ${str(s.settings)} เพื่อสร้างภาพแนวเดียวกัน`)
       needs.push('ไม่ต้องติดตั้งอะไรเพิ่ม')
@@ -528,7 +537,7 @@ export function pageContent(p: Product): PageContent {
       deliver.push(eb ? `อีบุ๊ก ${n} บท · ${str(s.duration)}` : `วิดีโอ ${n} ตอน · รวม ${str(s.duration)}`)
       if (files.length) deliver.push(`ไฟล์: ${files.slice(0, 4).join(', ')}${files.length > 4 ? ` และอีก ${files.length - 4} ไฟล์` : ''}`)
       deliver.push(...arr(s.materials).map((m) => `ไฟล์ประกอบ: ${m}`))
-      if (!eb) deliver.push(forever ? 'ดูได้ไม่จำกัดเวลา ตราบที่คอร์สยังเปิดบน LUMI' : `ดูได้ ${str(s.access)}`)
+      if (!eb) deliver.push(forever ? 'ดูได้ไม่จำกัดเวลา ตราบที่คอร์สยังเปิดบน LUMI · ถ้าจะปิด จะแจ้งล่วงหน้า' : `ดูได้ ${str(s.access)}`)
       if (!eb && on(s.certificate)) deliver.push('ใบรับรองเมื่อเรียนจบ')
       if (eb) howto.push('ซื้อแล้วไปที่ คลังของที่ซื้อ › ดาวน์โหลด', 'เปิดด้วยแอปอ่าน PDF หรือ EPUB ในมือถือหรือคอม', 'แนะนำให้ดาวน์โหลดเก็บไว้ · สงสัยตรงไหนถามผู้เขียนในแชต')
       else howto.push('ซื้อแล้วไปที่ คลังของที่ซื้อ › ห้องเรียน', 'ดูต่อจากตอนล่าสุดได้ทุกเครื่อง', 'ติดตรงไหนถามผู้สอนในแชต แนบเลขตอนและนาทีได้')
@@ -541,7 +550,7 @@ export function pageContent(p: Product): PageContent {
       deliver.push(`${str(s.count)} · ไฟล์ ${list(fm)}`)
       if (files.length) deliver.push(`ไฟล์: ${files.join(', ')}`)
       if (arr(s.languages).length) deliver.push(`รองรับ ${list(arr(s.languages))}`)
-      deliver.push('ตารางสิทธิ์และใบอนุญาต (PDF)')
+      deliver.push('ตารางสิทธิ์การใช้งาน (ดูได้ในคลัง)')
       howto.push(...arr(s.install))
       needs.push(`ใช้กับ ${str(s.compat)}`)
       facts.push(['ประเภท', str(s.sub)], ['ไฟล์', list(fm)], ['จำนวน', str(s.count)])
@@ -549,7 +558,7 @@ export function pageContent(p: Product): PageContent {
     case 'media':
       deliver.push(`${str(s.count)} · ${str(s.duration)}`, `ไฟล์ ${list(fm)} · ${str(s.quality)}`)
       if (files.length) deliver.push(`ไฟล์: ${files.join(', ')}`)
-      deliver.push(`สิทธิ์: ${str(s.musicLic)}`, 'ไม่มีลายน้ำ LUMI · สแกนไวรัสเบื้องต้นแล้ว', 'หากถูกระบบแพลตฟอร์มแจ้งลิขสิทธิ์ ติดต่อผู้ขายหรือขอคืนเงินได้')
+      deliver.push(`สิทธิ์: ${str(s.musicLic)}`, 'ไม่มีลายน้ำ LUMI · สแกนไวรัสเบื้องต้นแล้ว', 'หากถูกระบบแพลตฟอร์มแจ้งลิขสิทธิ์ ติดต่อครีเอเตอร์หรือขอคืนเงินได้')
       howto.push(...arr(s.howUse))
       needs.push(str(s.appVersion) || 'แอปเล่นวิดีโอ/เสียง หรือแอปตัดต่อใดก็ได้')
       facts.push(['ประเภท', str(s.sub)], ['ความยาว', str(s.duration)], ['คุณภาพ', str(s.quality)], ['สร้างด้วย', str(s.aiTool)], ['เสียง/หน้าคนจริง', on(s.noClone) ? 'ผู้ขายรับรองว่าไม่ได้โคลน' : '-'])
@@ -567,8 +576,8 @@ export function pageContent(p: Product): PageContent {
       facts.push(['ขนาด', str(s.size)], ['รูปแบบ', list(fm)], ['อัปเดต', str(s.updates)], ['ข้อมูลส่วนบุคคล', on(s.noPII) ? 'ผู้ขายรับรองว่าไม่มี' : '-'], ['สิทธิ์เผยแพร่', on(s.rights) ? 'ผู้ขายรับรองแล้ว' : '-'])
       break
     case 'hire':
-      deliver.push(...arr(s.deliverables), `ไฟล์ ${list(fm)}`, `แก้ไขได้ ${str(s.revisions)}`, `ส่งงานภายใน ${str(s.timeline)}`, `สิทธิ์: ${str(s.rights)}`, str(s.copyright) ? `ลิขสิทธิ์: ${str(s.copyright)}` : '')
-      howto.push('ส่งบรีฟในแชต (มีแบบฟอร์มให้)', 'ครีเอเตอร์ส่งใบเสนอราคา คุณกดรับ', 'ชำระเงิน เงินพักไว้กับผู้ให้บริการชำระเงินก่อน', 'ครีเอเตอร์อัปเดตความคืบหน้าและส่งงาน', 'ตรวจงาน ขอแก้ หรือกดรับงาน · ถ้าไม่ขอแก้หรือแจ้งปัญหาภายใน 3 วันหลังส่งงาน ระบบโอนเงินให้ครีเอเตอร์อัตโนมัติ')
+      deliver.push(...arr(s.deliverables), `ไฟล์ ${list(fm)}`, `แก้ไขได้ ${str(s.revisions)}`, `ส่งงานภายใน ${str(s.timeline)}`, `สิทธิ์: ${str(s.rights)}`, str(s.copyright) ? `ลิขสิทธิ์: ${str(s.copyright)}${/^โอน/.test(str(s.copyright)) ? ' · งานที่สร้างด้วย AI อาจได้รับความคุ้มครองลิขสิทธิ์ไม่เต็มที่' : ''}` : '')
+      howto.push('ส่งบรีฟในแชต (มีแบบฟอร์มให้)', 'ครีเอเตอร์ส่งใบเสนอราคา คุณกดรับ', 'ชำระผ่านผู้ให้บริการชำระเงิน · ยังไม่โอนให้ครีเอเตอร์จนกว่าคุณกดรับงาน', 'ครีเอเตอร์อัปเดตความคืบหน้าและส่งงาน', 'ตรวจงาน ขอแก้ หรือกดรับงาน · ถ้าไม่ขอแก้หรือแจ้งปัญหาภายใน 3 วันหลังส่งงาน ระบบโอนเงินให้ครีเอเตอร์อัตโนมัติ')
       needs.push(...arr(s.briefNeeds))
       facts.push(['ส่งงาน', str(s.timeline)], ['แก้ไข', str(s.revisions)], ['สิทธิ์', str(s.rights)])
       break

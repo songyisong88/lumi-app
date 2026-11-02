@@ -21,15 +21,15 @@ export function seed(): DB {
   const id = () => `s${++n}`
   const threads: Thread[] = [
     { id: 't-toy', partnerId: 'toy', role: 'creator', title: 'ออกแบบมาสคอตร้าน 1 ตัว', image: 'mascot.jpg', productId: 'p14', orderNo: 'LM-20517', amount: 1200, hire: true, step: 1, status: 'รอคุณตอบรับข้อเสนอ', tone: 'warn', unread: 1, online: true, quick: ['รับข้อเสนอเลยครับ', 'ขอลดเหลือ ฿1,000 ได้ไหม', 'ส่งงานได้วันไหนครับ'], updatedAt: t(4 * M) },
-    { id: 't-shop', partnerId: 'shop', role: 'customer', title: 'ภาพบัวชมพูสีน้ำ โทนพาสเทล', image: 'g_lotus.jpg', productId: 'p01', status: 'ถามเรื่องสินค้า', tone: 'info', unread: 1, online: true, quick: ['มีค่ะ เดี๋ยวส่งตัวอย่างให้ดูนะคะ', 'รับทำโทนเขียวให้ ฿150 ค่ะ', 'ขอบคุณที่สนใจค่ะ'], updatedAt: t(18 * M) },
+    { id: 't-shop', partnerId: 'shop', role: 'customer', title: 'ภาพบัวชมพูสีน้ำ โทนพาสเทล', image: 'g_lotus.jpg', productId: 'p01', status: 'ถามเรื่องผลงาน', tone: 'info', unread: 1, online: true, quick: ['มีค่ะ เดี๋ยวส่งตัวอย่างให้ดูนะคะ', 'รับทำโทนเขียวให้ ฿150 ค่ะ', 'ขอบคุณที่สนใจค่ะ'], updatedAt: t(18 * M) },
     { id: 't-kenji', partnerId: 'kenji', role: 'creator', title: 'ปรับเว็บไซต์ร้านเบเกอรี่เป็นของร้าน', image: 'bakery.jpg', productId: 'p22', orderNo: 'LM-20488', amount: 1900, hire: true, step: 4, status: 'ส่งงานแล้ว รอคุณตรวจ', tone: 'warn', unread: 2, online: false, quick: ['ขอไฟล์ต้นฉบับด้วยนะครับ', 'ขอแก้สีปุ่มเป็นสีชมพูครับ', 'ขอบคุณมากครับ'], updatedAt: t(2 * H) },
-    { id: 't-somjai', partnerId: 'somjai', role: 'customer', title: 'ภาพเทพธิดาชุดไทยแฟนตาซี', image: 'fantasy.jpg', productId: 'p21', orderNo: 'LM-20502', amount: 190, status: 'ชำระแล้ว รอคุณส่งไฟล์', tone: 'warn', unread: 1, online: false, quick: ['ส่งไฟล์ให้แล้วนะคะ', 'ขอบคุณที่อุดหนุนค่ะ 🙏'], updatedAt: t(5 * H) },
+    { id: 't-somjai', partnerId: 'somjai', role: 'customer', title: 'ภาพเทพธิดาชุดไทยแฟนตาซี', image: 'fantasy.jpg', productId: 'p21', orderNo: 'LM-20502', amount: 190, status: 'ชำระแล้ว · ไฟล์ส่งอัตโนมัติแล้ว', tone: 'ok', unread: 1, online: false, quick: ['ขอบคุณที่ซื้อนะคะ 🙏', 'พิมพ์ขนาด A3 ได้ค่ะ ไฟล์ 4K'], updatedAt: t(5 * H) },
     { id: 't-nova', partnerId: 'nova', role: 'creator', title: 'โปรแกรม POS ร้านค้าเล็ก', image: 'c_sme.jpg', productId: 'n05', orderNo: 'LM-20391', amount: 990, status: 'ซื้อแล้ว · ดาวน์โหลดได้', tone: 'ok', unread: 0, online: true, quick: ['ติดตั้งแล้วใช้ได้ครับ ขอบคุณครับ', 'ย้ายคีย์ไปเครื่องใหม่ยังไงครับ'], updatedAt: t(1 * D) },
     { id: 't-pim', partnerId: 'pim', role: 'creator', title: 'สติกเกอร์ชิบะทักทาย 24 ตัว', image: 'shiba.jpg', productId: 'p02', orderNo: 'LM-20366', amount: 59, status: 'เสร็จสมบูรณ์', tone: 'done', unread: 0, online: false, quick: ['น่ารักมากค่ะ', 'มีชุดแมวไหมคะ'], updatedAt: t(3 * D) },
   ]
   const messages: Record<string, Message[]> = {
     't-toy': [
-      { id: id(), from: 'me', kind: 'brief', at: t(26 * H), title: 'คำขอจ้างงาน (บรีฟ)', items: ['มาสคอตแมวส้มใส่ผ้ากันเปื้อน ถือแก้วกาแฟ', 'ใช้กับป้ายร้าน แก้วกาแฟ และสติกเกอร์', 'โทนสีครีม ส้ม น้ำตาล', 'งบประมาณ ~฿1,200 · อยากได้ภายใน 7 วัน'], image: 'mascot.jpg' },
+      { id: id(), from: 'me', kind: 'brief', at: t(26 * H), title: 'บรีฟงานจ้าง', items: ['มาสคอตแมวส้มใส่ผ้ากันเปื้อน ถือแก้วกาแฟ', 'ใช้กับป้ายร้าน แก้วกาแฟ และสติกเกอร์', 'โทนสีครีม ส้ม น้ำตาล', 'งบประมาณ ~฿1,200 · อยากได้ภายใน 7 วัน'], image: 'mascot.jpg' },
       { id: id(), from: 'them', kind: 'text', at: t(25 * H), text: 'สวัสดีครับ ได้รับบรีฟแล้ว น่ารักมากเลยครับ 😊 ขอทำใบเสนอราคาให้นะครับ' },
       { id: id(), from: 'them', kind: 'offer', at: t(5 * M), title: 'ใบเสนอราคา · แพ็กเกจมาตรฐาน', amount: 1200, items: ['มาสคอต 1 ตัว + 3 ท่าทาง', 'ไฟล์ PNG พื้นใส + AI', 'แก้ไขได้ 3 ครั้ง', 'ส่งงานภายใน 5 วัน'], status: 'pending' },
       { id: id(), from: 'them', kind: 'text', at: t(4 * M), text: 'ส่งข้อเสนอราคา ฿1,200 มาแล้วครับ ถ้าโอเคกดรับได้เลยครับ' },
@@ -39,15 +39,15 @@ export function seed(): DB {
       { id: id(), from: 'them', kind: 'text', at: t(18 * M), text: 'สวัสดีค่ะ ภาพบัวชมพูนี้มีโทนสีเขียวไหมคะ อยากใช้ทำปกเมนูร้าน 🌿' },
     ],
     't-kenji': [
-      { id: id(), from: 'system', kind: 'system', at: t(4 * D), text: 'ชำระเงิน ฿1,900 แล้ว · เงินพักไว้จนกว่าคุณจะกดรับงาน หรือครบ 3 วันหลังส่งงาน' },
+      { id: id(), from: 'system', kind: 'system', at: t(4 * D), text: 'ชำระเงิน ฿1,900 แล้ว · เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงาน' },
       { id: id(), from: 'them', kind: 'progress', at: t(2 * D), title: 'อัปเดตความคืบหน้า', text: 'ใส่เมนู รูปร้าน และปุ่มสั่งผ่าน LINE แล้วครับ', pct: 70 },
       { id: id(), from: 'them', kind: 'delivery', at: t(2 * H + 5 * M), title: 'ส่งงานแล้ว · รอบที่ 2', image: 'bakery.jpg', round: 2, left: 1, status: 'pending', text: 'แก้ตามที่ขอ เปลี่ยนสีหัวเว็บและเพิ่มแผนที่ร้านแล้วครับ' },
       { id: id(), from: 'them', kind: 'file', at: t(2 * H + 4 * M), fileName: 'bakery-site-v2.zip', size: '6.1 MB' },
       { id: id(), from: 'them', kind: 'text', at: t(2 * H), text: 'ส่งเว็บเวอร์ชันแก้ไขให้แล้วครับ ลองเปิดดูได้เลยครับ 🙏' },
     ],
     't-somjai': [
-      { id: id(), from: 'system', kind: 'system', at: t(5 * H + M), text: 'คุณสมใจ ชำระเงิน ฿190 แล้ว · ออเดอร์ #LM-20502' },
-      { id: id(), from: 'them', kind: 'text', at: t(5 * H), text: 'ชำระเงินแล้วนะคะ รอไฟล์ค่ะ 🙏' },
+      { id: id(), from: 'system', kind: 'system', at: t(5 * H + M), text: 'คุณสมใจ ชำระเงิน ฿190 แล้ว · ออเดอร์ #LM-20502 · LUMI ส่งไฟล์ให้ลูกค้าอัตโนมัติแล้ว' },
+      { id: id(), from: 'them', kind: 'text', at: t(5 * H), text: 'ได้รับไฟล์แล้วค่ะ สวยมาก 😍 ขอถามว่าพิมพ์ขนาด A3 ได้ไหมคะ' },
     ],
     't-nova': [
       { id: id(), from: 'system', kind: 'system', at: t(1 * D + 20 * M), text: 'ชำระเงิน ฿990 แล้ว · ออเดอร์ #LM-20391' },
@@ -93,7 +93,7 @@ export function seed(): DB {
     purchases: [
       { id: 'b1', productId: 'n05', orderNo: 'LM-20391', optionLabel: '1 เครื่อง', at: t(1 * D + 20 * M), title: 'โปรแกรม POS ร้านค้าเล็ก', image: 'c_sme.jpg', creatorId: 'nova', price: 990, key: 'LUMI-7KQ2-9XWD-4MPA', threadId: 't-nova' },
       { id: 'b2', productId: 'p02', orderNo: 'LM-20366', at: t(3 * D + 10 * M), title: 'สติกเกอร์ชิบะทักทาย 24 ตัว', image: 'shiba.jpg', creatorId: 'pim', price: 59, threadId: 't-pim' },
-      { id: 'b3', productId: 'p04', orderNo: 'ฟรี', at: t(6 * D), title: 'วอลเปเปอร์ชาไทยสาดน้ำ', image: 'splashbg.jpg', creatorId: 'nova', price: 0 },
+      { id: 'b3', productId: 'p04', orderNo: 'LM-20334', at: t(6 * D), title: 'วอลเปเปอร์คริสตัลบัวม่วง', image: 'splashbg.jpg', creatorId: 'nova', price: 0 },
     ],
     threads, messages, posts,
     liked: ['c5'], saved: ['c2'], comments, likedComments: [],
@@ -102,13 +102,13 @@ export function seed(): DB {
       { id: 'n1', kind: 'order', text: 'Toy Mascot ส่งใบเสนอราคา ฿1,200 · กดรับเพื่อเริ่มงาน', at: t(5 * M), link: '/chat/t-toy', read: false, avatar: 'av_toy.jpg' },
       { id: 'n2', kind: 'chat', text: 'ร้านกาแฟบ้านสวน ถามเรื่อง “ภาพบัวชมพูสีน้ำ”', at: t(18 * M), link: '/chat/t-shop', read: false, avatar: 'av_shop.jpg' },
       { id: 'n3', kind: 'order', text: 'Kenji Web ส่งงานรอบที่ 2 แล้ว · ตรวจงานภายใน 3 วัน', at: t(2 * H), link: '/chat/t-kenji', read: false, avatar: 'av_kenji.jpg' },
-      { id: 'n4', kind: 'sale', text: 'ขายได้! คุณสมใจ ซื้อ “ภาพเทพธิดาชุดไทยแฟนตาซี” ฿190 · ส่งไฟล์ให้ลูกค้า', at: t(5 * H), link: '/chat/t-somjai', read: false, image: 'fantasy.jpg' },
+      { id: 'n4', kind: 'sale', text: 'ขายได้! คุณสมใจ ซื้อ “ภาพเทพธิดาชุดไทยแฟนตาซี” ฿190 · ไฟล์ส่งให้อัตโนมัติแล้ว', at: t(5 * H), link: '/chat/t-somjai', read: false, image: 'fantasy.jpg' },
       { id: 'n5', kind: 'like', text: 'Ton Data และอีก 24 คน ถูกใจโพสต์ของคุณ', at: t(8 * H), link: '/community/post/c7', read: true, avatar: 'av_ton.jpg' },
-      { id: 'n6', kind: 'system', text: 'NOVA Lab อัปเดตโปรแกรม POS เป็น v1.3 · อัปเดตฟรี', at: t(1 * D), link: '/chat/t-nova', read: true, avatar: 'av_nova.jpg' },
+      { id: 'n6', kind: 'system', text: 'NOVA Lab ออกเวอร์ชัน v1.3 · ดูรายละเอียดการอัปเดต', at: t(1 * D), link: '/chat/t-nova', read: true, avatar: 'av_nova.jpg' },
       { id: 'n7', kind: 'community', text: 'ประกวดภาพ “ลอยกระทงแห่งแสง” เปิดรับผลงานแล้ว', at: t(2 * D), link: '/community/activities', read: true, image: 'g_anime.jpg' },
     ],
     drafts: [
-      draft({ id: 'd-lotus', type: 'img', step: 3, title: 'ภาพบัวชมพูสีน้ำ ชุดที่ 2', use: 'ปกเพจสปา ร้านชา', desc: 'ภาพบัวสีน้ำโทนพาสเทล 4 ภาพ ใช้ทำปกเพจ', covers: ['g_lotus.jpg'], spec: { ...SPECS.img.defaults, files: [JSON.stringify({ name: 'lotus-set2.zip', size: '32 MB', scan: 'ok' })], count: '4 ภาพ', prompt: '', model: 'Midjourney v7' }, options: [{ id: 'img', label: 'ภาพอย่างเดียว', sub: 'ไฟล์ 4K', price: 290, on: true }, { id: 'set', label: 'ภาพ + พรอมต์', sub: 'ไฟล์และสูตรครบ', price: 0, on: true }], updatedAt: t(1 * D) }),
+      draft({ id: 'd-lotus', type: 'img', step: 3, title: 'ภาพบัวชมพูสีน้ำ ชุดที่ 2', use: 'ปกเพจสปา ร้านชา', desc: 'ภาพบัวสีน้ำโทนพาสเทล 4 ภาพ ใช้ทำปกเพจ', covers: ['g_lotus.jpg'], spec: { ...SPECS.img.defaults, files: [JSON.stringify({ name: 'lotus-set2.zip', size: '32 MB', scan: 'ok' })], count: '4 ภาพ', sellPrompt: false, model: 'Midjourney v7' }, options: [{ id: 'img', label: 'ภาพอย่างเดียว', sub: 'ไฟล์ 4K', price: 290, on: true }, { id: 'both', label: 'ภาพ + พรอมต์', sub: 'ไฟล์และสูตรครบ', price: 0, on: false }], updatedAt: t(1 * D) }),
       draft({ id: 'd-course', type: 'course', step: 1, title: 'คอร์สแต่งภาพสินค้าด้วยมือถือ', covers: ['c_course.jpg'], spec: { ...SPECS.course.defaults, lessons: ['ตอนที่ 1 · เตรียมแสง · 08:00'] }, updatedAt: t(3 * D) }),
     ],
     published: [],

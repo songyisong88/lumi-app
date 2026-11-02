@@ -2,16 +2,18 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { creatorById, imgSrcSet, imgUrl } from '../data/sampleData'
 import { typeOf } from '../data/listingSpec'
+import { statsOf } from '../data/productExtras'
 import type { Product } from '../data/types'
 import { HeartButton } from './HeartButton'
 import { Icon } from './Icon'
+import { catLabel } from '../data/searchData'
 import s from './ProductCard.module.css'
 
 const ratioOf = (p: Product) => p.ratio ?? (p.image ? `${p.image.w}/${p.image.h}` : '1/1')
 
 function TypeTag({ p }: { p: Product }) {
   return (
-    <span className={s.tag}><i style={{ background: typeOf(p).color }} />{p.label ?? typeOf(p).name}</span>
+    <span className={s.tag}><i style={{ background: typeOf(p).color }} />{catLabel(p)}</span>
   )
 }
 
@@ -70,7 +72,7 @@ function Footer({ p }: { p: Product }) {
       <>
         <div className={s.plats}>{p.platforms?.map((x) => <span key={x}>{x}</span>)}</div>
         <div className={s.tfoot}>
-          <span className={s.rt}><Icon name="star" size={11} color="#F5A524" fill="#F5A524" />{p.rating} รีวิว</span>
+          <span className={s.rt}><Icon name="star" size={11} color="#F5A524" fill="#F5A524" />{statsOf(p).rating} · {statsOf(p).reviews} รีวิว</span>
           <span className={s.try}><Icon name="play" size={11} color="#0B7A6E" fill="#0B7A6E" stroke={2.4} />ลองใช้</span>
         </div>
       </>
