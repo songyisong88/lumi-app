@@ -14,6 +14,7 @@ import { fileToDataUrl } from '../../utils/image'
 import { ago } from '../../utils/time'
 import { ProductView } from '../product/ProductView'
 import { PRICE_OPTS } from '../../data/sellDefaults'
+import { CATEGORIES, childrenOf } from '../../data/searchData'
 import { FEATURES, REAL } from '../../config'
 import { useModStatus } from '../../components/ModStatus'
 import { cloudOn, removeDeliverable, uploadDeliverable } from '../../services/cloud'
@@ -220,7 +221,7 @@ export function Sell() {
           {!d.type && <OtherDrafts d={d} />}
           <div className="field" data-sec="0"><label className="flabel">ประเภท<span className="req">*</span></label>
             <div className={`chips hscroll ${s.typeRow}`} role="radiogroup" aria-label="ประเภทผลงาน">{ORDER.map((k) => <button key={k} role="radio" aria-checked={d.type === k} className={`chip ${s.typeChip} ${d.type === k ? 'on-p' : ''}`} onClick={() => pickType(k)}><Icon name={SPECS[k].icon} size={15} color={d.type === k ? 'currentColor' : SPECS[k].color} />{SPECS[k].name}</button>)}</div>
-            {t && <span className="hint">{t.sub}</span>}
+            {t && <span className="hint" data-type-cats>{t.sub}{childrenOf(d.type!).length > 0 && <> · หมวดบนหน้าค้นหา: {childrenOf(d.type!).map((k) => CATEGORIES[k].name).join(' · ')}</>}</span>}
           </div>
           {t && <>
             <div data-sec="1">
