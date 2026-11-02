@@ -189,7 +189,10 @@ export async function postStory(file: Blob, kind: 'image' | 'video', caption: st
   update((d) => { d.stories = [toStory(row), ...(d.stories ?? [])] })
 }
 export async function deleteStory(id: string) {
-  must(await S().from('stories').delete().eq('id', id).eq('author_id', ME), 'delete story')
+  const gone = must(await S().from('stories').delete().eq('id', id).eq('author_id', ME).select('media_path'), 'delete story') as Row[]
+  // the picture/video lives in the public previews bucket — remove it too so a deleted story is really gone
+  const paths = gone.map((r) => r.media_path as string).filter((x) => typeof x === 'string' && x.startsWith(ME + '/'))
+  if (paths.length) await S().storage.from('previews').remove(paths).catch(() => {})
   update((d) => { d.stories = (d.stories ?? []).filter((x) => x.id !== id) })
 }
 export async function viewStory(id: string) { await soft(S().from('story_views').insert({ story_id: id })) }
