@@ -21,6 +21,7 @@ import { FEATURES, REAL } from '../../config'
 import { ModBanner } from '../../components/ModStatus'
 import { catLabel } from '../../data/searchData'
 import s from './Product.module.css'
+import { downloadAsset, filesOfPurchase } from '../../services/download'
 
 type Sec = 'over' | 'get' | 'how' | 'rev' | 'sim'
 const SECS: { v: Sec; label: string }[] = [
@@ -62,7 +63,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
   const [myRev, setMyRev] = useState(false)
   const mine = p.creatorId === ME
   const [busy, setBusy] = useState(false)
-  const [sheet, setSheet] = useState<null | 'brief' | 'tip' | 'free' | 'trial' | 'lesson' | 'share' | 'sendto' | 'added' | 'manage' | 'report'>(null)
+  const [sheet, setSheet] = useState<null | 'brief' | 'tip' | 'free' | 'trial' | 'lesson' | 'share' | 'sendto' | 'added' | 'manage' | 'report' | 'more'>(null)
   const root = useRef<HTMLDivElement>(null)
   const [sec, setSec] = useState<Sec>('over')
   const [solid, setSolid] = useState(false)
@@ -112,6 +113,13 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
     setBusy(false)
     setSheet('free')
   }
+  /** “ดาวน์โหลดเลย” on the free sheet: one file downloads now; several (or keys/links only) open the item in the library. */
+  const downloadFree = () => {
+    const b = getDb().purchases.find((x) => x.productId === p.id)
+    const files = b ? filesOfPurchase(b) : []
+    if (b && files.length === 1) { void downloadAsset(files[0], b); return }
+    setSheet(null); nav(b ? `/library/${b.id}` : '/library')
+  }
 
   const price = L === 'free' ? 0 : opt?.price ?? p.price
   const freeHire = L === 'hire' && p.price === 0
@@ -126,7 +134,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
     if (mine && !preview) return { sub: 'ผลงานของคุณ', main: <button className="btn btn-d" onClick={() => setSheet('manage')}>จัดการผลงาน</button>, sec: <button className="btn btn-o btn-sm" onClick={() => setSheet('share')}><Icon name="share" size={16} />แชร์</button> }
     if (owned && L !== 'hire') return { sub: `${owned.price ? 'ซื้อแล้ว' : 'รับฟรีแล้ว'}${owned.optionLabel && owned.optionLabel !== 'ของฟรี' ? ` · ${owned.optionLabel}` : ''}`, main: <button className="btn btn-p" onClick={() => nav(`/library/${owned.id}`)}><Icon name="download" size={18} color="#fff" />เปิดในคลังของที่ซื้อ</button>, sec: null }
     switch (L) {
-      case 'free': return { sub: 'ของฟรี', main: <button className="btn btn-p" disabled={busy} onClick={getFree}>{busy ? 'กำลังเตรียมไฟล์…' : 'ดาวน์โหลดฟรี'}</button>, sec: FEATURES.tips ? <button className="btn btn-o btn-sm" onClick={() => (guard() ? null : setSheet('tip'))}><Icon name="gift" size={16} color="#B45309" />ให้ทิป</button> : null }
+      case 'free': return { sub: 'ได้ไฟล์ทันที', main: <button className="btn btn-p" disabled={busy} onClick={getFree}>{busy ? 'กำลังเตรียมไฟล์…' : <><Icon name="download" size={18} color="#fff" />รับฟรี</>}</button>, sec: FEATURES.tips ? <button className="btn btn-o btn-sm" onClick={() => (guard() ? null : setSheet('tip'))}><Icon name="gift" size={16} color="#B45309" />ให้ทิป</button> : null }
       case 'hire': return { sub: freeHire ? 'รับงานฟรี' : `แพ็กเกจ${opt?.label ?? ''}`, main: <button className="btn btn-p" onClick={() => (guard() ? null : setSheet('brief'))}>{freeHire ? 'ส่งบรีฟขอรับงานฟรี' : 'ส่งบรีฟขอใบเสนอราคา'}</button>, sec: <button className="btn btn-o btn-sm" onClick={openChat} aria-label="แชตถามก่อน" title="แชตถามก่อน"><Icon name="chat" size={18} color="var(--p)" /></button> }
       default: {
         const second = L === 'sw' && on(spec.trial) ? <button className="btn btn-o btn-sm" onClick={async () => {
@@ -150,8 +158,8 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
         <button className={s.hb} onClick={() => (preview ? null : (window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/'))} aria-label="ย้อนกลับ" style={preview ? { visibility: 'hidden' } : undefined}><Icon name="back" size={22} stroke={2.2} /></button>
         <div className={s.ht}>{p.title}</div>
         <button className={s.hb} onClick={() => setSheet('share')} aria-label="แชร์"><Icon name="share" size={20} /></button>
-        {!preview && !mine && <button className={s.hb} onClick={() => setSheet('report')} aria-label="รายงานผลงานนี้"><Icon name="flag" size={19} /></button>}
-        {!preview && <Link to="/cart" className={s.hb} aria-label={inCart > 0 ? `ตะกร้า ${inCart} ชิ้น` : 'ตะกร้า'}><Icon name="cart" size={20} />{inCart > 0 && <span className={s.cnt}>{inCart}</span>}</Link>}
+        {!preview && !mine && <button className={s.hb} onClick={() => setSheet('more')} aria-label="เพิ่มเติม"><Icon name="dots" size={20} /></button>}
+        {!preview && inCart > 0 && <Link to="/cart" className={s.hb} aria-label={`ตะกร้า ${inCart} ชิ้น`}><Icon name="cart" size={20} /><span className={s.cnt}>{inCart}</span></Link>}
       </header>
 
       {/* gallery */}
@@ -159,7 +167,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
         <div className={`hscroll ${s.slides}`} onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
           {gallery.map((g, i) => <div key={g + i} className={s.slideW}><Img src={g} className={s.slide} sizes="100vw" eager={i === 0} />{marked && <span className={s.wm} data-wm aria-hidden>{Array.from({ length: 6 }, (_, k) => <i key={k}>LUMI · ตัวอย่าง</i>)}</span>}</div>)}
         </div>
-        <div className={s.tyb}><span><Icon name={SPECS[t].icon} size={13} color="#fff" stroke={2.2} />{catLabel(p)}{L === 'free' || freeHire ? ' · ฟรี' : ''}</span>{marked && <span>ภาพตัวอย่างมีลายน้ำ</span>}{p.mine && <span>ผลงานของคุณ</span>}</div>
+        <div className={s.tyb}><span><Icon name={SPECS[t].icon} size={13} color="#fff" stroke={2.2} />{catLabel(p)}</span>{marked && <span>ภาพตัวอย่างมีลายน้ำ</span>}{p.mine && <span>ผลงานของคุณ</span>}</div>
         {!preview && <HeartButton productId={p.id} className={s.fav} />}
         {gallery.length > 1 && <div className={s.dots}>{gallery.map((_, i) => <i key={i} className={i === slide ? s.don : ''} />)}</div>}
       </div>
@@ -172,6 +180,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
           {L === 'free' || freeHire ? <span className={s.free}>{freeHire ? 'รับงานฟรี' : 'ฟรี'}</span> : <>{L === 'hire' && <small>ราคาเริ่มต้น</small>}{L !== 'hire' && !owned && opts.length > 1 && <small>เริ่ม</small>}<b data-head-price>{baht(L === 'hire' ? Math.min(...opts.map((o) => o.price)) : owned ? owned.price : cheapest(opts)?.price ?? price)}{L === 'hire' ? '' : owned ? '' : cheapest(opts)?.suffix ?? ''}</b>{owned && L !== 'hire' && <small>{owned.price ? 'ซื้อแล้ว' : 'รับแล้ว'}</small>}{L === 'hire' && <small data-quote-note>· ราคาจริงตามใบเสนอราคา</small>}</>}
         </div>
         <p className={s.use}><Icon name="target" size={14} color="var(--mut)" />{p.use}</p>
+        {L === 'free' && !owned && !preview && <div className={s.freeNote} data-free-note><Icon name="download" size={20} color="#16A34A" /><span><b>กดครั้งเดียว ได้ไฟล์ทันที</b>ไม่ต้องใส่ตะกร้า · เก็บไว้ในคลังของฉัน โหลดซ้ำได้</span></div>}
         <div className={s.hl}>
           {highlightsOf(p).map(([ic, a, b]) => <div key={a}><Icon name={ic} size={18} color="var(--p)" />{a}<b>{b || '-'}</b></div>)}
         </div>
@@ -314,9 +323,17 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
         footer={<><button className="btn btn-o" style={{ flex: 1 }} onClick={() => setSheet(null)}>ดูต่อ</button><button className="btn btn-p" style={{ flex: 1 }} onClick={() => { setSheet(null); nav('/cart') }}>ไปที่ตะกร้า ({inCart})</button></>}>
         <div className={s.addedRow}><Img src={gallery[0]} className={s.addedImg} /><div><b className="ell2">{p.title}</b><small className="muted">{opt?.label}</small></div><b>{baht(opt?.price ?? p.price)}</b></div>
       </Sheet>
-      <Sheet open={sheet === 'free'} onClose={() => setSheet(null)} title="ได้รับแล้ว 🎉" sub="ไฟล์อยู่ในคลังของที่ซื้อแล้ว · เปิดโหลดซ้ำได้จากคลังของที่ซื้อ · แนะนำให้ดาวน์โหลดเก็บไว้"
-        footer={<>{FEATURES.tips && <button className="btn btn-o" style={{ flex: 1 }} onClick={() => { setSheet(null); setSheet('tip') }}>ให้ทิป</button>}<button className="btn btn-p" style={{ flex: 1 }} data-open-library onClick={() => { const b = getDb().purchases.find((x) => x.productId === p.id); setSheet(null); nav(b ? `/library/${b.id}` : '/library') }}>เปิดคลังของที่ซื้อ</button></>}>
-        <div className={s.box}>{pc.deliver.slice(0, 4).map((d, i) => <div key={i} className={s.ok}><span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>{d}</div>)}</div>
+      <Sheet open={sheet === 'free'} onClose={() => setSheet(null)} title="ได้แล้ว 🎉" sub="เก็บไว้ในคลังของฉันแล้ว · กลับมาโหลดซ้ำได้ทุกเมื่อ"
+        footer={<><button className="btn btn-o" style={{ flex: 1 }} data-open-library onClick={() => { const b = getDb().purchases.find((x) => x.productId === p.id); setSheet(null); nav(b ? `/library/${b.id}` : '/library') }}>ไปที่คลังของฉัน</button><button className="btn btn-p" style={{ flex: 1.3 }} data-free-dl onClick={downloadFree}><Icon name="download" size={18} color="#fff" />ดาวน์โหลดเลย</button></>}>
+        <div className={s.addedRow}><Img src={gallery[0]} className={s.addedImg} /><div><b className="ell2">{p.title}</b><small className="muted">{c.name}</small></div><b style={{ color: '#16A34A' }}>ฟรี</b></div>
+        <div className={s.box} style={{ marginTop: 12 }}>{pc.deliver.slice(0, 3).map((d, i) => <div key={i} className={s.ok}><span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>{d}</div>)}</div>
+      </Sheet>
+      <Sheet open={sheet === 'more'} onClose={() => setSheet(null)} title="เพิ่มเติม">
+        <div className="card2" style={{ padding: 0, overflow: 'hidden' }}>
+          <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => setSheet('share')}><Icon name="link" size={20} color="var(--p)" /><span className="grow">คัดลอกลิงก์ / แชร์</span><Icon name="chev" size={18} /></button>
+          <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={openChat}><Icon name="chat" size={20} color="var(--p)" /><span className="grow">แชตกับครีเอเตอร์</span><Icon name="chev" size={18} /></button>
+          <button className="list-row" style={{ width: '100%', textAlign: 'left', color: '#DC2626' }} onClick={() => setSheet('report')}><Icon name="flag" size={20} color="#DC2626" /><span className="grow">รายงานผลงานนี้<small>ผิดกฎ ละเมิดลิขสิทธิ์ หรือไฟล์มีปัญหา</small></span></button>
+        </div>
       </Sheet>
       <Sheet open={sheet === 'trial'} onClose={() => setSheet(null)} title={`ทดลองฟรี ${str(spec.trialDays)}`} sub="สแกนด้วยมือถือเพื่อเปิดในแอป (ตัวอย่าง)">
         <div className={s.trialBox}><Icon name="qr" size={150} stroke={1.4} /><code>{str(spec.trialLink) || 'line.me/R/ti/p/@lumi-demo'}</code>

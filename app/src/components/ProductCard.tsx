@@ -111,7 +111,6 @@ export function ProductCard({ p, badge }: { p: Product; badge?: ReactNode }) {
       </div>
       <div className={s.bd}>
         <h3 className={s.tt}>{p.title}</h3>
-        <div className={s.use}><Icon name="target" size={13} color="#8A86A0" stroke={2.2} /><span>{p.use}</span></div>
         <Footer p={p} />
       </div>
     </article>
