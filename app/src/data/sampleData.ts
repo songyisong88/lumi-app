@@ -2,16 +2,15 @@
  * SAMPLE DATA (ข้อมูลตัวอย่าง) — not real products, creators, or prices.
  * Replace with Supabase queries later; keep the shapes from ./types.ts.
  */
-import type { ComingSoon, Creator, Product, Story, TypeKey } from './types'
+import type { Creator, Product, Story, TypeKey } from './types'
 
-export const TYPES: Record<TypeKey | 'soon', { name: string; color: string; bg: string }> = {
+export const TYPES: Record<TypeKey, { name: string; color: string; bg: string }> = {
   img: { name: 'ภาพ', color: '#6C2BD9', bg: '#F3ECFF' },
   tpl: { name: 'เทมเพลต', color: '#2563EB', bg: '#EAF1FF' },
   tool: { name: 'เครื่องมือ', color: '#0E9384', bg: '#E3F7F4' },
   bot: { name: 'บอท', color: '#05A84B', bg: '#E5F8EC' },
   course: { name: 'คอร์ส', color: '#E0620B', bg: '#FFF0E3' },
   svc: { name: 'งานจ้าง', color: '#D6336C', bg: '#FDEBF2' },
-  soon: { name: 'เร็ว ๆ นี้', color: '#6B6880', bg: '#F1F0F5' },
 }
 
 export const TYPE_ORDER: TypeKey[] = ['img', 'tpl', 'tool', 'bot', 'course', 'svc']
@@ -76,13 +75,6 @@ export const SEARCH_EXTRA: Product[] = [
 
 /** Every sample work (home feed + search extras). Use this for lookups by id. */
 export const ALL_PRODUCTS: Product[] = [...PRODUCTS, ...SEARCH_EXTRA]
-
-export const COMING_SOON: ComingSoon[] = [
-  { id: 's1', icon: 'game', title: 'เกม', use: 'เกมเล่นบนเว็บ ลองเล่นก่อนซื้อ', waiting: 128 },
-  { id: 's2', icon: 'code', title: 'ซอฟต์แวร์และแอป', use: 'โปรแกรมพร้อมรหัสใช้งาน', waiting: 96 },
-  { id: 's3', icon: 'ext', title: 'ส่วนเสริม Chrome', use: 'ติดตั้งในเบราว์เซอร์', waiting: 41 },
-  { id: 's4', icon: 'puzzle', title: 'ปลั๊กอิน', use: 'WordPress และ Shopify', waiting: 57 },
-]
 
 export const STORIES: Story[] = [
   { creatorId: 'mint', slides: [{ productId: 'p07', postedAgo: '1 ชม.' }, { productId: 'p16', postedAgo: '3 ชม.' }] },

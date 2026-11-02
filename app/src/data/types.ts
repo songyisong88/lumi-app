@@ -44,14 +44,6 @@ export interface Product {
   revisions?: number
 }
 
-export interface ComingSoon {
-  id: string
-  icon: string
-  title: string
-  use: string
-  waiting: number
-}
-
 export interface StorySlide {
   productId: string
   postedAgo: string

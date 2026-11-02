@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { TYPES, creatorById, imgUrl } from '../data/sampleData'
-import type { ComingSoon, Product } from '../data/types'
+import type { Product } from '../data/types'
 import { HeartButton } from './HeartButton'
 import { Icon } from './Icon'
 import s from './ProductCard.module.css'
@@ -109,18 +109,6 @@ export function ProductCard({ p, badge }: { p: Product; badge?: ReactNode }) {
         <div className={s.use}><Icon name="target" size={13} color="#8A86A0" stroke={2.2} /><span>{p.use}</span></div>
         <Footer p={p} />
       </div>
-    </article>
-  )
-}
-
-export function ComingSoonCard({ c }: { c: ComingSoon }) {
-  return (
-    <article className={s.soon}>
-      <span className={s.sni}><Icon name={c.icon} size={22} color="#fff" /></span>
-      <h3 className={s.tt}>{c.title}</h3>
-      <div className={s.snu}>{c.use}</div>
-      <div className={s.snn}>ครีเอเตอร์รอลงขาย {c.waiting} ราย</div>
-      <button className={s.snb}><Icon name="bell" size={12} color="#6C2BD9" stroke={2.2} />แจ้งเตือนเมื่อเปิด</button>
     </article>
   )
 }
