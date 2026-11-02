@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import { initSession } from './services/session'
+import { toast } from './services/toast'
 // registers the session hooks (hydrate on a restored sign-in); must be loaded before initSession()
 import './services/cloud'
 import './styles/global.css'
@@ -40,6 +41,15 @@ window.addEventListener('vite:preloadError', (e) => {
   e.preventDefault()
   window.location.reload()
 })
+
+/* Guest taps on follow/like/save/chat etc. are sent to the sign-in page by a thrown "sign in first" error.
+   Show that reason as a toast instead of leaving it as an uncaught error. */
+const SIGN_IN_FIRST = 'เข้าสู่ระบบก่อนนะ'
+const signInNotice = (err: unknown, e: Event) => {
+  if (err instanceof Error && err.message === SIGN_IN_FIRST) { e.preventDefault(); toast(SIGN_IN_FIRST) }
+}
+window.addEventListener('error', (e) => signInNotice(e.error, e))
+window.addEventListener('unhandledrejection', (e) => signInNotice(e.reason, e))
 
 // after services/cloud is imported, so the session hooks are registered
 initSession()

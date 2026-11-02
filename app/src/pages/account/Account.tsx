@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
-import { Av, Empty, SampleNote, Seg, Sheet, Tabs, TopBar } from '../../components/ui'
+import { Av, Empty, SampleNote, Seg, Sheet, Tabs, TopBar, blockTap } from '../../components/ui'
 import type { Sale } from '../../data/appTypes'
 import { ME, baht, creatorById, productById } from '../../data/sampleData'
 import { account, orders, stories } from '../../services/api'
@@ -68,15 +68,15 @@ export function SignIn() {
           <Seg value={how} options={[{ v: 'otp', label: 'รหัสทางอีเมล' }, { v: 'pw', label: 'รหัสผ่าน' }]} onChange={setHow} />
           <div style={{ height: 16 }} />
           {how === 'otp' ? (!sent
-            ? <button className="btn btn-p btn-block" disabled={!okEmail || busy || (tab === 'up' && !name.trim())} onClick={sendCode}>{busy ? 'กำลังส่ง…' : 'ส่งรหัส 6 หลักไปที่อีเมล'}</button>
+            ? <button className="btn btn-p btn-block" disabled={busy} {...blockTap(!okEmail || (tab === 'up' && !name.trim()), !okEmail ? 'ใส่อีเมลให้ถูกต้องก่อน' : 'ใส่ชื่อที่จะแสดงก่อน')} onClick={sendCode}>{busy ? 'กำลังส่ง…' : 'ส่งรหัส 6 หลักไปที่อีเมล'}</button>
             : <>
               <label className="field"><span className="flabel">รหัสจากอีเมล</span><input className="inp" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="______" autoFocus /></label>
-              <button className="btn btn-p btn-block" disabled={code.length !== 6 || busy} onClick={verify}>{busy ? 'กำลังตรวจ…' : 'ยืนยันรหัส'}</button>
+              <button className="btn btn-p btn-block" disabled={busy} {...blockTap(code.length !== 6, 'ใส่รหัส 6 หลักจากอีเมลก่อน')} onClick={verify}>{busy ? 'กำลังตรวจ…' : 'ยืนยันรหัส'}</button>
               <button className="btn btn-s btn-block" style={{ marginTop: 10 }} disabled={busy} onClick={sendCode}>ส่งรหัสอีกครั้ง</button>
             </>)
             : <>
               <label className="field"><span className="flabel">รหัสผ่าน</span><input className="inp" type="password" autoComplete={tab === 'in' ? 'current-password' : 'new-password'} value={pw} onChange={(e) => setPw(e.target.value)} placeholder={tab === 'up' ? 'อย่างน้อย 8 ตัว' : ''} /></label>
-              <button className="btn btn-p btn-block" disabled={!okEmail || pw.length < (tab === 'up' ? 8 : 1) || busy || (tab === 'up' && !name.trim())} onClick={withPw}>{busy ? 'กำลังดำเนินการ…' : tab === 'in' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}</button>
+              <button className="btn btn-p btn-block" disabled={busy} {...blockTap(!okEmail || pw.length < (tab === 'up' ? 8 : 1) || (tab === 'up' && !name.trim()), !okEmail ? 'ใส่อีเมลให้ถูกต้องก่อน' : tab === 'up' && !name.trim() ? 'ใส่ชื่อที่จะแสดงก่อน' : tab === 'up' ? 'รหัสผ่านอย่างน้อย 8 ตัว' : 'ใส่รหัสผ่านก่อน')} onClick={withPw}>{busy ? 'กำลังดำเนินการ…' : tab === 'in' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}</button>
               {tab === 'in' && <button className="btn btn-s btn-block" style={{ marginTop: 10 }} onClick={() => setForgot(true)}>ลืมรหัสผ่าน</button>}
             </>}
           <p className="hint" style={{ marginTop: 14 }}>การสมัครถือว่ายอมรับข้อตกลงการใช้งานและนโยบายความเป็นส่วนตัวของ LUMI</p>
@@ -84,7 +84,7 @@ export function SignIn() {
           {ses.mode === 'demo' && <button className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }} onClick={() => void leaveDemo()}><Icon name="user" size={20} /><span className="grow">ออกจากโหมดตัวอย่าง</span></button>}
         </div>
       </div>
-      <Sheet open={forgot} onClose={() => setForgot(false)} title="ลืมรหัสผ่าน" sub="เราจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมล" footer={<button className="btn btn-p btn-block" disabled={!okEmail || busy} onClick={reset}>ส่งลิงก์</button>}>
+      <Sheet open={forgot} onClose={() => setForgot(false)} title="ลืมรหัสผ่าน" sub="เราจะส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมล" footer={<button className="btn btn-p btn-block" disabled={busy} {...blockTap(!okEmail, 'ใส่อีเมลให้ถูกต้องก่อน')} onClick={reset}>ส่งลิงก์</button>}>
         <input className="inp" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" aria-label="อีเมล" />
       </Sheet>
     </div>
@@ -104,7 +104,7 @@ function NewPasswordPage() {
       <div className="narrow" style={pad}>
         <label className="field"><span className="flabel">รหัสผ่านใหม่</span><input className="inp" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="อย่างน้อย 8 ตัว" /></label>
         <label className="field"><span className="flabel">ยืนยันรหัสผ่าน</span><input className={`inp ${pw2 && pw2 !== pw ? 'bad' : ''}`} type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} /></label>
-        <button className="btn btn-p btn-block" disabled={pw.length < 8 || pw !== pw2 || busy} onClick={async () => { setBusy(true); try { await account.changePassword(pw); endRecovery(); toast('ตั้งรหัสผ่านใหม่แล้ว'); nav('/profile', { replace: true }) } catch (e) { err(e) } finally { setBusy(false) } }}>บันทึกรหัสผ่าน</button>
+        <button className="btn btn-p btn-block" disabled={busy} {...blockTap(pw.length < 8 || pw !== pw2, pw.length < 8 ? 'รหัสผ่านอย่างน้อย 8 ตัว' : 'รหัสผ่านสองช่องยังไม่ตรงกัน')} onClick={async () => { setBusy(true); try { await account.changePassword(pw); endRecovery(); toast('ตั้งรหัสผ่านใหม่แล้ว'); nav('/profile', { replace: true }) } catch (e) { err(e) } finally { setBusy(false) } }}>บันทึกรหัสผ่าน</button>
       </div>
     </div>
   )
@@ -138,7 +138,7 @@ function AccountSettingsPage() {
   }
   return (
     <div className="page">
-      <TopBar title="ตั้งค่าบัญชี" right={<button className="btn btn-sm btn-p" disabled={!dirty || busy || !name.trim()} onClick={save}>{busy ? 'กำลังบันทึก…' : 'บันทึก'}</button>} />
+      <TopBar title="ตั้งค่าบัญชี" right={<button className="btn btn-sm btn-p" disabled={busy} {...blockTap(!dirty || !name.trim(), !name.trim() ? 'ใส่ชื่อก่อนบันทึก' : 'ยังไม่มีอะไรเปลี่ยน')} onClick={save}>{busy ? 'กำลังบันทึก…' : 'บันทึก'}</button>} />
       <div className="narrow">
         <div className="sec" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <Av src={preview ?? (pr?.avatar_path ? publicUrl(pr.avatar_path)! : me.avatar)} size={64} />
@@ -163,7 +163,7 @@ function AccountSettingsPage() {
           </div>
         </div>
       </div>
-      <Sheet open={sheet === 'email'} onClose={() => setSheet(null)} title="เปลี่ยนอีเมล" sub="ต้องกดยืนยันจากทั้งอีเมลเดิมและอีเมลใหม่" footer={<button className="btn btn-p btn-block" disabled={!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || busy} onClick={async () => { setBusy(true); try { await account.changeEmail(email.trim()); toast('ส่งลิงก์ยืนยันไปที่อีเมลแล้ว'); setSheet(null) } catch (e) { err(e) } finally { setBusy(false) } }}>ส่งลิงก์ยืนยัน</button>}>
+      <Sheet open={sheet === 'email'} onClose={() => setSheet(null)} title="เปลี่ยนอีเมล" sub="ต้องกดยืนยันจากทั้งอีเมลเดิมและอีเมลใหม่" footer={<button className="btn btn-p btn-block" disabled={busy} {...blockTap(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), 'ใส่อีเมลใหม่ให้ถูกต้องก่อน')} onClick={async () => { setBusy(true); try { await account.changeEmail(email.trim()); toast('ส่งลิงก์ยืนยันไปที่อีเมลแล้ว'); setSheet(null) } catch (e) { err(e) } finally { setBusy(false) } }}>ส่งลิงก์ยืนยัน</button>}>
         <input className="inp" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="อีเมลใหม่" aria-label="อีเมลใหม่" />
       </Sheet>
       <Sheet open={sheet === 'delete'} onClose={() => setSheet(null)} title={pendingDelete ? 'ยกเลิกคำขอลบบัญชี?' : 'ขอลบบัญชี'} sub={pendingDelete ? undefined : 'ของที่ซื้อแล้วจะดาวน์โหลดไม่ได้อีก · ใบเสร็จที่กฎหมายกำหนดจะเก็บไว้ตามระยะเวลา'}
@@ -184,7 +184,7 @@ function BecomeCreatorSheet({ open, onClose, ...init }: { open: boolean; onClose
   const [busy, setBusy] = useState(false)
   return (
     <Sheet open={open} onClose={onClose} title="เปิดร้านครีเอเตอร์" sub="ฟรี · เริ่มจากผลงานฟรีก่อน การขายแบบชำระเงินจะเปิดภายหลัง" tall
-      footer={<button className="btn btn-p btn-block" disabled={!name.trim() || handle.length < 3 || busy} onClick={async () => { setBusy(true); try { await account.becomeCreator(name.trim(), handle, bio.trim()); toast('เปิดร้านแล้ว 🎉'); onClose() } catch (e) { err(e) } finally { setBusy(false) } }}>เปิดร้าน</button>}>
+      footer={<button className="btn btn-p btn-block" disabled={busy} {...blockTap(!name.trim() || handle.length < 3, !name.trim() ? 'ใส่ชื่อร้านก่อน' : 'ชื่อผู้ใช้อย่างน้อย 3 ตัว')} onClick={async () => { setBusy(true); try { await account.becomeCreator(name.trim(), handle, bio.trim()); toast('เปิดร้านแล้ว 🎉'); onClose() } catch (e) { err(e) } finally { setBusy(false) } }}>เปิดร้าน</button>}>
       <label className="field"><span className="flabel">ชื่อร้าน</span><input className="inp" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} /></label>
       <label className="field"><span className="flabel">ชื่อผู้ใช้ (@)</span><input className="inp" value={handle} onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '').slice(0, 24))} placeholder="อย่างน้อย 3 ตัว" /></label>
       <label className="field"><span className="flabel">แนะนำร้าน</span><textarea className="ta" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} maxLength={300} placeholder="ทำผลงานแนวไหน รับจ้างอะไรบ้าง" /></label>
@@ -265,7 +265,7 @@ function NewStoryPage() {
   const mineStories = (db.stories ?? []).filter((s) => s.authorId === ME && s.expires > Date.now())
   return (
     <div className="page">
-      <TopBar title="ลงสตอรี่" sub="หายไปเองใน 24 ชั่วโมง" right={<button className="btn btn-sm btn-p" disabled={!f || busy} onClick={async () => { setBusy(true); try { await stories.post(f!, kind, cap.trim(), prod); toast('ลงสตอรี่แล้ว'); nav(`/story/${ME}`, { replace: true }) } catch (e) { err(e) } finally { setBusy(false) } }}>{busy ? 'กำลังลง…' : 'ลงสตอรี่'}</button>} />
+      <TopBar title="ลงสตอรี่" sub="หายไปเองใน 24 ชั่วโมง" right={<button className="btn btn-sm btn-p" disabled={busy} {...blockTap(!f, 'เลือกรูปหรือคลิปก่อน')} onClick={async () => { setBusy(true); try { await stories.post(f!, kind, cap.trim(), prod); toast('ลงสตอรี่แล้ว'); nav(`/story/${ME}`, { replace: true }) } catch (e) { err(e) } finally { setBusy(false) } }}>{busy ? 'กำลังลง…' : 'ลงสตอรี่'}</button>} />
       <div className="narrow" style={pad}>
         <button className="card2 press" style={{ width: '100%', aspectRatio: '9/14', maxHeight: 420, display: 'grid', placeItems: 'center', overflow: 'hidden', padding: 0 }} onClick={() => file.current?.click()}>
           {!url ? <span className="muted" style={{ display: 'grid', placeItems: 'center', gap: 8 }}><Icon name="camera" size={30} color="var(--p)" />เลือกรูปหรือวิดีโอ (ไม่เกิน 10 MB)</span>
