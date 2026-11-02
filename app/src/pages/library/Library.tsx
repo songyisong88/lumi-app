@@ -5,11 +5,12 @@ import { ISSUE_DAYS, IssueSheet, WriteReviewSheet, issueOpen } from '../../compo
 import { Empty, Img, SampleNote, Sheet, Stars, Tabs, TopBar, copyText } from '../../components/ui'
 import type { Asset, Purchase } from '../../data/appTypes'
 import { HIRE_STEPS } from '../../data/appTypes'
-import { LIB_TABS, assetsOf, downloadSample, inTab, type LibTab } from '../../data/library'
+import { LIB_TABS, assetsOf, inTab, type LibTab } from '../../data/library'
+import { downloadAsset } from '../../services/download'
 import { licRows, sellTypeOf } from '../../data/listingSpec'
 import { pageContent } from '../../data/productExtras'
 import { baht, creatorById, productById } from '../../data/sampleData'
-import { chat, fileLink } from '../../services/api'
+import { chat } from '../../services/api'
 import { useDb } from '../../services/db'
 import { toast } from '../../services/toast'
 import { ago } from '../../utils/time'
@@ -25,17 +26,7 @@ const KIND: Record<Asset['kind'], { icon: string; color: string; bg: string; lab
 const isHire = (b: Purchase) => b.optionLabel === 'งานจ้าง'
 
 /** คลังของที่ซื้อ: every purchase with its files, keys, links and receipt, in one place (not buried in chat). */
-/** Real purchases: a fresh 10-minute link from get-download (checked + logged on the server). Sample purchases: a demo text file. */
-async function download(x: Asset, b: Purchase) {
-  if (!x.value.startsWith('cloud:')) { downloadSample(x, b); toast('ดาวน์โหลดไฟล์ตัวอย่างแล้ว'); return }
-  try {
-    const url = await fileLink(x.value)
-    if (!url) return
-    const el = document.createElement('a'); el.href = url; el.download = x.title; el.rel = 'noopener'
-    document.body.appendChild(el); el.click(); el.remove()
-    toast('เริ่มดาวน์โหลดแล้ว')
-  } catch (e) { toast(e instanceof Error ? e.message : 'ดาวน์โหลดไม่สำเร็จ') }
-}
+const download = downloadAsset
 
 export function Library() {
   const db = useDb()

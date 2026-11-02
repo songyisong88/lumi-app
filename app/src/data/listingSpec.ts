@@ -182,7 +182,9 @@ export const SPECS: Record<SellType, TypeSpec> = {
     fields: [
       { id: 'sub', label: 'รูปแบบ', kind: 'chips', step: 'files', options: FEATURES.launch ? ['อีบุ๊ก'] : ['คอร์สวิดีโอ', 'อีบุ๊ก'], required: true },
       { id: 'lessons', label: 'สารบัญ (ชื่อตอนหรือบท · ความยาว)', kind: 'list', step: 'files', required: true, min: 2, placeholder: 'เช่น ตอนที่ 1 · ปูพื้น AI ทำภาพสินค้า · 09:30' },
-      { ...FILES('ไฟล์เนื้อหา', 'คอร์สวิดีโอ: อัปวิดีโอทุกตอน (หรือรวมเป็น ZIP) · อีบุ๊ก: ไฟล์ PDF หรือ EPUB · แนบไฟล์ประกอบ PDF ZIP ได้'), label: 'ไฟล์เนื้อหา (วิดีโอ / อีบุ๊ก)' },
+      FEATURES.launch
+        ? { ...FILES('ไฟล์เนื้อหา', 'อีบุ๊ก: ไฟล์ PDF หรือ EPUB · แนบไฟล์ประกอบ ZIP ได้'), label: 'ไฟล์เนื้อหา (อีบุ๊ก)' }
+        : { ...FILES('ไฟล์เนื้อหา', 'คอร์สวิดีโอ: อัปวิดีโอทุกตอน (หรือรวมเป็น ZIP) · อีบุ๊ก: ไฟล์ PDF หรือ EPUB · แนบไฟล์ประกอบ PDF ZIP ได้'), label: 'ไฟล์เนื้อหา (วิดีโอ / อีบุ๊ก)' },
       { id: 'freeLessons', label: 'เปิดให้ดูหรืออ่านฟรีกี่ตอน', kind: 'chips', step: 'files', options: ['ไม่มี', '1 ตอน', '2 ตอน', '3 ตอน'], required: true },
       { id: 'materials', label: 'ไฟล์ประกอบที่ได้', kind: 'multi', step: 'files', options: ['สรุป PDF', 'ไฟล์งานตัวอย่าง', 'พรอมต์สำเร็จรูป', 'เทมเพลต', 'กลุ่มถาม-ตอบ'], required: true },
       { id: 'level', label: 'ระดับ', kind: 'chips', step: 'details', options: ['มือใหม่', 'กลาง', 'ขั้นสูง'], required: true },
@@ -331,8 +333,8 @@ function uploadRuleRaw(t: SellType | null, s: Spec | undefined, fieldId: string)
 export const fmtMB = (mb: number) => (mb >= 1024 ? `${+(mb / 1024).toFixed(1)} GB` : `${mb} MB`)
 const isEbook = (s: Spec, label = '') => str(s.sub) === 'อีบุ๊ก' || (!str(s.sub) && /อีบุ๊ก/.test(label))
 export const visible = (f: Field, s: Spec) => !f.when || f.when(s)
-const isReq = (f: Field, s: Spec) => visible(f, s) && (typeof f.required === 'function' ? f.required(s) : !!f.required)
-function filled(f: Field, v: SpecValue | undefined) {
+export const isReq = (f: Field, s: Spec) => visible(f, s) && (typeof f.required === 'function' ? f.required(s) : !!f.required)
+export function filled(f: Field, v: SpecValue | undefined) {
   if (f.kind === 'toggle') return f.mustBeOn ? v === true : true
   if (f.kind === 'files') { const fs = filesOf(v); return fs.length >= (f.min ?? 1) && fs.every((x) => x.scan === 'ok') }
   if (f.kind === 'multi' || f.kind === 'list') return arr(v).length >= (f.min ?? 1)

@@ -388,7 +388,7 @@ async function serverDraft(localId: string) {
 }
 /** Seller deliverable: private quarantine bucket → scan-file edge function → deliverables. */
 export async function uploadDeliverable(localDraftId: string, file: File, onPct?: (n: number) => void) {
-  if (file.size > LAUNCH_MAX_MB * 1024 * 1024) return { scan: 'fail' as const, reason: 'ไฟล์ใหญ่เกิน 50 MB (ระบบทดลอง)' }
+  if (file.size > LAUNCH_MAX_MB * 1024 * 1024) return { scan: 'fail' as const, reason: 'ไฟล์ใหญ่เกิน 50 MB' }
   const c = S(), draft = await serverDraft(localDraftId)
   const path = `${ME}/${draft}/${Date.now().toString(36)}-${safe(file.name)}`
   onPct?.(10)
