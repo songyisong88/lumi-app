@@ -5,7 +5,7 @@ import { Icon } from './Icon'
 import { Sheet } from './ui'
 import { scrollPageTop } from './Stage'
 import s from './Header.module.css'
-import { REAL } from '../config'
+import { FEATURES, REAL } from '../config'
 
 export const NAV = [
   { to: '/', label: 'หน้าแรก', icon: 'home' },
@@ -48,7 +48,8 @@ export function HeaderActions({ search = true }: { search?: boolean }) {
       {search && <Link to="/search" className={`${s.ib} ${s.deskOnly}`} aria-label="ค้นหา"><Icon name="search" size={20} /></Link>}
       <Link to="/chat" className={s.ib} aria-label={`แชต${b.chat ? ` ยังไม่อ่าน ${b.chat > 9 ? '9+' : b.chat}` : ''}`}><Icon name="chat" size={20} />{b.chat > 0 && <span className={s.cnt} style={{ background: 'var(--pink)' }}>{b.chat > 9 ? '9+' : b.chat}</span>}</Link>
       <Link to="/notifications" className={s.ib} aria-label={`แจ้งเตือน${b.notif ? ` ยังไม่อ่าน ${b.notif > 9 ? '9+' : b.notif}` : ''}`}><Icon name="bell" size={20} />{b.notif > 0 && <span className={s.cnt} style={{ background: 'var(--pink)' }}>{b.notif > 9 ? '9+' : b.notif}</span>}</Link>
-      <Link to="/cart" className={s.ib} aria-label={b.cart > 0 ? `ตะกร้า ${b.cart} ชิ้น` : 'ตะกร้า'}><Icon name="cart" size={20} />{b.cart > 0 && <span className={s.cnt}>{b.cart}</span>}</Link>
+      {/* cart icon only once something is in it (study 2/5) */}
+      {b.cart > 0 && <Link to="/cart" className={s.ib} aria-label={`ตะกร้า ${b.cart} ชิ้น`}><Icon name="cart" size={20} /><span className={s.cnt}>{b.cart}</span></Link>}
     </div>
   )
 }
@@ -68,6 +69,7 @@ export function Header() {
         </nav>
         <HeaderActions />
       </div>
+      <div className={`wrap ${s.srow}`}><Link to="/search" className={s.sbar}><Icon name="search" size={19} color="var(--mut)" /><span>ค้นหาภาพ เทมเพลต บอท คอร์ส…</span></Link></div>
       <CreateSheet open={create} onClose={() => setCreate(false)} />
     </header>
   )
@@ -88,8 +90,12 @@ export function CreateSheet({ open, onClose }: { open: boolean; onClose: () => v
           <span className={s.csic} style={{ background: 'linear-gradient(135deg,#0EA5E9,#6366F1)' }}><Icon name="edit" size={22} color="#fff" /></span>
           <span><b>โพสต์ลงชุมชน</b><small>โชว์ผลงาน แชร์ความรู้ ถาม-ตอบ แท็กผลงานได้</small></span><Icon name="chev" size={18} color="var(--mut)" />
         </button>
+        {FEATURES.accounts && <button className={`${s.csi} rise`} style={{ '--i': 2 } as React.CSSProperties} onClick={() => go('/story/new')}>
+          <span className={s.csic} style={{ background: 'linear-gradient(135deg,#F0508A,#F59E0B)' }}><Icon name="camera" size={22} color="#fff" /></span>
+          <span><b>ลงสตอรี่</b><small>รูปหรือคลิปสั้น อยู่ 24 ชั่วโมง ให้คนติดตามเห็นก่อน</small></span><Icon name="chev" size={18} color="var(--mut)" />
+        </button>}
         {db.drafts.length > 0 && (
-          <button className={`${s.draft} rise`} style={{ '--i': 2 } as React.CSSProperties} onClick={() => go('/sell/drafts')}>
+          <button className={`${s.draft} rise`} style={{ '--i': 3 } as React.CSSProperties} onClick={() => go('/sell/drafts')}>
             <Icon name="file" size={18} color="#B45309" />ร่างค้างไว้ {db.drafts.length} ชิ้น<span>ทำต่อ ›</span>
           </button>
         )}
@@ -107,7 +113,7 @@ export function BottomNav() {
     <>
       <nav className={`${s.tabbar} ${show ? '' : s.hide}`} aria-label="เมนูหลัก" aria-hidden={!show}>
         {NAV.map((n) => 'mid' in n ? (
-          <button key={n.to} className={s.tab} onClick={() => setCreate(true)} aria-label="สร้าง: ลงขายหรือโพสต์" tabIndex={show ? 0 : -1}>
+          <button key={n.to} className={s.tab} onClick={() => setCreate(true)} aria-label="สร้าง: ลงขาย โพสต์ หรือสตอรี่" tabIndex={show ? 0 : -1}>
             <span className={s.mid}><Icon name="plus" size={26} color="#fff" stroke={2.4} /></span>
           </button>
         ) : (

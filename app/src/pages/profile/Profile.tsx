@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { FollowButton } from '../../components/FollowButton'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { HeaderActions } from '../../components/Header'
 import { Icon } from '../../components/Icon'
 import { isCloud } from '../../services/session'
 import { FEATURES, REAL } from '../../config'
@@ -59,7 +58,7 @@ export function Profile() {
   const PAYOUT: Record<string, [string, string]> = { held: ['ส่งไฟล์แล้ว · รอพ้น 7 วัน', 'info'], released: ['เข้ายอดรอโอนแล้ว', 'done'], paid_out: ['โอนเข้าบัญชีแล้ว', 'done'], refunded: ['คืนเงินแล้ว', 'warn'], disputed: ['ผู้ซื้อแจ้งปัญหา', 'warn'] }
   return (
     <div className="page">
-      <TopBar back={false} title="โปรไฟล์" right={<><HeaderActions search={false} /><button className="tb-btn" onClick={() => setSettings(true)} aria-label="ตั้งค่า"><Icon name="gear" size={21} /></button></>} />
+      <TopBar back={false} title="โปรไฟล์" right={<><button className="tb-btn" onClick={() => setSettings(true)} aria-label="ตั้งค่า"><Icon name="gear" size={21} /></button></>} />
       <div className="narrow">
         <div className={s.me}>
           <Av src={me.avatar} size={68} ring />

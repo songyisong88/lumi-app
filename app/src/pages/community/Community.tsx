@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { HeaderActions } from '../../components/Header'
 import { Icon } from '../../components/Icon'
-import { Av, Empty, SampleNote, Tabs, TopBar } from '../../components/ui'
+import { Av, Empty, SampleNote, TopBar } from '../../components/ui'
 import { ROOMS } from '../../data/appSeed'
 import type { PostTag } from '../../data/appTypes'
 import { ME, creatorById } from '../../data/sampleData'
@@ -17,7 +17,8 @@ import { REAL } from '../../config'
 import s from './Community.module.css'
 
 type Tab = 'foryou' | 'following' | 'learn' | 'rooms'
-const TAGS: (PostTag | 'all')[] = ['all', 'โชว์ผลงาน', 'ความรู้', 'เบื้องหลัง', 'ถาม-ตอบ', 'แจกฟรี']
+/** One chip row (study 5) instead of tabs + a second tag row: [label, tab, tag]. ?tab=learn deep links light up ความรู้. */
+const CHIPS: [string, Tab, PostTag | 'all'][] = [['สำหรับคุณ', 'foryou', 'all'], ['ติดตาม', 'following', 'all'], ['โชว์ผลงาน', 'foryou', 'โชว์ผลงาน'], ['ความรู้', 'foryou', 'ความรู้'], ['ถาม-ตอบ', 'foryou', 'ถาม-ตอบ'], ['แจกฟรี', 'foryou', 'แจกฟรี'], ['ห้อง', 'rooms', 'all']]
 const fmtK = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n))
 
 export function Community() {
@@ -40,10 +41,12 @@ export function Community() {
   return (
     <div className="page">
       <TopBar back={false} title="ชุมชน" sub={REAL ? undefined : 'ข้อมูลตัวอย่าง'} right={<HeaderActions search={false} />} />
-      <Tabs sticky value={tab} onChange={setTab} options={[{ v: 'foryou', label: 'สำหรับคุณ' }, { v: 'following', label: 'ติดตาม' }, { v: 'learn', label: 'ความรู้' }, { v: 'rooms', label: 'ห้อง' }]} />
+      <div className={`chips hscroll ${s.chipRow}`} role="tablist" aria-label="หมวดชุมชน">
+        {CHIPS.map(([l, tb, tg]) => { const on = (tab === tb && tag === tg) || (tab === 'learn' && l === 'ความรู้'); return (
+          <button key={l} role="tab" aria-selected={on} className={`chip ${on ? 'on' : ''}`} onClick={() => { setTab(tb); setTag(tg) }}>{l}</button>) })}
+      </div>
       <div key={tab} className="narrow tab-fade">
         {tab === 'foryou' && <>
-          <div className="chips hscroll" style={{ padding: '12px 16px 2px' }}>{TAGS.map((t) => <button key={t} className={`chip ${tag === t ? 'on' : ''}`} onClick={() => setTag(t)}>{t === 'all' ? 'ทั้งหมด' : t}</button>)}</div>
           {composer}
           {posts.length === 0 && <Empty icon="comment" title="ยังไม่มีโพสต์ในหมวดนี้" action={<Link to="/community/new" className="btn btn-p btn-sm">เขียนโพสต์</Link>} />}
           {posts.map((p, i) => (

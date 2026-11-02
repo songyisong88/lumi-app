@@ -6,3 +6,8 @@
 .add{background:var(--soft2);align-items:center;justify-content:center}
 .name{display:block;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(min-width:1024px){.row{margin:14px -28px 0;padding:2px 28px 14px;gap:18px}.st,.ring{width:74px}.ring{height:74px}}
+
+/* “สตอรี่ของฉัน” (study 3) */
+.mine{position:relative}
+.addMine{background:#EFEAF8}
+.mine > i{position:absolute;right:-1px;bottom:-1px;width:24px;height:24px;border-radius:12px;background:var(--grad);border:2.5px solid #fff;display:flex;align-items:center;justify-content:center}
