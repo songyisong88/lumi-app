@@ -159,9 +159,7 @@ export function Checkout() {
                 </button>
               ))}
               {method === 'card' && <div className={`card2 tab-fade ${s.card}`} style={{ marginTop: 10 }}>
-                <div className="hint" style={{ margin: 0 }}>บัตรทดสอบ (กรอกให้แล้ว ไม่ต้องใช้บัตรจริง)</div>
-                <input className="inp" value="4242 4242 4242 4242" readOnly aria-label="เลขบัตรทดสอบ" />
-                <div className={s.row2}><input className="inp" value="12/30" readOnly aria-label="วันหมดอายุ" /><input className="inp" value="•••" readOnly aria-label="CVV" /></div>
+                <div className="hint" style={{ margin: 0 }}>โหมดทดลอง ไม่ต้องกรอกบัตร และไม่มีการตัดเงินจริง</div>
               </div>}
             </div>
           </>
