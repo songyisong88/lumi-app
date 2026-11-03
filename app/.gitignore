@@ -23,3 +23,5 @@ dist-ssr
 *.sln
 *.sw?
 dist-demo
+dist-cf-real
+dist-cf-demo

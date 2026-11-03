@@ -3,8 +3,9 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // REAL site: https://songyisong88.github.io/lumi-app/app/  ·  DEMO site (VITE_SITE=demo): /lumi-app/demo/
+// Cloudflare Pages (each site on its own domain at the root): build with VITE_BASE=/ (see scripts/deploy-cloudflare.sh).
 const DEMO = process.env.VITE_SITE === 'demo'
-const BASE = DEMO ? '/lumi-app/demo/' : '/lumi-app/app/'
+const BASE = process.env.VITE_BASE || (DEMO ? '/lumi-app/demo/' : '/lumi-app/app/')
 
 export default defineConfig({
   base: BASE,
