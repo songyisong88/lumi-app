@@ -1,3 +1,4 @@
+import { HIRE_ON } from '../../config'
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
@@ -10,9 +11,9 @@ import { ago } from '../../utils/time'
 import s from './Chat.module.css'
 
 type F = 'all' | 'unread' | 'hire' | 'buy' | 'sell'
-const FILTERS: { v: F; label: string }[] = [
+const FILTERS: { v: F; label: string }[] = ([
   { v: 'all', label: 'ทั้งหมด' }, { v: 'unread', label: 'ยังไม่อ่าน' }, { v: 'hire', label: 'งานจ้าง' }, { v: 'buy', label: 'ที่ซื้อ' }, { v: 'sell', label: 'ลูกค้าของฉัน' },
-]
+] as { v: F; label: string }[]).filter((x) => HIRE_ON || x.v !== 'hire')
 const TONE: Record<Thread['tone'], string> = { warn: s.tWarn, info: s.tInfo, ok: s.tOk, done: s.tDone }
 
 export function preview(m?: Message) {
@@ -42,6 +43,7 @@ export function Inbox() {
   const [menu, setMenu] = useState<Thread>()
   const press = useRef(0)
   const list = db.threads
+    .filter((t) => HIRE_ON || !t.hire)
     .filter((t) => f === 'all' || (f === 'unread' ? t.unread > 0 : f === 'hire' ? t.hire : f === 'buy' ? t.role === 'creator' : t.role === 'customer'))
     .filter((t) => !q.trim() || `${creatorById(t.partnerId).name} ${t.title}`.toLowerCase().includes(q.trim().toLowerCase()))
     .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || b.updatedAt - a.updatedAt)

@@ -2,9 +2,9 @@
  * SAMPLE DATA for the search page (ข้อมูลตัวอย่าง): category counts, trends,
  * leaderboard and challenge are placeholders until the backend exists.
  */
-import { ALL_PRODUCTS, PRODUCTS, SEARCH_EXTRA, TYPES, creatorById, isLive } from './sampleData'
+import { ALL_PRODUCTS, PRODUCTS, SEARCH_EXTRA, TYPES, creatorById, isHidden, isLive } from './sampleData'
 import type { Product } from './types'
-import { REAL } from '../config'
+import { HIRE_ON, REAL } from '../config'
 import { SELL_TYPE_ORDER, SPECS, sellTypeOf, specOf, type SellType } from './listingSpec'
 
 export type CatKey =
@@ -79,7 +79,7 @@ export const SEARCH_GROUPS: { name: string; color: string; keys: CatKey[] }[] = 
   { name: 'ภาพและดีไซน์', color: '#7C3AED', keys: ['img', 'sticker', 'tpl', 'creator', 'media'] },
   { name: 'ซอฟต์แวร์ แอป และเกม', color: '#4F46E5', keys: ['sw', 'app', 'game', 'plugin', 'ext'] },
   { name: 'ธุรกิจและ AI', color: '#0E9384', keys: ['bot', 'ai', 'auto', 'skill', 'sme'] },
-  { name: 'เรียนรู้ บริการ และของฟรี', color: '#E0620B', keys: ['course', 'svc', 'free'] },
+  { name: HIRE_ON ? 'เรียนรู้ บริการ และของฟรี' : 'เรียนรู้และของฟรี', color: '#E0620B', keys: HIRE_ON ? ['course', 'svc', 'free'] : ['course', 'free'] },
 ]
 /** Sub-categories of a sell type (shown on the sell wizard's type step). */
 export const childrenOf = (t: SellType) => (Object.keys(CATEGORIES) as CatKey[]).filter((k) => CATEGORIES[k].parent === t)
@@ -125,7 +125,7 @@ const hay = (p: Product) => { let h = INDEX.get(p.id); if (h === undefined) { h 
 /** Client-side search over sample works. Every word typed must appear somewhere. */
 export function searchWorks(q: string, cat: CatKey | 'new' | null): Product[] {
   const mine = ALL_PRODUCTS.filter((p) => p.mine && isLive(p)).sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
-  let list = cat === 'new' ? (REAL ? newToday().map((n) => n.p) : [...mine, ...NEW_TODAY.map((n) => n.p)]) : [...mine, ...ALL_PRODUCTS.filter((p) => !p.mine)]
+  let list = cat === 'new' ? (REAL ? newToday().map((n) => n.p) : [...mine, ...NEW_TODAY.map((n) => n.p)]) : [...mine, ...ALL_PRODUCTS.filter((p) => !p.mine && !isHidden(p.id))]
   if (cat && cat !== 'new') list = list.filter(CATEGORIES[cat].match)
   const words = q.toLowerCase().trim().split(/\s+/).filter(Boolean)
   if (words.length) list = list.filter((p) => { const h = hay(p); return words.every((w) => h.includes(w)) })

@@ -3,7 +3,7 @@
  * Replace with Supabase queries later; keep the shapes from ./types.ts.
  */
 import type { Creator, Product, Story, TypeKey } from './types'
-import { REAL } from '../config'
+import { HIRE_ON, REAL } from '../config'
 
 /** The real site (REAL) ships none of the sample creators, works or stories below: only server data. */
 
@@ -46,7 +46,7 @@ export const isRemoteId = (id?: string) => !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-
 
 const img = (src: string, w: number, h: number) => ({ src, w, h })
 
-export const PRODUCTS: Product[] = REAL ? [] : [
+const RAW_PRODUCTS: Product[] = REAL ? [] : [
   { id: 'p01', kind: 'image', type: 'img', label: 'ภาพ + พรอมต์', title: 'ภาพบัวชมพูสีน้ำ โทนพาสเทล', use: 'ภาพแต่งผนัง ปกเพจ', creatorId: 'fasai', price: 390, image: img('g_lotus.jpg', 864, 1152), hasPrompt: true, instant: true },
   { id: 'p02', kind: 'image', type: 'img', label: 'สติกเกอร์ PNG', title: 'สติกเกอร์ชิบะทักทาย 24 ตัว', use: 'ไฟล์ PNG พื้นใส ใช้โพสต์และทำสื่อได้', creatorId: 'pim', price: 59, image: img('shiba.jpg', 900, 900), instant: true },
   { id: 'p03', kind: 'tool', type: 'tool', label: 'ระบบอัตโนมัติ', title: 'ลงออเดอร์อัตโนมัติจาก LINE', use: 'ออเดอร์เข้า Sheets เอง ไม่ต้องพิมพ์', creatorId: 'ton', price: 590, ratio: '4/3', gradient: 'linear-gradient(160deg,#6366F1,#0EA5E9)', icon: 'flow', platforms: ['n8n', 'Sheets', 'LINE'], rating: 4.9, tryable: true },
@@ -72,6 +72,8 @@ export const PRODUCTS: Product[] = REAL ? [] : [
   { id: 'p23', kind: 'image', type: 'img', label: 'สติกเกอร์ PNG', title: 'สติกเกอร์แมวส้ม 6 อารมณ์', use: 'ไฟล์ PNG พื้นใส ใช้โพสต์และทำสื่อได้', creatorId: 'pim', price: 0, image: img('cats.jpg', 900, 900), instant: true },
   { id: 'p24', kind: 'image', type: 'img', title: 'ภาพกาแฟเย็นสาดน้ำ', use: 'ปกเพจ โฆษณาร้านกาแฟ', creatorId: 'mint', price: 79, image: img('coffee.jpg', 900, 506), instant: true },
 ]
+/** Home feed works. Hire jobs (kind 'commission') are left out while HIRE_ON is off. */
+export const PRODUCTS: Product[] = RAW_PRODUCTS.filter((p) => HIRE_ON || p.kind !== 'commission')
 
 /**
  * Extra SAMPLE works used by the search page (ใหม่วันนี้ shelf + software/app/game/plugin
@@ -103,7 +105,7 @@ export const SEARCH_EXTRA: Product[] = REAL ? [] : [
 export const NEW_CATEGORY_WORKS = SEARCH_EXTRA.filter((p) => ['media', 'skill', 'data'].includes(p.type))
 
 /** Every sample work (home feed + search extras). Use this for lookups by id. */
-export const ALL_PRODUCTS: Product[] = [...PRODUCTS, ...SEARCH_EXTRA]
+export const ALL_PRODUCTS: Product[] = [...PRODUCTS, ...SEARCH_EXTRA].filter((p) => HIRE_ON || p.kind !== 'commission')
 
 export const STORIES: Story[] = REAL ? [] : [
   { creatorId: 'mint', slides: [{ productId: 'p07', postedAgo: '1 ชม.ที่แล้ว' }, { productId: 'p16', postedAgo: '3 ชม.ที่แล้ว' }] },
@@ -111,7 +113,7 @@ export const STORIES: Story[] = REAL ? [] : [
   { creatorId: 'fasai', slides: [{ productId: 'p01', postedAgo: '30 นาทีที่แล้ว' }, { productId: 'p06', postedAgo: '4 ชม.ที่แล้ว' }] },
   { creatorId: 'kenji', slides: [{ productId: 'p12', postedAgo: '6 ชม.ที่แล้ว' }, { productId: 'p05', postedAgo: '9 ชม.ที่แล้ว' }] },
   { creatorId: 'pim', slides: [{ productId: 'p02', postedAgo: 'เมื่อวาน' }] },
-]
+].map((st) => ({ ...st, slides: st.slides.filter((x) => !!ALL_PRODUCTS.find((p) => p.id === x.productId)) }))
 
 /** Quick filters (row 1). `match` decides which products pass. */
 export const QUICK_FILTERS: { id: string; label: string; match: (p: Product) => boolean }[] = [
@@ -124,7 +126,11 @@ export const QUICK_FILTERS: { id: string; label: string; match: (p: Product) => 
 ]
 
 /** Only reviewed (or sample) works show in the home feed, search and similar lists. */
-export const isLive = (p: Product) => !p.mod || p.mod.status === 'live'
+export const isLive = (p: Product) => !HIDDEN.has(p.id) && (!p.mod || p.mod.status === 'live')
+/** Demo moderation (UI v2 only): listings an admin rejected or that 3+ reports auto-hid. Always empty on the real site. */
+const HIDDEN = new Set<string>()
+export const isHidden = (id: string) => HIDDEN.has(id)
+export function setHidden(ids: string[]) { HIDDEN.clear(); ids.forEach((i) => HIDDEN.add(i)) }
 
 /** Neutral picture for accounts without one (the real site never shows a sample person's face). */
 export const NO_AVATAR = REAL ? 'av_none.jpg' : 'av_somjai.jpg'
@@ -135,6 +141,7 @@ export const productById = (id: string) => ALL_PRODUCTS.find((p) => p.id === id)
 /** Add works published locally (sell wizard) to the catalog used by lookups and search. */
 export function registerProducts(list: Product[]) {
   for (const p of list) {
+    if (!HIRE_ON && p.kind === 'commission') { unregisterProduct(p.id); continue }
     const i = ALL_PRODUCTS.findIndex((x) => x.id === p.id)
     if (i >= 0) ALL_PRODUCTS[i] = p
     else ALL_PRODUCTS.push(p)

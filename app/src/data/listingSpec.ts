@@ -1,4 +1,4 @@
-import { FEATURES } from '../config'
+import { FEATURES, HIRE_ON } from '../config'
 /**
  * Listing spec: what each product type MUST tell the buyer.
  * One source of truth for (1) the sell wizard fields, (2) the pre-publish auto-check,
@@ -420,7 +420,7 @@ export function sellTypeOf(p: Product): SellType {
 }
 /** The one taxonomy: every work belongs to one of the 11 sell types (home chips, cards, favorites, search groups). */
 export const typeOf = (p: Product) => SPECS[sellTypeOf(p)]
-export const SELL_TYPE_ORDER: SellType[] = ['img', 'tpl', 'media', 'sw', 'game', 'bot', 'skill', 'data', 'course', 'font', 'hire']
+export const SELL_TYPE_ORDER: SellType[] = (['img', 'tpl', 'media', 'sw', 'game', 'bot', 'skill', 'data', 'course', 'font', 'hire'] as SellType[]).filter((t) => HIRE_ON || t !== 'hire')
 
 export function layoutOf(p: Product): DetailKind {
   if (p.dk) return p.dk

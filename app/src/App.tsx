@@ -23,7 +23,14 @@ const Checkout = lz(() => import('./pages/shop/Cart'), 'Checkout')
 const Notifications = lz(() => import('./pages/shop/Notifications'), 'Notifications')
 const Inbox = lz(() => import('./pages/chat/Inbox'), 'Inbox')
 const Thread = lz(() => import('./pages/chat/Thread'), 'Thread')
-const Profile = lz(() => import('./pages/profile/Profile'), 'Profile')
+/** = config UI_V2, inlined so the real build folds it to false and ships none of the v2 chunks. */
+const UI_V2 = import.meta.env.VITE_SITE === 'demo'
+const Profile = UI_V2 ? lz(() => import('./pages/v2/ProfileV2'), 'ProfileV2') : lz(() => import('./pages/profile/Profile'), 'Profile')
+// UI v2 (demo site only): ☰ menu, saved posts, admin moderation desk
+const MenuSettings = UI_V2 ? lz(() => import('./pages/v2/MenuSettings'), 'MenuSettings') : NotFound
+const SavedPosts = UI_V2 ? lz(() => import('./pages/v2/MenuSettings'), 'SavedPosts') : NotFound
+const Admin = UI_V2 ? lz(() => import('./pages/admin/Admin'), 'Admin') : NotFound
+const AdminLog = UI_V2 ? lz(() => import('./pages/admin/Admin'), 'AdminLog') : NotFound
 const CreatorPage = lz(() => import('./pages/profile/Profile'), 'CreatorPage')
 const Community = lz(() => import('./pages/community/Community'), 'Community')
 const Activities = lz(() => import('./pages/community/More'), 'Activities')
@@ -83,6 +90,12 @@ export default function App() {
               <Route path="/account" element={<AccountSettings />} />
               <Route path="/shop/orders" element={<ShopOrders />} />
               <Route path="/story/new" element={<NewStory />} />
+            </>}
+            {UI_V2 && <>
+              <Route path="/menu" element={<MenuSettings />} />
+              <Route path="/saved" element={<SavedPosts />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/log" element={<AdminLog />} />
             </>}
             <Route path="/sell" element={<Sell />} />
             <Route path="/sell/drafts" element={<Drafts />} />
