@@ -1,4 +1,4 @@
-import { FEATURES } from '../config'
+import { FEATURES, BRAND } from '../config'
 import { useEffect, useState } from 'react'
 import { Icon } from './Icon'
 import { Sheet, Stars, blockTap } from './ui'
@@ -41,7 +41,7 @@ export function IssueSheet({ open, onClose, purchaseId, threadId, hire = false, 
         <textarea className="ta" rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น เปิดด้วยโปรแกรมอะไรแล้วขึ้นข้อความอะไร" /></label>
       <div style={{ marginTop: 12, fontSize: 12.5, lineHeight: 1.55, background: '#F6F4FB', borderRadius: 12, padding: '10px 12px' }}>
         <b style={{ display: 'block', marginBottom: 2 }}>ขั้นตอนหลังส่งเรื่อง</b>
-        1. ครีเอเตอร์ตอบหรือแก้ให้ภายใน 3 วัน<br />2. ถ้าไม่ตอบหรือตกลงกันไม่ได้ ทีม LUMI จะตัดสิน<br />3. ถ้าได้คืนเงิน จะคืนเข้าช่องทางที่ชำระ
+        1. ครีเอเตอร์ตอบหรือแก้ให้ภายใน 3 วัน<br />2. ถ้าไม่ตอบหรือตกลงกันไม่ได้ ทีม {BRAND} จะตัดสิน<br />3. ถ้าได้คืนเงิน จะคืนเข้าช่องทางที่ชำระ
         {!cloudOn() && <small style={{ display: 'block', marginTop: 4, color: 'var(--mut)' }}>ตัวอย่าง · ยังไม่ได้ส่งเรื่องถึงครีเอเตอร์จริง</small>}
       </div>
     </Sheet>

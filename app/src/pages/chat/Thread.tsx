@@ -13,7 +13,7 @@ import { toast } from '../../services/toast'
 import { clock, dayLabel } from '../../utils/time'
 import { fileToDataUrl } from '../../utils/image'
 import s from './Chat.module.css'
-import { REAL } from '../../config'
+import { REAL, BRAND } from '../../config'
 
 const STICKERS = ['🙏', '😊', '💜', '👍', '🎉', '🥰', '😂', '🔥', '✨', '🐶', '🌸', '☕']
 const STEP_DESC = ['คุณส่งรายละเอียดงานให้ครีเอเตอร์', 'ครีเอเตอร์เสนอราคาและสิ่งที่จะได้รับ', 'ชำระผ่านผู้ให้บริการชำระเงินแล้ว ยังไม่โอนให้ครีเอเตอร์', 'ครีเอเตอร์กำลังทำงานและอัปเดตความคืบหน้า', 'ตรวจงาน ขอแก้ได้ตามจำนวนครั้งในแพ็กเกจ', 'กดรับงานแล้ว (หรือครบ 3 วันหลังส่งงาน) เงินโอนให้ครีเอเตอร์']
@@ -83,7 +83,7 @@ export function Thread() {
         </button>
       )}
       <div ref={scroller} className={s.msgs}>
-        <div className={s.safe}><Icon name="shield" size={14} color="#15803D" />{t.hire ? 'ชำระผ่านผู้ให้บริการชำระเงินที่มีใบอนุญาต · เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงาน' : 'คุยผ่าน LUMI เท่านั้น · อย่าโอนเงินนอกแอป'} · แชตตัวอย่าง</div>
+        <div className={s.safe}><Icon name="shield" size={14} color="#15803D" />{t.hire ? 'ชำระผ่านผู้ให้บริการชำระเงินที่มีใบอนุญาต · เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงาน' : `คุยผ่าน ${BRAND} เท่านั้น · อย่าโอนเงินนอกแอป`} · แชตตัวอย่าง</div>
         {msgs.map((m, i) => {
           const d = dayLabel(m.at)
           const showDay = d !== lastDay
@@ -250,7 +250,7 @@ function Bubble({ m, t, fresh, onPay, onReview, onRevise }: { m: Message; t: T; 
     )
     case 'delivery': return (
       <div className={cls}><div className={`${s.card} ${s.dlv}`}><div className={s.ch}><Icon name="box" size={16} color="#B45309" />{m.title}</div>
-        <div className={s.wmw}><Img src={m.image} className={s.pic} sizes="75vw" />{m.status !== 'accepted' && <span className={s.wm}>LUMI · ตัวอย่างมีลายน้ำ</span>}</div>
+        <div className={s.wmw}><Img src={m.image} className={s.pic} sizes="75vw" />{m.status !== 'accepted' && <span className={s.wm}>{BRAND} · ตัวอย่างมีลายน้ำ</span>}</div>
         <p className={s.ctx}>{m.text}</p>
         {m.status === 'pending' && !mine ? <>
           <small className={s.ps}>ขอแก้ได้อีก {m.left} ครั้ง · ตรวจงานภายใน {m.extended ? '6 วัน (ขยายแล้ว)' : '3 วัน'}{!m.extended && <> · <button className={s.lnk} onClick={() => orders.extendReview(t.id, m.id)}>ขอเวลาตรวจเพิ่ม 3 วัน</button></>}</small>
@@ -273,7 +273,7 @@ function OfferSheet({ open, onClose, thread }: { open: boolean; onClose: () => v
     <Sheet open={open} onClose={onClose} title="ส่งใบเสนอราคา" sub={thread.title}
       footer={<button className="btn btn-p btn-block" {...blockTap(!ok, 'ใส่ราคาและสิ่งที่ลูกค้าจะได้รับก่อนส่ง')} onClick={() => { chat.sendCard(thread.id, { kind: 'offer', title: 'ใบเสนอราคา', amount: Number(amount), items: items.split('\n').filter((x) => x.trim()), status: 'pending' }); onClose(); setAmount('') }}>ส่งใบเสนอราคา</button>}>
       <div className="field"><label className="flabel">ราคา (บาท)<span className="req">*</span></label><input className="inp" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))} placeholder="เช่น 900" /></div>
-      <div className="field"><label className="flabel">สิ่งที่ลูกค้าจะได้รับ<span className="req">*</span></label><textarea className="ta" rows={4} value={items} onChange={(e) => setItems(e.target.value)} /><p className="hint">บรรทัดละ 1 รายการ · LUMI หัก 10% เมื่อปิดงาน (ตัวอย่าง · ยังไม่รวม VAT และค่าธรรมเนียมการชำระเงิน)</p></div>
+      <div className="field"><label className="flabel">สิ่งที่ลูกค้าจะได้รับ<span className="req">*</span></label><textarea className="ta" rows={4} value={items} onChange={(e) => setItems(e.target.value)} /><p className="hint">บรรทัดละ 1 รายการ · {BRAND} หัก 10% เมื่อปิดงาน (ตัวอย่าง · ยังไม่รวม VAT และค่าธรรมเนียมการชำระเงิน)</p></div>
     </Sheet>
   )
 }
@@ -282,7 +282,7 @@ function ReviewSheet({ m, onClose, onDone }: { m?: Message; onClose: () => void;
   const [st, setSt] = useState(5)
   const [r, setR] = useState('')
   return (
-    <Sheet open={!!m} onClose={onClose} title="รับงานและรีวิว" sub="เมื่อกดรับงาน LUMI จะโอนเงินให้ครีเอเตอร์"
+    <Sheet open={!!m} onClose={onClose} title="รับงานและรีวิว" sub={`เมื่อกดรับงาน ${BRAND} จะโอนเงินให้ครีเอเตอร์`}
       footer={<button className="btn btn-p btn-block" onClick={() => onDone(st, r.trim())}>ยืนยันรับงาน</button>}>
       <div className={s.rate}>{[1, 2, 3, 4, 5].map((i) => <button key={i} onClick={() => setSt(i)} aria-label={`${i} ดาว`} className={i <= st ? 'heart-pop' : ''}><Icon name="star" size={36} stroke={0} color="none" fill={i <= st ? '#F5A524' : '#E4E1EC'} /></button>)}</div>
       <p style={{ textAlign: 'center', marginBottom: 10 }}><Stars v={st} /> {['', 'ต้องปรับปรุง', 'พอใช้', 'ดี', 'ดีมาก', 'ประทับใจมาก'][st]}</p>

@@ -17,7 +17,7 @@ import { Modules } from './modules'
 import { WriteReviewSheet } from '../../components/OrderHelp'
 import { ReportSheet } from '../../components/Report'
 import { replyToReview, sell } from '../../services/api'
-import { FEATURES, REAL } from '../../config'
+import { FEATURES, REAL, BRAND } from '../../config'
 import { ModBanner } from '../../components/ModStatus'
 import { catLabel } from '../../data/searchData'
 import { openFromCard } from '../../components/ProductCard'
@@ -171,7 +171,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
       {/* gallery */}
       <div className={s.hero} ref={heroRef}>
         <div className={`hscroll ${s.slides}`} onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
-          {gallery.map((g, i) => <div key={g + i} className={s.slideW}><Img src={g} className={s.slide} sizes="100vw" eager={i === 0} />{marked && <span className={s.wm} data-wm aria-hidden>{Array.from({ length: 6 }, (_, k) => <i key={k}>LUMI · ตัวอย่าง</i>)}</span>}</div>)}
+          {gallery.map((g, i) => <div key={g + i} className={s.slideW}><Img src={g} className={s.slide} sizes="100vw" eager={i === 0} />{marked && <span className={s.wm} data-wm aria-hidden>{Array.from({ length: 6 }, (_, k) => <i key={k}>{BRAND} · ตัวอย่าง</i>)}</span>}</div>)}
         </div>
         <div className={s.tyb}><span><Icon name={SPECS[t].icon} size={13} color="#fff" stroke={2.2} />{catLabel(p)}{L === 'free' || freeHire ? ' · ฟรี' : ''}</span>{marked && <span>ภาพตัวอย่างมีลายน้ำ</span>}{p.mine && <span>ผลงานของคุณ</span>}</div>
         {!preview && <HeartButton productId={p.id} className={s.fav} />}
@@ -219,7 +219,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
           <div className={s.st}>สิ่งที่คุณจะได้รับ</div>
           <div className={s.box}>{pc.deliver.map((d, i) => <div key={i} className={s.ok}><span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>{d}</div>)}</div>
           {filesOf(spec.files).length > 0 && (
-            <div className={s.scan}><Icon name="shield" size={22} color="#16A34A" /><div><b>สแกนไวรัสเบื้องต้นแล้ว ไม่พบภัยที่รู้จัก</b>{filesOf(spec.files).length} ไฟล์ · ผ่านการตรวจโดยทีม LUMI ก่อนขึ้นขาย · ถ้าพบว่าผิดกฎภายหลัง LUMI ลบได้</div></div>
+            <div className={s.scan}><Icon name="shield" size={22} color="#16A34A" /><div><b>สแกนไวรัสเบื้องต้นแล้ว ไม่พบภัยที่รู้จัก</b>{filesOf(spec.files).length} ไฟล์ · ผ่านการตรวจโดยทีม {BRAND} ก่อนขึ้นขาย · ถ้าพบว่าผิดกฎภายหลัง {BRAND} ลบได้</div></div>
           )}
           {L !== 'free' && !freeHire && <div className={s.scan} style={{ background: '#EEF2FF', color: '#3730A3' }}><Icon name="lock" size={22} color="#4F46E5" /><div><b>ชำระผ่านผู้ให้บริการชำระเงินที่มีใบอนุญาต</b>{L === 'hire' || t === 'hire' ? 'เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงานถ้าไม่ได้ขอแก้หรือแจ้งปัญหา' : 'ไฟล์มีปัญหาหรือไม่ตรงคำอธิบาย กดแจ้งปัญหา / ขอคืนเงินได้ภายใน 7 วัน ก่อนเงินโอนให้ครีเอเตอร์'}</div></div>}
         </section>
@@ -353,11 +353,11 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
       </Sheet>
       <Sheet open={sheet === 'share'} onClose={() => setSheet(null)} title="แชร์ผลงานนี้">
         <div className={s.shareRow}>
-          {[['link', 'คัดลอกลิงก์'], ['chat', 'ส่งในแชต LUMI'], ['users', 'โพสต์ลงชุมชน']].map(([ic, l]) => (
+          {[['link', 'คัดลอกลิงก์'], ['chat', `ส่งในแชต ${BRAND}`], ['users', 'โพสต์ลงชุมชน']].map(([ic, l]) => (
             <button key={l} onClick={() => {
               if (preview) { toast('ตัวอย่างก่อนลงขาย · แชร์ได้หลังลงขาย'); setSheet(null); return }
               if (l === 'คัดลอกลิงก์') { copyText(`${location.origin}${location.pathname}#/product/${p.id}`); toast('คัดลอกลิงก์แล้ว'); setSheet(null) }
-              else if (l === 'ส่งในแชต LUMI') setSheet('sendto')
+              else if (l === `ส่งในแชต ${BRAND}`) setSheet('sendto')
               else { setSheet(null); nav(`/community/new?tag=${p.id}`) }
             }}><span><Icon name={ic} size={22} color="var(--p)" /></span>{l}</button>
           ))}

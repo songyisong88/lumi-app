@@ -50,3 +50,9 @@ export const UI_V2 = DEMO_SITE
  *  set this to true (or VITE_FEATURE_HIRE=1). When off: no งานจ้าง type in the sell form, search, feeds, chat filter
  *  or product page, and hire listings are dropped from the catalog. Backend block: supabase/migrations/0021_hire_paused.sql. */
 export const HIRE_ON = import.meta.env.VITE_FEATURE_HIRE === '1' || !DEMO_SITE
+
+/** Brand name shown in the UI. DEMO site is rebranded to Pixeeno (owner, 2026-11-03); the REAL site stays LUMI
+ *  until the rebrand is approved there. Codes (LUMI10, LUMI-XXXX keys), the repo and the Supabase project keep their names. */
+export const BRAND = DEMO_SITE ? 'Pixeeno' : 'LUMI'
+/** Account display names from the server shown with the brand: “LUMI OFFICIAL” → “Pixeeno OFFICIAL” (UI only, data unchanged). */
+export const brandName = (n: string): string => (DEMO_SITE ? n.replace(/^LUMI(?=\s|$)/i, BRAND) : n)

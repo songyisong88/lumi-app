@@ -13,7 +13,7 @@ import { community } from '../../services/api'
 import { useDb } from '../../services/db'
 import { toast } from '../../services/toast'
 import { storyGroups } from '../../services/storyGroups'
-import { REAL } from '../../config'
+import { REAL, BRAND } from '../../config'
 import { PostCard, isVideo } from './PostCard'
 import { Countdown, LEADERS } from './More'
 import c from './Community.module.css'
@@ -108,7 +108,7 @@ export function Community() {
         {tab === 'learn' && <>
           {!REAL && <div className={c.live} style={{ margin: '0 0 8px', borderRadius: 0 }}>
             <span className={c.liveTag}><i />สอนฟรีวันนี้ · 20:00 น.</span>
-            <b>เริ่มขายผลงานบน LUMI ใน 30 นาที</b>
+            <b>เริ่มขายผลงานบน {BRAND} ใน 30 นาที</b>
             <small>โดย มิ้นท์ สตูดิโอ · ลงทะเบียนแล้ว {312 + (remind ? 1 : 0)} คน</small>
             <button className="btn btn-sm" style={{ background: '#fff', color: 'var(--p)', alignSelf: 'flex-start', marginTop: 8 }} onClick={() => { const v = !remind; setRemind(v); localStorage.setItem('lumi_remind_live', v ? '1' : ''); toast(v ? 'ตั้งเตือนแล้ว จะแจ้งก่อนเริ่ม 15 นาที' : 'ยกเลิกการเตือนแล้ว') }}>{remind ? 'ตั้งเตือนแล้ว ✓' : 'เตือนฉัน'}</button>
           </div>}

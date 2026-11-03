@@ -2,6 +2,7 @@ import type { Asset, Purchase } from './appTypes'
 import type { Product } from './types'
 import { filesOf, on, sellTypeOf, specOf } from './listingSpec'
 import { isRemoteId, productById } from './sampleData'
+import { BRAND } from '../config'
 
 /** Everything a buyer receives for one product/option (used at checkout and as a fallback for seed purchases). */
 export function assetsFor(p: Product, opt: { optionId?: string; optionLabel?: string } = {}, key?: string): Asset[] {
@@ -40,7 +41,7 @@ export const inTab = (b: Purchase, tab: LibTab) => {
 
 /** Placeholder download: a small text file standing in for the real file (no storage backend yet). */
 export function downloadSample(a: Asset, b: Purchase) {
-  const body = `ไฟล์ตัวอย่างจาก LUMI\n\nผลงาน: ${b.title}\nไฟล์: ${a.title}\nออเดอร์: #${b.orderNo}\n\nนี่คือไฟล์ทดลอง ระบบเก็บไฟล์จริงจะเปิดพร้อมการซื้อขายจริง`
+  const body = `ไฟล์ตัวอย่างจาก ${BRAND}\n\nผลงาน: ${b.title}\nไฟล์: ${a.title}\nออเดอร์: #${b.orderNo}\n\nนี่คือไฟล์ทดลอง ระบบเก็บไฟล์จริงจะเปิดพร้อมการซื้อขายจริง`
   const url = URL.createObjectURL(new Blob([body], { type: 'text/plain;charset=utf-8' }))
   const el = document.createElement('a')
   el.href = url; el.download = `${a.title.replace(/\.[a-z0-9]+$/i, '')}-ตัวอย่าง.txt`

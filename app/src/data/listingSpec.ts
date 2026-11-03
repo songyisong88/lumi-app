@@ -1,4 +1,4 @@
-import { FEATURES, HIRE_ON } from '../config'
+import { FEATURES, HIRE_ON, BRAND } from '../config'
 /**
  * Listing spec: what each product type MUST tell the buyer.
  * One source of truth for (1) the sell wizard fields, (2) the pre-publish auto-check,
@@ -83,7 +83,7 @@ export function presetRows(t: SellType | null, preset: string): string[] {
 const licDefaults = (t: SellType, preset = 'ใช้ในธุรกิจ (ไม่ขายต่อไฟล์)'): Spec => ({ licPreset: preset, licAllowed: presetRows(t, preset) })
 
 /** Every listing confirms it doesn't use other people's IP (legal review §3). */
-const IP_OK: Field = { id: 'ipOk', label: 'ยืนยัน: ไม่มีตัวละคร โลโก้ แบรนด์ หรือหน้า/เสียงของคนจริงที่ไม่ได้รับอนุญาต และไม่มีเนื้อหาทางเพศ', kind: 'toggle', step: 'license', required: true, mustBeOn: true, hint: 'ถ้าถูกแจ้งละเมิด LUMI ซ่อนผลงานระหว่างตรวจสอบ' }
+const IP_OK: Field = { id: 'ipOk', label: 'ยืนยัน: ไม่มีตัวละคร โลโก้ แบรนด์ หรือหน้า/เสียงของคนจริงที่ไม่ได้รับอนุญาต และไม่มีเนื้อหาทางเพศ', kind: 'toggle', step: 'license', required: true, mustBeOn: true, hint: `ถ้าถูกแจ้งละเมิด ${BRAND} ซ่อนผลงานระหว่างตรวจสอบ` }
 // Fields every type shares on the license step.
 const LICENSE = (t: SellType): Field[] => [
   { id: 'licPreset', label: 'แบบสิทธิ์การใช้งาน', kind: 'chips', step: 'license', options: LIC_PRESET_NAMES, required: true },
@@ -93,7 +93,7 @@ const LICENSE = (t: SellType): Field[] => [
 /** Standard refund choices (B8). Every order can still be reported within 7 days under LUMI's own policy. */
 export const REFUND_STD = ['คืนเงินได้ภายใน 7 วัน ถ้าไฟล์เปิดไม่ได้หรือไม่ตรงคำอธิบาย', 'คืนเงินได้ภายใน 7 วัน ไม่ต้องให้เหตุผล', 'ไม่รับคืนถ้าเปลี่ยนใจ (ไฟล์เสียหรือไม่ตรงคำอธิบายยังคืนได้)']
 const REFUND_HIRE = ['คืนเต็มจำนวนถ้ายังไม่เริ่มงาน หรือส่งงานไม่ตรงบรีฟ', 'คืนเต็มจำนวนถ้าส่งงานช้าเกินกำหนด', 'คืนบางส่วนตามงานที่ทำไปแล้ว ถ้ายกเลิกกลางทาง']
-const refundField = (options: string[]): Field => ({ id: 'refund', label: 'เงื่อนไขคืนเงิน', kind: 'chips', step: 'license', required: true, options, hint: 'เลือกแบบที่ตรงกับงาน · ทุกออเดอร์แจ้งปัญหาได้ภายใน 7 วันตามนโยบาย LUMI อยู่แล้ว' })
+const refundField = (options: string[]): Field => ({ id: 'refund', label: 'เงื่อนไขคืนเงิน', kind: 'chips', step: 'license', required: true, options, hint: `เลือกแบบที่ตรงกับงาน · ทุกออเดอร์แจ้งปัญหาได้ภายใน 7 วันตามนโยบาย ${BRAND} อยู่แล้ว` })
 const REFUND = refundField(REFUND_STD)
 const REFUND_SW = refundField(['คืนเงินเต็มจำนวนภายใน 7 วัน ถ้าติดตั้งหรือใช้งานไม่ได้', ...REFUND_STD])
 const SUPPORT: Field = { id: 'support', label: 'ซัพพอร์ตและอัปเดต', kind: 'text', step: 'license', required: true, placeholder: 'เช่น อัปเดตฟรี 1 ปี · ตอบแชตภายใน 24 ชม.' }
@@ -103,7 +103,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
   img: {
     key: 'img', name: 'ภาพ + พรอมต์', sub: 'ภาพ ชุดภาพ หรือพรอมต์', icon: 'image', color: '#6C2BD9', bg: '#F3ECFF', layout: 'img',
     fields: [
-      FILES('ไฟล์ภาพที่ผู้ซื้อได้รับ', 'ไฟล์ต้นฉบับ ไม่มีลายน้ำ LUMI · ห้ามลบลายน้ำที่ข้อตกลงของเครื่องมือ AI บังคับไว้'),
+      FILES('ไฟล์ภาพที่ผู้ซื้อได้รับ', `ไฟล์ต้นฉบับ ไม่มีลายน้ำ ${BRAND} · ห้ามลบลายน้ำที่ข้อตกลงของเครื่องมือ AI บังคับไว้`),
       { id: 'count', label: 'จำนวนภาพในชุด', kind: 'text', step: 'files', required: true, placeholder: 'เช่น 1 ภาพ หรือ 8 ภาพ 8 มุม' },
       { id: 'resolution', label: 'ความละเอียด', kind: 'chips', step: 'files', options: ['4K (3840 px ขึ้นไป)', '2K (2048 px)', 'Full HD (1920 px)', 'A4 300 dpi'], required: true },
       { id: 'formats', label: 'นามสกุลไฟล์', kind: 'multi', step: 'files', options: ['PNG', 'JPG', 'WEBP', 'PSD', 'SVG'], required: true },
@@ -138,7 +138,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
     key: 'sw', name: 'โปรแกรม · แอป', sub: 'ไฟล์ติดตั้ง คีย์ใช้งาน', icon: 'code', color: '#4F46E5', bg: '#EEF2FF', layout: 'sw',
     fields: [
       { id: 'sub', label: 'เป็นแบบไหน', kind: 'chips', step: 'files', options: ['โปรแกรม', 'แอปมือถือ', 'เว็บแอป', 'เครื่องมือร้านค้า'], required: true, hint: 'ใช้จัดหมวดย่อยบนหน้าค้นหา: ซอฟต์แวร์และโปรแกรม · แอปมือถือ · เครื่องมือ SME' },
-      { ...FILES('ไฟล์ติดตั้ง', '.exe .dmg .apk .zip · LUMI สแกนไวรัสเบื้องต้นทุกไฟล์ ไฟล์ไม่ผ่านลงขายไม่ได้'), when: (s) => str(s.sub) !== 'เว็บแอป' },
+      { ...FILES('ไฟล์ติดตั้ง', `.exe .dmg .apk .zip · ${BRAND} สแกนไวรัสเบื้องต้นทุกไฟล์ ไฟล์ไม่ผ่านลงขายไม่ได้`), when: (s) => str(s.sub) !== 'เว็บแอป' },
       { id: 'webLink', label: 'ลิงก์เข้าใช้งานเว็บแอป', kind: 'text', step: 'files', when: (s) => str(s.sub) === 'เว็บแอป', required: (s) => str(s.sub) === 'เว็บแอป', placeholder: 'https://app.ร้านคุณ.com', pattern: /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i, patternNote: 'ต้องเป็นลิงก์เว็บ เช่น https://app.example.com', hint: 'เว็บแอปไม่ต้องอัปไฟล์ติดตั้ง · ส่งลิงก์ให้ผู้ซื้อหลังจ่ายเท่านั้น' },
       { id: 'storeLink', label: 'ลิงก์ร้านค้าแอป (App Store / Google Play / Chrome Web Store / TestFlight)', kind: 'text', step: 'files', when: (s) => arr(s.platforms).some((x) => ['iOS', 'Android', 'Chrome'].includes(x)), required: (s) => arr(s.platforms).includes('iOS'), placeholder: 'เช่น testflight.apple.com/join/…', pattern: /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i, patternNote: 'ต้องเป็นลิงก์ เช่น apps.apple.com/… หรือ testflight.apple.com/join/…', hint: 'iOS ติดตั้งจากไฟล์ไม่ได้ ต้องมีลิงก์ App Store หรือ TestFlight' },
       { id: 'platforms', label: 'ใช้กับเครื่องอะไรได้', kind: 'multi', step: 'files', options: ['Windows', 'macOS', 'Linux', 'เว็บ', 'Android', 'iOS'], required: true },
@@ -189,7 +189,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
       { id: 'prereq', label: 'ต้องรู้หรือมีอะไรก่อนเรียน', kind: 'text', step: 'details', required: true, placeholder: 'เช่น มีมือถือหรือคอม ไม่ต้องมีพื้นฐาน' },
       { id: 'duration', label: 'ความยาวรวม', kind: 'text', step: 'details', required: true, placeholder: 'เช่น 12 ตอน · 3 ชม.' },
       { id: 'outcomes', label: 'เรียนจบแล้วทำอะไรได้', kind: 'list', step: 'details', required: true },
-      { id: 'access', label: 'ดูได้นานแค่ไหน', kind: 'chips', step: 'license', options: ['ไม่จำกัดเวลา', '1 ปี', '6 เดือน'], when: (s) => str(s.sub) !== 'อีบุ๊ก', required: (s) => str(s.sub) !== 'อีบุ๊ก', hint: 'ไม่จำกัดเวลา = ตราบที่คอร์สยังเปิดบน LUMI · ถ้าจะปิดคอร์สต้องแจ้งผู้เรียนล่วงหน้า 30 วัน' },
+      { id: 'access', label: 'ดูได้นานแค่ไหน', kind: 'chips', step: 'license', options: ['ไม่จำกัดเวลา', '1 ปี', '6 เดือน'], when: (s) => str(s.sub) !== 'อีบุ๊ก', required: (s) => str(s.sub) !== 'อีบุ๊ก', hint: `ไม่จำกัดเวลา = ตราบที่คอร์สยังเปิดบน ${BRAND} · ถ้าจะปิดคอร์สต้องแจ้งผู้เรียนล่วงหน้า 30 วัน` },
       { id: 'certificate', label: 'มีใบรับรองเมื่อเรียนจบ', kind: 'toggle', step: 'license', when: (s) => str(s.sub) !== 'อีบุ๊ก' },
       refundField(['คืนเงินได้ภายใน 7 วัน ถ้าเรียนไม่เกิน 2 ตอน', ...REFUND_STD]), ...LICENSE('course'),
     ],
@@ -284,7 +284,7 @@ SPECS.data = {
     { id: 'updates', label: 'การอัปเดต', kind: 'chips', step: 'details', options: ['ครั้งเดียว', 'อัปเดตรายเดือน', 'อัปเดตรายไตรมาส'], required: true },
     { id: 'useCases', label: 'นำไปใช้ทำอะไรได้', kind: 'list', step: 'details', required: true },
     { id: 'rights', label: 'ยืนยัน: ฉันมีสิทธิ์นำข้อมูลนี้มาขาย/แจกต่อ', kind: 'toggle', step: 'license', required: true, mustBeOn: true },
-    { id: 'noPII', label: 'ยืนยัน: ไม่มีข้อมูลส่วนบุคคล (ชื่อ เบอร์ อีเมล เลขบัตร ที่อยู่)', kind: 'toggle', step: 'license', required: true, mustBeOn: true, hint: 'ตาม PDPA · ทีม LUMI ตรวจก่อนขึ้นขาย และลบได้ทันทีถ้าพบข้อมูลส่วนบุคคลภายหลัง' },
+    { id: 'noPII', label: 'ยืนยัน: ไม่มีข้อมูลส่วนบุคคล (ชื่อ เบอร์ อีเมล เลขบัตร ที่อยู่)', kind: 'toggle', step: 'license', required: true, mustBeOn: true, hint: `ตาม PDPA · ทีม ${BRAND} ตรวจก่อนขึ้นขาย และลบได้ทันทีถ้าพบข้อมูลส่วนบุคคลภายหลัง` },
     REFUND, ...LICENSE('data'),
   ],
   defaults: { formats: ['CSV'], updates: 'ครั้งเดียว', refund: REFUND_STD[0], ...licDefaults('data') },
@@ -481,7 +481,7 @@ export function specOf(p: Product): Spec {
     : { contents: ['SKILL.md — โทนการตอบ กฎของร้าน', 'faq.md — คำถามที่พบบ่อย (แก้เป็นของร้านคุณได้)', 'scripts/price.py — คำนวณค่าส่ง'], version: 'v1.2', changelog: ['v1.2 · รองรับ Cursor', 'v1.0 · เปิดตัว'], features: ['ตอบลูกค้าด้วยโทนสุภาพแบบไทย', 'คำนวณค่าส่งตามน้ำหนัก', 'ส่งต่อให้แอดมินเมื่อเจอคำถามยาก'], buyerNeeds: ['Claude Pro ขึ้นไป หรือ Cursor (ฟรีได้)'], examples: ['ลูกค้าถามค่าส่งไปเชียงใหม่ 2 กก. ตอบให้หน่อย'], platforms: ['Claude (Agent Skills)', 'Cursor (Rules / Skills)'], files: [JSON.stringify({ name: 'shop-chat-skill-v1.2.zip', size: '96 KB', scan: 'ok' })] })
   if (t === 'data') Object.assign(d, /เมนู/.test(p.title)
     ? { formats: ['CSV', 'JSON'], size: '5,000 แถว · 12 คอลัมน์ · 3.2 MB', columns: ['name — ชื่อเมนู (ข้อความ)', 'name_en — ชื่ออังกฤษ', 'category — หมวด เช่น ต้ม ผัด แกง', 'kcal — แคลอรี่โดยประมาณ (ตัวเลข)', 'spicy — ระดับเผ็ด 0–3', 'price_avg — ราคาเฉลี่ย (บาท)'], source: 'รวบรวมเองจากเมนูร้านที่ได้รับอนุญาต 120 ร้าน และสูตรที่เผยแพร่สาธารณะ ระหว่าง ม.ค.–ก.ย. 2569', useCases: ['ทำแอปสั่งอาหาร / แนะนำเมนู', 'เทรนหรือทดสอบโมเดลภาษาไทย', 'วิเคราะห์ราคาอาหาร'], updates: 'อัปเดตรายไตรมาส', files: [JSON.stringify({ name: 'thai-menu-5000.csv', size: '3.2 MB', scan: 'ok' }), JSON.stringify({ name: 'thai-menu-5000.json', size: '4.1 MB', scan: 'ok' })] }
-    : { formats: ['JSONL', 'CSV'], size: '12,000 แถว · 4 คอลัมน์ · 2.6 MB', columns: ['text — ข้อความรีวิว (ตัดชื่อคนออกแล้ว)', 'label — บวก / กลาง / ลบ', 'category — หมวดสินค้า', 'stars — คะแนน 1–5'], source: 'ผู้ขายบน LUMI ยินยอมให้ใช้รีวิวร้านตัวเอง ตัดข้อมูลส่วนตัวด้วยสคริปต์และตรวจด้วยคน', useCases: ['วิเคราะห์ความรู้สึก (sentiment)', 'ทดสอบบอทตอบรีวิว'], files: [JSON.stringify({ name: 'th-reviews-12k.jsonl', size: '2.6 MB', scan: 'ok' })] })
+    : { formats: ['JSONL', 'CSV'], size: '12,000 แถว · 4 คอลัมน์ · 2.6 MB', columns: ['text — ข้อความรีวิว (ตัดชื่อคนออกแล้ว)', 'label — บวก / กลาง / ลบ', 'category — หมวดสินค้า', 'stars — คะแนน 1–5'], source: `ผู้ขายบน ${BRAND} ยินยอมให้ใช้รีวิวร้านตัวเอง ตัดข้อมูลส่วนตัวด้วยสคริปต์และตรวจด้วยคน`, useCases: ['วิเคราะห์ความรู้สึก (sentiment)', 'ทดสอบบอทตอบรีวิว'], files: [JSON.stringify({ name: 'th-reviews-12k.jsonl', size: '2.6 MB', scan: 'ok' })] })
   if (t === 'data') Object.assign(d, { rights: true, noPII: true })
   if (t === 'hire') Object.assign(d, { deliverables: [p.title.replace(/^จ้าง/, ''), 'ไฟล์ PNG พื้นใส ความละเอียดสูง', 'ไฟล์ต้นฉบับสำหรับแก้ต่อ'], revisions: `${p.revisions ?? 3} ครั้ง`, timeline: (p.days ?? 5) <= 3 ? '1–3 วัน' : '3–7 วัน' })
   return d
@@ -546,11 +546,11 @@ export function pageContent(p: Product): PageContent {
       deliver.push(eb ? `อีบุ๊ก ${n} บท · ${str(s.duration)}` : `วิดีโอ ${n} ตอน · รวม ${str(s.duration)}`)
       if (files.length) deliver.push(`ไฟล์: ${files.slice(0, 4).join(', ')}${files.length > 4 ? ` และอีก ${files.length - 4} ไฟล์` : ''}`)
       deliver.push(...arr(s.materials).map((m) => `ไฟล์ประกอบ: ${m}`))
-      if (!eb) deliver.push(forever ? 'ดูได้ไม่จำกัดเวลา ตราบที่คอร์สยังเปิดบน LUMI · ถ้าจะปิด จะแจ้งล่วงหน้า' : `ดูได้ ${str(s.access)}`)
+      if (!eb) deliver.push(forever ? `ดูได้ไม่จำกัดเวลา ตราบที่คอร์สยังเปิดบน ${BRAND} · ถ้าจะปิด จะแจ้งล่วงหน้า` : `ดูได้ ${str(s.access)}`)
       if (!eb && on(s.certificate)) deliver.push('ใบรับรองเมื่อเรียนจบ')
       if (eb) howto.push('ซื้อแล้วไปที่ คลังของที่ซื้อ › ดาวน์โหลด', 'เปิดด้วยแอปอ่าน PDF หรือ EPUB ในมือถือหรือคอม', 'แนะนำให้ดาวน์โหลดเก็บไว้ · สงสัยตรงไหนถามผู้เขียนในแชต')
       else howto.push('ซื้อแล้วไปที่ คลังของที่ซื้อ › ห้องเรียน', 'ดูต่อจากตอนล่าสุดได้ทุกเครื่อง', 'ติดตรงไหนถามผู้สอนในแชต แนบเลขตอนและนาทีได้')
-      needs.push(str(s.prereq), eb ? 'แอปอ่าน PDF หรือ EPUB (ฟรี)' : 'เรียนผ่านแอป LUMI หรือเว็บเบราว์เซอร์')
+      needs.push(str(s.prereq), eb ? 'แอปอ่าน PDF หรือ EPUB (ฟรี)' : `เรียนผ่านแอป ${BRAND} หรือเว็บเบราว์เซอร์`)
       facts.push(['รูปแบบ', eb ? 'อีบุ๊ก' : 'คอร์สวิดีโอ'], ['ระดับ', str(s.level)], ['ความยาว', str(s.duration)], [eb ? 'อ่านฟรี' : 'ดูฟรี', str(s.freeLessons)])
       if (!eb) facts.push(['เข้าถึง', forever ? 'ไม่จำกัดเวลา' : str(s.access)])
       break
@@ -567,7 +567,7 @@ export function pageContent(p: Product): PageContent {
     case 'media':
       deliver.push(`${str(s.count)} · ${str(s.duration)}`, `ไฟล์ ${list(fm)} · ${str(s.quality)}`)
       if (files.length) deliver.push(`ไฟล์: ${files.join(', ')}`)
-      deliver.push(`สิทธิ์: ${str(s.musicLic)}`, 'ไม่มีลายน้ำ LUMI · สแกนไวรัสเบื้องต้นแล้ว', 'หากถูกระบบแพลตฟอร์มแจ้งลิขสิทธิ์ ติดต่อครีเอเตอร์หรือขอคืนเงินได้')
+      deliver.push(`สิทธิ์: ${str(s.musicLic)}`, `ไม่มีลายน้ำ ${BRAND} · สแกนไวรัสเบื้องต้นแล้ว`, 'หากถูกระบบแพลตฟอร์มแจ้งลิขสิทธิ์ ติดต่อครีเอเตอร์หรือขอคืนเงินได้')
       howto.push(...arr(s.howUse))
       needs.push(str(s.appVersion) || 'แอปเล่นวิดีโอ/เสียง หรือแอปตัดต่อใดก็ได้')
       facts.push(['ประเภท', str(s.sub)], ['ความยาว', str(s.duration)], ['คุณภาพ', str(s.quality)], ['สร้างด้วย', str(s.aiTool)], ['เสียง/หน้าคนจริง', on(s.noClone) ? 'ผู้ขายรับรองว่าไม่ได้โคลน' : '-'])

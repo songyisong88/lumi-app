@@ -9,6 +9,7 @@ import { COUPONS, cart, checkout, discountOf } from '../../services/api'
 import { getDb, useDb } from '../../services/db'
 import { toast } from '../../services/toast'
 import s from './Shop.module.css'
+import { BRAND } from '../../config'
 
 const itemImg = (c: CartItem) => c.image ?? (productById(c.productId) ? heroOf(productById(c.productId)!) : 'g_lotus.jpg')
 const itemTitle = (c: CartItem) => c.title ?? productById(c.productId)?.title ?? 'รายการ'
@@ -182,7 +183,7 @@ export function Checkout() {
         <div className={s.qr}>
           <div className={s.qrBox}><FakeQR /><span className={s.qrLogo}>PromptPay</span></div>
           <b style={{ fontSize: 22 }}>{baht(total)}</b>
-          <span className={s.timer}>ชำระภายใน 14:59 นาที · ร้าน LUMI Marketplace (ตัวอย่าง)</span>
+          <span className={s.timer}>ชำระภายใน 14:59 นาที · ร้าน {BRAND} Marketplace (ตัวอย่าง)</span>
         </div>
       </Sheet>
       {busy && <div className="sheet-back open" style={{ zIndex: 200 }} />}

@@ -7,7 +7,7 @@ import { arr, filesOf, licRows, on, str, type Spec } from '../../data/listingSpe
 import { galleryOf } from '../../data/productExtras'
 import { baht, imgUrl } from '../../data/sampleData'
 import type { DetailKind, Product, ProductOption } from '../../data/types'
-import { FEATURES } from '../../config'
+import { FEATURES, BRAND } from '../../config'
 import s from './Product.module.css'
 
 const PAL = ['#2B1B4F', '#5B3FA8', '#E9A86B', '#F4D9B0', '#C2416B']
@@ -176,7 +176,7 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
           <div className={s.tree}>{cols.map(([k, d]) => <div key={k}><Icon name="hash" size={14} color="#1D4ED8" /><code>{k}</code><span>{d}</span></div>)}</div>
           <div className={s.st}>ที่มาของข้อมูล</div>
           <p className={s.desc}>{str(spec.source)}</p>
-          <div className={s.scan}><Icon name="shield" size={22} color="#16A34A" /><div><b>ผู้ขายรับรอง: ไม่มีข้อมูลส่วนบุคคล · มีสิทธิ์เผยแพร่</b>ผ่านการตรวจโดยทีม LUMI ก่อนขึ้นขาย · ถ้าพบว่าผิดกฎภายหลัง LUMI ลบได้</div></div>
+          <div className={s.scan}><Icon name="shield" size={22} color="#16A34A" /><div><b>ผู้ขายรับรอง: ไม่มีข้อมูลส่วนบุคคล · มีสิทธิ์เผยแพร่</b>ผ่านการตรวจโดยทีม {BRAND} ก่อนขึ้นขาย · ถ้าพบว่าผิดกฎภายหลัง {BRAND} ลบได้</div></div>
           {filesOf(spec.files).length > 0 && <p className="hint">ไฟล์: {filesOf(spec.files).map((f) => `${f.name} (${f.size})`).join(', ')}</p>}
           <button className="btn btn-o btn-sm" style={{ marginTop: 10 }} onClick={() => {
             const sample = filesOf(spec.sample)[0]

@@ -5,6 +5,7 @@ import { Sheet } from './ui'
 import { REVIEW_REASONS, sell } from '../services/api'
 import { useDb } from '../services/db'
 import { toast } from '../services/toast'
+import { BRAND } from '../config'
 
 const box: React.CSSProperties = { borderRadius: 14, padding: '12px 14px', margin: '0 0 12px', fontSize: 13, lineHeight: 1.5 }
 
@@ -26,7 +27,7 @@ export function ModBanner({ id }: { id: string }) {
     ) : (
       <div style={{ ...box, background: '#FFF4E5', border: '1px solid #FCE3A6' }} data-mod-banner="rev-pending">
         <b style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#B45309' }}><Icon name="clock" size={15} color="#B45309" />การแก้ไขรอตรวจ</b>
-        <div>ทีม LUMI ตรวจการแก้ไขก่อนขึ้นจริง ปกติไม่เกิน 24 ชม. · ระหว่างรอ ผู้ซื้อยังเห็นฉบับเดิม (หน้านี้คือฉบับเดิม)</div>
+        <div>ทีม {BRAND} ตรวจการแก้ไขก่อนขึ้นจริง ปกติไม่เกิน 24 ชม. · ระหว่างรอ ผู้ซื้อยังเห็นฉบับเดิม (หน้านี้คือฉบับเดิม)</div>
         <Demo id={p.id} onFail={() => setPick(true)} />
         <FailSheet open={pick} onClose={() => setPick(false)} id={p.id} reason={reason} setReason={setReason} />
       </div>
@@ -44,7 +45,7 @@ export function ModBanner({ id }: { id: string }) {
   return (
     <div style={{ ...box, background: '#FFF4E5', border: '1px solid #FCE3A6' }} data-mod-banner="pending">
       <b style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#B45309' }}><Icon name="clock" size={15} color="#B45309" />รอตรวจ</b>
-      <div>ทีม LUMI ตรวจทุกชิ้นก่อนขึ้นขาย ปกติไม่เกิน 24 ชม. · ระหว่างรอ ผลงานยังไม่ขึ้นหน้าแรก หน้าค้นหา และหน้าร้าน</div>
+      <div>ทีม {BRAND} ตรวจทุกชิ้นก่อนขึ้นขาย ปกติไม่เกิน 24 ชม. · ระหว่างรอ ผลงานยังไม่ขึ้นหน้าแรก หน้าค้นหา และหน้าร้าน</div>
       <Demo id={p.id} onFail={() => setPick(true)} />
       <FailSheet open={pick} onClose={() => setPick(false)} id={p.id} reason={reason} setReason={setReason} />
     </div>

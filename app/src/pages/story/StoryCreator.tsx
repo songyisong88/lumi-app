@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Av, Img } from '../../components/ui'
-import { FEATURES, REAL } from '../../config'
+import { FEATURES, REAL, BRAND } from '../../config'
 import type { Mention, StoryLinkLabel, StoryOverlay } from '../../data/appTypes'
 import { heroOf } from '../../data/productExtras'
 import { ALL_PRODUCTS, ME, baht, creatorById, imgUrl } from '../../data/sampleData'
@@ -391,7 +391,7 @@ function Editor({ slide, index, total, panel, setPanel, onChange, onNext, onAdd,
       {panel === 'prod' && (
         <div className={s.dsheet} style={{ top: 170 }} role="dialog" aria-label="ลิงก์ผลงาน">
           <div className={s.grab} /><button type="button" className={s.dclose} aria-label="ปิดแผง" onClick={() => setPanel(null)}><Icon name="x" size={20} color="#fff" /></button>
-          <b style={{ display: 'block', fontSize: 17, marginBottom: 4 }}>ลิงก์ไปที่ผลงานของคุณ</b><small style={{ color: '#aaa', fontSize: 13 }}>ไม่ใส่ก็ได้ · คนดูกดแล้วไปหน้าผลงานบน LUMI</small>
+          <b style={{ display: 'block', fontSize: 17, marginBottom: 4 }}>ลิงก์ไปที่ผลงานของคุณ</b><small style={{ color: '#aaa', fontSize: 13 }}>ไม่ใส่ก็ได้ · คนดูกดแล้วไปหน้าผลงานบน {BRAND}</small>
           <div className={s.lblPick}>{LABELS.map((l) => <button key={l} type="button" className={lbl === l ? s.on : ''} onClick={() => setLbl(l)}>{l}</button>)}</div>
           <input className={s.dsearch} value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาผลงานของฉัน" aria-label="ค้นหาผลงานของฉัน" />
           {myWorks.length === 0 && <p style={{ color: '#aaa' }}>ยังไม่มีผลงานของคุณ · ลงผลงานก่อนแล้วค่อยใส่ลิงก์</p>}

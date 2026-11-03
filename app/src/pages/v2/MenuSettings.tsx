@@ -10,6 +10,7 @@ import { isCloud, leaveDemo, signOut, useSession } from '../../services/session'
 import { useIsAdmin } from '../../services/staff'
 import { toast } from '../../services/toast'
 import { ago } from '../../utils/time'
+import { BRAND, brandName } from '../../config'
 
 function Row({ icon, t, sub, to, onClick, end, tone }: { icon: string; t: string; sub?: string; to?: string; onClick?: () => void; end?: ReactNode; tone?: 'off' | 'red' }) {
   const body = <><span className="ic-w"><Icon name={icon} size={20} color="currentColor" /></span><span className="tx">{t}{sub && <small>{sub}</small>}</span><span className="end">{end}{tone !== 'off' && tone !== 'red' && <Icon name="chev" size={16} color="var(--mut)" />}</span></>
@@ -40,7 +41,7 @@ export function MenuSettings() {
       <section className="v2-card flush">
         {guest
           ? <Row icon="user" t="เข้าสู่ระบบ" sub="ซื้อ เก็บของที่ชอบ และเปิดร้าน" to="/account/login" />
-          : <Link to="/profile" className="v2-li"><Av src={me.avatar} size={44} /><span className="tx"><b style={{ fontWeight: 600 }}>{ses.profile?.display_name || me.name}</b><small>{ses.mode === 'demo' ? 'บัญชีตัวอย่าง' : ses.email}</small></span><span className="end" style={{ color: 'var(--p)', fontWeight: 600 }}>ดูโปรไฟล์ ›</span></Link>}
+          : <Link to="/profile" className="v2-li"><Av src={me.avatar} size={44} /><span className="tx"><b style={{ fontWeight: 600 }}>{brandName(ses.profile?.display_name || me.name)}</b><small>{ses.mode === 'demo' ? 'บัญชีตัวอย่าง' : ses.email}</small></span><span className="end" style={{ color: 'var(--p)', fontWeight: 600 }}>ดูโปรไฟล์ ›</span></Link>}
       </section>
 
       {admin && <G label="สำหรับแอดมิน" tag="คนอื่นไม่เห็นส่วนนี้">
@@ -64,16 +65,16 @@ export function MenuSettings() {
       </G>
 
       <G label="อื่น ๆ">
-        <Row icon="chat" t="ช่วยเหลือและติดต่อ LUMI" onClick={() => setHelp(true)} />
+        <Row icon="chat" t={`ช่วยเหลือและติดต่อ ${BRAND}`} onClick={() => setHelp(true)} />
         {ses.mode === 'demo' && <Row icon="refresh" t="รีเซ็ตข้อมูลตัวอย่าง" sub="ตะกร้า แชต ร่าง กลับเป็นค่าเริ่มต้น" onClick={() => { resetAll(); toast('รีเซ็ตข้อมูลตัวอย่างแล้ว') }} />}
         {!guest && <Row icon="arrow" t={ses.mode === 'demo' ? 'ออกจากบัญชีตัวอย่าง' : 'ออกจากระบบ'} tone="red" onClick={async () => { if (ses.mode === 'demo') await leaveDemo(); else await signOut(); nav('/', { replace: true }) }} />}
       </G>
       <div style={{ height: 24 }} />
 
-      <Sheet open={help} onClose={() => setHelp(false)} title="ช่วยเหลือและติดต่อ LUMI">
+      <Sheet open={help} onClose={() => setHelp(false)} title={`ช่วยเหลือและติดต่อ ${BRAND}`}>
         <Row icon="flag" t="มีปัญหากับของที่ซื้อ" sub="คลังของที่ซื้อ › ⋯ › แจ้งปัญหา (ภายใน 7 วัน)" to="/library" />
         <Row icon="chat" t="คุยกับครีเอเตอร์" sub="ถามเรื่องไฟล์หรือวิธีใช้ในแชต" to="/chat" />
-        <p className="v2-sm" style={{ padding: '8px 0' }}>ช่องทางติดต่อทีม LUMI โดยตรงจะเปิดพร้อมระบบช่วยเหลือ</p>
+        <p className="v2-sm" style={{ padding: '8px 0' }}>ช่องทางติดต่อทีม {BRAND} โดยตรงจะเปิดพร้อมระบบช่วยเหลือ</p>
       </Sheet>
     </div>
   )

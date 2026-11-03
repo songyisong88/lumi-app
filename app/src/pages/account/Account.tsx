@@ -14,7 +14,7 @@ import { refreshSales, thaiError } from '../../services/cloud'
 import { useDb } from '../../services/db'
 import { endRecovery, leaveDemo, signOut, startDemo, useSession } from '../../services/session'
 import { appUrl, publicUrl, sb } from '../../services/supabase'
-import { SHOW_DEMO, SOCIAL, SOCIALS, type SocialId } from '../../config'
+import { SHOW_DEMO, SOCIAL, SOCIALS, type SocialId, BRAND, DEMO_SITE } from '../../config'
 import a from './Auth.module.css'
 import { toast } from '../../services/toast'
 import { ago } from '../../utils/time'
@@ -157,7 +157,7 @@ export function SignIn() {
   let body: ReactNode, foot: ReactNode = null
   if (step === 'in') {
     body = <>
-      <div className={a.brand}><div className={a.logo}><Icon name="sparkle" size={30} color="none" stroke={0} fill="#fff" /></div><div className={a.wm}>LUMI</div></div>
+      <div className={a.brand}>{DEMO_SITE ? <img src={`${import.meta.env.BASE_URL}brand/wordmark.svg`} alt={BRAND} width={169} height={40} /> : <><div className={a.logo}><Icon name="sparkle" size={30} color="none" stroke={0} fill="#fff" /></div><div className={a.wm}>{BRAND}</div></>}</div>
       <h1 className={`${a.h1} ${a.center}`} style={{ marginBottom: 20 }}>เข้าสู่ระบบ</h1>
       {emailIn}<div className={a.gap} />
       <Pw value={pw} onChange={setPw} placeholder="รหัสผ่าน" auto="current-password" />
@@ -172,7 +172,7 @@ export function SignIn() {
     </>
   } else if (step === 'up') {
     body = <>
-      <h1 className={a.h1}>สร้างบัญชี LUMI</h1><p className={a.sub}>ฟรี ใช้ได้ทั้งซื้อและขายงาน</p>
+      <h1 className={a.h1}>สร้างบัญชี {BRAND}</h1><p className={a.sub}>ฟรี ใช้ได้ทั้งซื้อและขายงาน</p>
       <input className={`inp ${a.big}`} value={name} onChange={(e) => setName(e.target.value)} placeholder="ชื่อที่แสดง" aria-label="ชื่อที่แสดง" maxLength={40} autoComplete="name" /><div className={a.gap} />
       {emailIn}<div className={a.gap} />
       <Pw value={pw} onChange={setPw} placeholder="รหัสผ่าน (อย่างน้อย 8 ตัว)" auto="new-password" />
@@ -285,7 +285,7 @@ function AccountSettingsPage() {
             {pr?.is_creator && <button className="list-row" onClick={() => nav('/story/new')}><Icon name="camera" size={20} color="var(--ink2)" /><span className="grow">ลงสตอรี่<small>รูปหรือวิดีโอ แสดง 24 ชั่วโมง</small></span><Icon name="chev" size={16} color="var(--mut)" /></button>}
             {pr?.is_creator && <button className="list-row" onClick={() => nav('/shop/orders')}><Icon name="receipt" size={20} color="var(--ink2)" /><span className="grow">ออเดอร์ของร้าน<small>ยอดขาย สถานะการโอน และคำขอคืนเงิน</small></span><Icon name="chev" size={16} color="var(--mut)" /></button>}
             <button className="list-row" onClick={async () => { await signOut(); toast('ออกจากระบบแล้ว'); nav('/', { replace: true }) }}><Icon name="back" size={20} color="var(--ink2)" /><span className="grow">ออกจากระบบ</span></button>
-            <button className="list-row" style={{ color: '#DC2626' }} onClick={() => setSheet('delete')}><Icon name="trash" size={20} color="#DC2626" /><span className="grow">{pendingDelete ? 'คำขอลบบัญชีกำลังดำเนินการ' : 'ขอลบบัญชี'}<small>{pendingDelete ? 'ยกเลิกได้ก่อนทีม LUMI ดำเนินการ' : 'ลบข้อมูลส่วนตัวภายใน 30 วัน'}</small></span></button>
+            <button className="list-row" style={{ color: '#DC2626' }} onClick={() => setSheet('delete')}><Icon name="trash" size={20} color="#DC2626" /><span className="grow">{pendingDelete ? 'คำขอลบบัญชีกำลังดำเนินการ' : 'ขอลบบัญชี'}<small>{pendingDelete ? `ยกเลิกได้ก่อนทีม ${BRAND} ดำเนินการ` : 'ลบข้อมูลส่วนตัวภายใน 30 วัน'}</small></span></button>
           </div>
         </div>
       </div>
@@ -358,12 +358,12 @@ function ShopOrdersPage() {
       </div>
       <Sheet open={!!open} onClose={() => setOpen(undefined)} title={open?.title} sub={open ? `ออเดอร์ #${open.orderNo} · ${ago(open.at)}` : ''}
         footer={open?.refund?.status === 'open' ? <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-s" style={{ flex: 1 }} onClick={async () => { try { await orders.answerRefund(open.refund!.id, false, note); toast('ส่งให้ทีม LUMI ตัดสินแล้ว'); setOpen(undefined) } catch (e) { err(e) } }}>ไม่คืน · ให้ทีมตัดสิน</button>
+          <button className="btn btn-s" style={{ flex: 1 }} onClick={async () => { try { await orders.answerRefund(open.refund!.id, false, note); toast(`ส่งให้ทีม ${BRAND} ตัดสินแล้ว`); setOpen(undefined) } catch (e) { err(e) } }}>ไม่คืน · ให้ทีมตัดสิน</button>
           <button className="btn btn-p" style={{ flex: 1 }} onClick={async () => { try { await orders.answerRefund(open.refund!.id, true, note); toast('คืนเงินแล้ว (ทดลอง)'); setOpen(undefined) } catch (e) { err(e) } }}>คืนเงิน</button>
         </div> : undefined}>
         {open && <div>
           <div className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }}><span className="grow">ยอดขาย</span><b>{baht(open.gross)}</b></div>
-          <div className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }}><span className="grow">ค่าธรรมเนียม LUMI</span><b>−{baht(open.fee)}</b></div>
+          <div className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }}><span className="grow">ค่าธรรมเนียม {BRAND}</span><b>−{baht(open.fee)}</b></div>
           <div className="list-row" style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }}><span className="grow">รับสุทธิ<small>{PAYOUT[open.payout][0]}{open.releaseAt && open.payout === 'held' ? ` · ปล่อยยอด ${new Date(open.releaseAt).toLocaleDateString('th-TH')}` : ''}</small></span><b>{baht(open.net)}</b></div>
           {open.productId && productById(open.productId) && <p className="hint">{open.optionLabel ?? ''}</p>}
           {open.refund && <div className="hint" style={{ background: '#FEF2F2', color: '#B91C1C', borderRadius: 12, padding: '10px 12px', marginTop: 8 }}><b>ขอคืนเงิน: {open.refund.reason}</b>{open.refund.note && <><br />{open.refund.note}</>}</div>}

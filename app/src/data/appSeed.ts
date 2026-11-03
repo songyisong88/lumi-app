@@ -2,7 +2,7 @@
 import type { ListingDraft } from './listingSpec'
 import { SPECS } from './listingSpec'
 import type { DB, Message, Post, Room, Thread } from './appTypes'
-import { REAL } from '../config'
+import { REAL, BRAND } from '../config'
 
 const M = 60_000, H = 60 * M, D = 24 * H
 
@@ -58,7 +58,7 @@ export function seed(): DB {
       { id: id(), from: 'them', kind: 'text', at: t(2 * H), text: 'ส่งเว็บเวอร์ชันแก้ไขให้แล้วครับ ลองเปิดดูได้เลยครับ 🙏' },
     ],
     't-somjai': [
-      { id: id(), from: 'system', kind: 'system', at: t(5 * H + M), text: 'คุณสมใจ ชำระเงิน ฿190 แล้ว · ออเดอร์ #LM-20502 · LUMI ส่งไฟล์ให้ลูกค้าอัตโนมัติแล้ว' },
+      { id: id(), from: 'system', kind: 'system', at: t(5 * H + M), text: `คุณสมใจ ชำระเงิน ฿190 แล้ว · ออเดอร์ #LM-20502 · ${BRAND} ส่งไฟล์ให้ลูกค้าอัตโนมัติแล้ว` },
       { id: id(), from: 'them', kind: 'text', at: t(5 * H), text: 'ได้รับไฟล์แล้วค่ะ สวยมาก 😍 ขอถามว่าพิมพ์ขนาด A3 ได้ไหมคะ' },
     ],
     't-nova': [

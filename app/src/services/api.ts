@@ -13,7 +13,7 @@ import { ROOMS } from '../data/appSeed'
 import { creatorStats } from '../data/productExtras'
 import type { Product } from '../data/types'
 import { getDb, resetDb, uid, update } from './db'
-import { FEATURES } from '../config'
+import { FEATURES, BRAND } from '../config'
 import { assetsFor } from '../data/library'
 import * as K from './cloudApi'
 import { CloudError, cloudOn, deleteServerDraft, publishListing, unpublishListing } from './cloud'
@@ -421,7 +421,7 @@ function localCandidates(q: string, postId?: string, roomId?: string) {
     .sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name)).slice(0, 8).map(({ id, reason }) => ({ id, reason }))
 }
 
-export const ISSUE_STATUS = 'รอครีเอเตอร์ตอบภายใน 3 วัน · ถ้าไม่ตอบหรือตกลงกันไม่ได้ ทีม LUMI จะตัดสิน'
+export const ISSUE_STATUS = `รอครีเอเตอร์ตอบภายใน 3 วัน · ถ้าไม่ตอบหรือตกลงกันไม่ได้ ทีม ${BRAND} จะตัดสิน`
 class LocalOrders implements OrderService {
   async reportIssue(target: { purchaseId?: string; threadId?: string }, reason: string, note: string) {
     update((d) => {
@@ -534,7 +534,7 @@ class LocalSell implements SellService {
       } else d.published = [p, ...d.published.filter((x) => x.id !== p.id)]
       d.drafts = d.drafts.filter((x) => x.id !== dr.id)
       if (share) d.posts.unshift({ id: uid('u'), authorId: ME, at: now(), tag: p.price === 0 ? 'แจกฟรี' : 'โชว์ผลงาน', text: was ? `อัปเดตผลงาน “${p.title}” ${p.price === 0 ? '· ตอนนี้แจกฟรีแล้ว 🎁' : '✨'} ${p.use}` : `ลงผลงานใหม่ “${p.title}” 🎉 ${p.use}`, images: dr.covers.slice(0, 3), productIds: [p.id], likes: 0, comments: 0, shares: 0, mine: true })
-      notify(d, { kind: 'system', text: review ? `ส่ง “${p.title}” ให้ทีม LUMI ตรวจแล้ว · ผลตรวจจะแจ้งที่นี่` : editReview ? `ส่งการแก้ไข “${p.title}” ให้ทีม LUMI ตรวจแล้ว · ระหว่างรอ ผู้ซื้อยังเห็นฉบับเดิม` : `อัปเดต “${p.title}” แล้ว${notifyFollowers ? ` · แจ้งผู้ติดตาม ${creatorStats(ME).followersLabel} คน (ทดลอง)` : ''}`, link: `/product/${p.id}`, image: dr.covers[0] })
+      notify(d, { kind: 'system', text: review ? `ส่ง “${p.title}” ให้ทีม ${BRAND} ตรวจแล้ว · ผลตรวจจะแจ้งที่นี่` : editReview ? `ส่งการแก้ไข “${p.title}” ให้ทีม ${BRAND} ตรวจแล้ว · ระหว่างรอ ผู้ซื้อยังเห็นฉบับเดิม` : `อัปเดต “${p.title}” แล้ว${notifyFollowers ? ` · แจ้งผู้ติดตาม ${creatorStats(ME).followersLabel} คน (ทดลอง)` : ''}`, link: `/product/${p.id}`, image: dr.covers[0] })
     })
     if (review || editReview) autoReview(p.id, REVIEW_MS)
     return p.id

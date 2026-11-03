@@ -3,7 +3,7 @@
  * Replace with Supabase queries later; keep the shapes from ./types.ts.
  */
 import type { Creator, Product, Story, TypeKey } from './types'
-import { HIRE_ON, REAL } from '../config'
+import { HIRE_ON, REAL, BRAND } from '../config'
 
 /** The real site (REAL) ships none of the sample creators, works or stories below: only server data. */
 
@@ -134,7 +134,7 @@ export function setHidden(ids: string[]) { HIDDEN.clear(); ids.forEach((i) => HI
 
 /** Neutral picture for accounts without one (the real site never shows a sample person's face). */
 export const NO_AVATAR = REAL ? 'av_none.jpg' : 'av_somjai.jpg'
-const UNKNOWN = (id: string): Creator => ({ id, name: 'ผู้ใช้ LUMI', avatar: NO_AVATAR })
+const UNKNOWN = (id: string): Creator => ({ id, name: `ผู้ใช้ ${BRAND}`, avatar: NO_AVATAR })
 export const creatorById = (id: string): Creator => CREATORS.find((c) => c.id === id) ?? REMOTE_CREATORS.get(id) ?? UNKNOWN(id)
 export const remoteCreator = (id: string) => REMOTE_CREATORS.get(id)
 export const productById = (id: string) => ALL_PRODUCTS.find((p) => p.id === id)

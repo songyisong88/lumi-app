@@ -5,7 +5,7 @@
  */
 import type { CartItem, Mention, Message, Post, PostTag, ReactKind, StoryActivity, StoryLinkLabel, StoryOverlay } from '../data/appTypes'
 import { ME, isRemoteId } from '../data/sampleData'
-import { REAL } from '../config'
+import { REAL, BRAND } from '../config'
 import { getDb, update } from './db'
 import { client as S, must, hydrate, refreshChats, refreshSales, toast, uploadPreview, toPaths, toStory, signedFileUrl, checkoutCloud, thaiError, loadProfiles } from './cloud'
 import { setProfile, type Profile } from './session'
@@ -322,7 +322,7 @@ export async function changeEmail(email: string) { const r = await S().auth.upda
 export async function changePassword(password: string) { const r = await S().auth.updateUser({ password }); if (r.error) throw new Error(thaiError(r.error.message)) }
 export async function requestAccountDeletion(reason: string) {
   must(await S().from('account_requests').insert({ kind: 'delete', reason: reason.slice(0, 500) }), 'delete request')
-  toast('ส่งคำขอลบบัญชีแล้ว · ทีม LUMI จะดำเนินการภายใน 30 วัน')
+  toast(`ส่งคำขอลบบัญชีแล้ว · ทีม ${BRAND} จะดำเนินการภายใน 30 วัน`)
 }
 export async function cancelAccountDeletion() { must(await S().from('account_requests').delete().eq('user_id', ME).eq('status', 'open'), 'cancel request') }
 export async function myAccountRequests() { return (must(await S().from('account_requests').select('*').order('created_at', { ascending: false }), 'requests') as Row[]) }

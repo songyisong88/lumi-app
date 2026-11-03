@@ -8,7 +8,7 @@ import { LAUNCH_MAX_MB, type ListingDraft } from '../data/listingSpec'
 import type { Creator, Product } from '../data/types'
 import { ME, NO_AVATAR, isRemoteId, productById, registerCreators, remoteCreator } from '../data/sampleData'
 import { ROOMS, setRoomCounts } from '../data/appSeed'
-import { REAL } from '../config'
+import { REAL, BRAND, brandName } from '../config'
 import { getDb, update } from './db'
 import { publicUrl, sb } from './supabase'
 import { getSession, registerSessionHooks, setProfile, type Profile } from './session'
@@ -46,7 +46,7 @@ const S = () => { if (!sb) throw new CloudError('ยังไม่ได้เ�
 
 // ---------- profiles → creators
 export function toCreator(p: Row): Creator {
-  return { id: p.id, name: p.display_name || 'ผู้ใช้ LUMI', avatar: publicUrl(p.avatar_path) ?? NO_AVATAR, followers: p.follower_count ?? 0, bio: p.bio ?? undefined, handle: p.handle ?? undefined, verified: !!p.verified }
+  return { id: p.id, name: brandName(p.display_name || '') || `ผู้ใช้ ${BRAND}`, avatar: publicUrl(p.avatar_path) ?? NO_AVATAR, followers: p.follower_count ?? 0, bio: p.bio ?? undefined, handle: p.handle ?? undefined, verified: !!p.verified }
 }
 export async function loadProfiles(ids: string[]) {
   const need = uids(ids).filter((id) => !remoteCreator(id))
@@ -133,7 +133,7 @@ const JOB_TEXT: Record<string, [string, string, Thread['tone']]> = {
   revision: ['ขอแก้ไขแล้ว · กำลังแก้', 'ลูกค้าขอแก้ไข', 'warn'],
   completed: ['เสร็จสมบูรณ์', 'เสร็จสมบูรณ์', 'done'],
   cancelled: ['ยกเลิกแล้ว', 'ยกเลิกแล้ว', 'done'],
-  disputed: ['แจ้งปัญหาแล้ว · ทีม LUMI กำลังตรวจสอบ', 'มีการแจ้งปัญหา · ทีม LUMI กำลังตรวจสอบ', 'warn'],
+  disputed: [`แจ้งปัญหาแล้ว · ทีม ${BRAND} กำลังตรวจสอบ`, `มีการแจ้งปัญหา · ทีม ${BRAND} กำลังตรวจสอบ`, 'warn'],
 }
 function toThread(t: Row, st: Row | undefined, job: Row | undefined, unread: number): Thread {
   const buyer = t.buyer_id === ME
@@ -300,10 +300,10 @@ async function purchasesFrom(ents: Row[]): Promise<Purchase[]> {
 }
 const mb = (b?: number) => (b == null ? undefined : b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`)
 export const REFUND_TEXT: Record<string, string> = {
-  open: 'รอครีเอเตอร์ตอบภายใน 3 วัน · ถ้าไม่ตอบหรือตกลงกันไม่ได้ ทีม LUMI จะตัดสิน',
+  open: `รอครีเอเตอร์ตอบภายใน 3 วัน · ถ้าไม่ตอบหรือตกลงกันไม่ได้ ทีม ${BRAND} จะตัดสิน`,
   refunded: 'ครีเอเตอร์คืนเงินแล้ว (ทดลอง ยังไม่มีการโอนเงินจริง) · ปิดสิทธิ์ดาวน์โหลดแล้ว',
-  escalated: 'ครีเอเตอร์ไม่ยอมรับ · ทีม LUMI กำลังตรวจสอบและตัดสิน',
-  declined: 'ทีม LUMI ตรวจแล้ว ไม่คืนเงิน',
+  escalated: `ครีเอเตอร์ไม่ยอมรับ · ทีม ${BRAND} กำลังตรวจสอบและตัดสิน`,
+  declined: `ทีม ${BRAND} ตรวจแล้ว ไม่คืนเงิน`,
 }
 
 export async function refreshChats() {

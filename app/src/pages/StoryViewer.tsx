@@ -16,6 +16,7 @@ import { STORY_EMOJI } from '../social/reactions'
 import { ovlKind } from '../social/storyCanvas'
 import { ago } from '../utils/time'
 import s from '../social/Social.module.css'
+import { BRAND } from '../config'
 
 const IMG_MS = 5000
 const HINT_KEY = 'lumi_story_hint'
@@ -325,7 +326,7 @@ function Face({ g, active, paused, hideUi, slide, setSlide, onNextGroup, onPrevG
           <button type="button" className="list-row" aria-label="แชร์" onClick={() => { share(); setUi(null) }}><Icon name="share" size={20} /><span className="grow">แชร์{p ? 'ผลงานในสตอรี่' : 'สตอรี่'}<small>คัดลอกลิงก์</small></span></button>
           {mine && sl.storyId && <button type="button" className="list-row" style={{ color: '#E5484D' }} onClick={() => { if (!confirm('ลบสตอรี่นี้?')) return; void stories.remove(sl.storyId!).then(() => { toast('ลบสตอรี่แล้ว'); setUi(null); if (g.slides.length <= 1) onClose(); else setSlide(Math.max(0, i - 1)) }, (e: Error) => toast(e.message)) }}>
             <Icon name="trash" size={20} color="#E5484D" /><span className="grow">ลบสตอรี่นี้</span></button>}
-          {!mine && <button type="button" className="list-row" onClick={() => { setUi(null); toast('ส่งรายงานให้ทีม LUMI แล้ว · ขอบคุณที่ช่วยดูแลชุมชน') }}><Icon name="flag" size={20} /><span className="grow">รายงานสตอรี่</span></button>}
+          {!mine && <button type="button" className="list-row" onClick={() => { setUi(null); toast(`ส่งรายงานให้ทีม ${BRAND} แล้ว · ขอบคุณที่ช่วยดูแลชุมชน`) }}><Icon name="flag" size={20} /><span className="grow">รายงานสตอรี่</span></button>}
         </Sheet>
       )}
       {active && mine && ui === 'act' && (

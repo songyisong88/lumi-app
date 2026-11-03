@@ -2,7 +2,7 @@
 import { SPECS, layoutOf, pageContent, sellTypeOf, specOf, str, arr, on } from './listingSpec'
 import { ALL_PRODUCTS, creatorById, isLive } from './sampleData'
 import type { Product, ProductOption } from './types'
-import { REAL } from '../config'
+import { REAL, BRAND } from '../config'
 
 const FALLBACK: Record<string, string> = { p03: 'c_auto.jpg', p05: 'c_bot.jpg', p10: 'c_software.jpg', p13: 'robot.jpg', p18: 'c_bot.jpg' }
 export const heroOf = (p: Product): string =>
@@ -35,7 +35,7 @@ export function optionsOf(p: Product): ProductOption[] {
     case 'media': return [{ id: 'social', label: 'ใช้โซเชียล / ส่วนตัว', sub: 'Reels TikTok YouTube ของคุณ', price: x }, { id: 'ads', label: 'โฆษณา + ลูกค้า', sub: 'ยิงแอด ทำงานให้ลูกค้าได้', price: r10(x * 2.5), best: 'คุ้มสุด' }]
     case 'skill': return [{ id: 'one', label: 'ใช้คนเดียว', sub: `1 ผู้ใช้${supportShort(p)}`, price: x }, { id: 'team', label: 'ทีม (สูงสุด 5 คน)', sub: 'ติดตั้งให้ทั้งทีมได้', price: r10(x * 3), best: 'คุ้มสุด' }]
     case 'data': return [{ id: 'std', label: 'ใช้ภายในองค์กร', sub: 'วิเคราะห์ ทำแอปของตัวเอง', price: x }, { id: 'ext', label: 'ใช้ในผลิตภัณฑ์/เทรนโมเดล', sub: 'นำไปใส่สินค้าที่ขายได้', price: r10(x * 3), best: 'คุ้มสุด' }]
-    case 'course': return /อีบุ๊ก/.test(p.label ?? '') ? [{ id: 'life', label: 'อีบุ๊กฉบับเต็ม', sub: 'ไฟล์ PDF + EPUB ดาวน์โหลดเก็บไว้ได้', price: x }] : [{ id: 'life', label: 'คอร์สเต็ม · ทุกตอน', sub: 'ดูได้ไม่จำกัดเวลา ตราบที่คอร์สยังเปิดบน LUMI · ถ้าจะปิด จะแจ้งล่วงหน้า', price: x }]
+    case 'course': return /อีบุ๊ก/.test(p.label ?? '') ? [{ id: 'life', label: 'อีบุ๊กฉบับเต็ม', sub: 'ไฟล์ PDF + EPUB ดาวน์โหลดเก็บไว้ได้', price: x }] : [{ id: 'life', label: 'คอร์สเต็ม · ทุกตอน', sub: `ดูได้ไม่จำกัดเวลา ตราบที่คอร์สยังเปิดบน ${BRAND} · ถ้าจะปิด จะแจ้งล่วงหน้า`, price: x }]
     case 'font': return [{ id: 'personal', label: 'สิทธิ์ส่วนตัว', sub: 'งานส่วนตัว การบ้าน', price: x }, { id: 'commercial', label: 'เชิงพาณิชย์', sub: 'โฆษณา สินค้า งานธุรกิจ ตามตารางสิทธิ์', price: r10(x * 2.5), best: 'คุ้มสุด' }]
     case 'hire': return x === 0 ? [{ id: 'free', label: 'งานฟรี', sub: `${p.days ?? 5} วัน · แก้ ${p.revisions ?? 2} ครั้ง · ไม่มีค่าใช้จ่าย`, price: 0 }] : [
       { id: 'basic', label: 'เริ่มต้น', sub: `${p.days ? Math.max(2, p.days - 2) : 3} วัน · แก้ 1 ครั้ง`, price: x },

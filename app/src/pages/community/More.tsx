@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { ReportSheet } from '../../components/Report'
 import { Av, Empty, Img, SampleNote, Sheet, TopBar, blockTap, copyText } from '../../components/ui'
-import { FEATURES, REAL } from '../../config'
+import { FEATURES, REAL, BRAND } from '../../config'
 import type { Comment, Mention } from '../../data/appTypes'
 import { ME, creatorById } from '../../data/sampleData'
 import { CHALLENGE, LEADERBOARD, MY_RANK, challengeEnd } from '../../data/searchData'
@@ -166,7 +166,7 @@ export function Activities() {
   const nav = useNavigate()
   useEffect(() => { if (location.hash.endsWith('#rank')) setTimeout(() => document.getElementById('rank')?.scrollIntoView({ behavior: 'smooth' }), 450) }, [])
   // the challenge, entries, ranking and missions above are sample content: demo site only
-  if (REAL) return <div className="page"><TopBar title="กิจกรรม" sub="ชาเลนจ์ อันดับ และภารกิจ" /><Empty icon="sparkle" title="ยังไม่มีกิจกรรมตอนนี้" text="ชาเลนจ์และกิจกรรมจะประกาศที่นี่ ติดตามข่าวจาก LUMI OFFICIAL ได้เลย" action={<Link to="/community" className="btn btn-o btn-sm">กลับไปที่ชุมชน</Link>} /></div>
+  if (REAL) return <div className="page"><TopBar title="กิจกรรม" sub="ชาเลนจ์ อันดับ และภารกิจ" /><Empty icon="sparkle" title="ยังไม่มีกิจกรรมตอนนี้" text={`ชาเลนจ์และกิจกรรมจะประกาศที่นี่ ติดตามข่าวจาก ${BRAND} OFFICIAL ได้เลย`} action={<Link to="/community" className="btn btn-o btn-sm">กลับไปที่ชุมชน</Link>} /></div>
   return (
     <div className="page">
       <TopBar title="กิจกรรม" sub="ชาเลนจ์ อันดับ และภารกิจ" />

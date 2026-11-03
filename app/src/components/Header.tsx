@@ -5,7 +5,7 @@ import { Icon } from './Icon'
 import { Sheet } from './ui'
 import { scrollPageTop } from './Stage'
 import s from './Header.module.css'
-import { HIRE_ON, REAL, UI_V2 } from '../config'
+import { HIRE_ON, REAL, UI_V2, BRAND, DEMO_SITE } from '../config'
 import { CreateSheetV2 } from './v2/CreateSheetV2'
 
 export const NAV = [
@@ -26,9 +26,11 @@ const reTap = (here: boolean) => (e: React.MouseEvent) => { if (here) { e.preven
 export function Brand() {
   const { pathname } = useLocation()
   return (
-    <Link to="/" className={s.brand} aria-label="LUMI หน้าแรก" onClick={reTap(pathname === '/')}>
-      <span className={s.logo}><Icon name="sparkle" size={22} color="none" stroke={0} fill="#fff" /></span>
-      <span>LUMI<small>ตลาดงานครีเอเตอร์ AI</small></span>
+    <Link to="/" className={s.brand} aria-label={`${BRAND} หน้าแรก`} onClick={reTap(pathname === '/')}>
+      {DEMO_SITE ? <img className={s.wordmark} src={`${import.meta.env.BASE_URL}brand/wordmark.svg`} alt="" width={118} height={28} /> : <>
+        <span className={s.logo}><Icon name="sparkle" size={22} color="none" stroke={0} fill="#fff" /></span>
+        <span>{BRAND}<small>ตลาดงานครีเอเตอร์ AI</small></span>
+      </>}
     </Link>
   )
 }

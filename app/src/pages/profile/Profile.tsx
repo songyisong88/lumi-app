@@ -5,7 +5,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { HeaderActions } from '../../components/Header'
 import { Icon } from '../../components/Icon'
 import { isCloud } from '../../services/session'
-import { FEATURES, REAL } from '../../config'
+import { FEATURES, REAL, BRAND } from '../../config'
 import { loadProfiles } from '../../services/cloud'
 import { MasonryFeed } from '../../components/MasonryFeed'
 import { ReportButton } from '../../components/Report'
@@ -176,7 +176,7 @@ export function Profile() {
           <div className="sec">
             <div className="sec-h">บัญชี</div>
             <div className="card2" style={{ padding: 0, overflow: 'hidden' }}>
-              {[['user', 'ตั้งค่าบัญชี', 'ชื่อ อีเมล รหัสผ่าน'], ['wallet', 'บัญชีรับเงินและการชำระเงิน', 'ยังไม่ได้เชื่อม'], ['bell', 'การแจ้งเตือน', ''], ['lock', 'ความเป็นส่วนตัวและความปลอดภัย', ''], ['chat', 'ช่วยเหลือและติดต่อ LUMI', '']].map(([ic, t, sub]) => (
+              {[['user', 'ตั้งค่าบัญชี', 'ชื่อ อีเมล รหัสผ่าน'], ['wallet', 'บัญชีรับเงินและการชำระเงิน', 'ยังไม่ได้เชื่อม'], ['bell', 'การแจ้งเตือน', ''], ['lock', 'ความเป็นส่วนตัวและความปลอดภัย', ''], ['chat', `ช่วยเหลือและติดต่อ ${BRAND}`, '']].map(([ic, t, sub]) => (
                 <button key={t} className="list-row" onClick={() => (ic === 'bell' ? nav('/notifications') : FEATURES.accounts && ic === 'user' ? nav(isCloud() ? '/account' : '/account/login') : toast(`${t} จะเปิดใช้เร็ว ๆ นี้`))}>
                   <Icon name={ic} size={20} color="var(--ink2)" /><span className="grow">{t}{sub && <small>{sub}</small>}</span>{ic !== 'bell' && !(FEATURES.accounts && ic === 'user') && <span className="pill">เร็ว ๆ นี้</span>}<Icon name="chev" size={16} color="var(--mut)" />
                 </button>
@@ -243,7 +243,7 @@ export function CreatorPage() {
         <div style={{ padding: '0 16px' }}>
           <h1 className={s.cn}>{c.name}{(!isRemoteId(id) || c.verified) && <span className={s.vb}><Icon name="check" size={10} color="#fff" stroke={3.4} /></span>}</h1>
           {(HANDLE[id] ?? c.handle ?? (isRemoteId(id) ? '' : id)) && <p className="muted">@{HANDLE[id] ?? c.handle ?? id}</p>}
-          <p className={s.bio}>{BIO[id] ?? c.bio ?? 'ลูกค้า LUMI'}</p>
+          <p className={s.bio}>{BIO[id] ?? c.bio ?? `ลูกค้า ${BRAND}`}</p>
           <div className={s.stats}><span><b>{works.length}</b>ผลงาน</span><span><b>{st.followersLabel}</b>ผู้ติดตาม</span><span><b>{st.rating ? st.rating.toFixed(1) : '–'}</b>คะแนน</span><span><b>{posts.length}</b>โพสต์</span></div>
         </div>
         <div className="sec"><div className="sec-h">ผลงาน</div>{works.length ? <MasonryFeed items={works} /> : <Empty icon="store" title="ยังไม่มีผลงานขาย" action={isMe ? <Link to="/sell" className="btn btn-p btn-sm">ลงขายผลงานแรก</Link> : undefined} />}</div>

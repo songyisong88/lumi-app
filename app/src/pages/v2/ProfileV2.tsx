@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { MenuIcon } from '../../components/v2/CreateSheetV2'
 import { Av, Img, SampleNote, Seg, Sheet } from '../../components/ui'
-import { HIRE_ON } from '../../config'
+import { HIRE_ON, brandName } from '../../config'
 import { creatorStats, heroOf } from '../../data/productExtras'
 import { ALL_PRODUCTS, ME, STORIES, baht, creatorById } from '../../data/sampleData'
 import type { Product } from '../../data/types'
@@ -91,7 +91,7 @@ export function ProfileV2() {
             <div className="v2-me">
               <Av src={me.avatar} size={64} ring />
               <div style={{ minWidth: 0 }}>
-                <b className="ell">{ses.profile?.display_name || me.name}</b>
+                <b className="ell">{brandName(ses.profile?.display_name || me.name)}</b>
                 {(HANDLE[ME] ?? me.handle ?? ses.profile?.handle) && <small>@{HANDLE[ME] ?? me.handle ?? ses.profile?.handle}</small>}
                 <div className="v2-stats"><span><b>{st.followersLabel}</b>ผู้ติดตาม</span><span><b>{db.follows.length}</b>กำลังติดตาม</span></div>
               </div>

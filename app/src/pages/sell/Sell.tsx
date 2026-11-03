@@ -15,7 +15,7 @@ import { fileToDataUrl } from '../../utils/image'
 import { ago } from '../../utils/time'
 import { ProductView } from '../product/ProductView'
 import { PRICE_OPTS } from '../../data/sellDefaults'
-import { FEATURES, REAL } from '../../config'
+import { FEATURES, REAL, BRAND } from '../../config'
 import { useModStatus } from '../../components/ModStatus'
 import { cloudOn, removeDeliverable, uploadDeliverable } from '../../services/cloud'
 import s from './Sell.module.css'
@@ -199,7 +199,7 @@ export function Sell() {
           <CheckList checks={checks} go={go} compact />
           <div className={s.prvWrap}><ProductView p={previewOf(d)} preview /></div>
           <div className={s.bx}>
-            <Row icon="share" c="#6C2BD9" bg="#F3ECFF" t="แชร์ลงชุมชน LUMI" sub="โพสต์พร้อมลิงก์ผลงาน" on={share} set={setShare} />
+            <Row icon="share" c="#6C2BD9" bg="#F3ECFF" t={`แชร์ลงชุมชน ${BRAND}`} sub="โพสต์พร้อมลิงก์ผลงาน" on={share} set={setShare} />
             <Row icon="megaphone" c="#D6336C" bg="#FDEBF2" t={`แจ้งผู้ติดตาม ${creatorStats(ME).followersLabel} คน`} sub={REAL ? 'แจ้งในแอปเมื่อผลงานขึ้นขาย' : 'ทดลอง · ยังไม่ส่งจริง'} on={notify} set={setNotify} />
           </div>
           <SampleNote>ลงขายในโหมดทดลอง ผลงานเก็บในเครื่องนี้ ยังไม่มีผู้ซื้อจริง</SampleNote>
@@ -235,7 +235,7 @@ function StepType({ d, pick }: { d: ListingDraft; pick: (k: SellType) => void })
     {other.length > 0 && (
       <Link to="/sell/drafts" className={`${s.drb} press`}><Img src={other[0].covers[0] ?? 'g_lotus.jpg'} className={s.drbI} /><span className="grow"><b>ร่างค้างไว้ {other.length} ชิ้น</b><small className="ell">{other[0].title || 'ยังไม่ตั้งชื่อ'} · แก้ล่าสุด {ago(other[0].updatedAt)}</small></span><span className={s.go}>ทำต่อ ›</span></Link>
     )}
-    <H t="จะลงขายอะไรดี?" s="เลือกประเภท แล้ว LUMI จะถามเฉพาะสิ่งที่จำเป็น" />
+    <H t="จะลงขายอะไรดี?" s={`เลือกประเภท แล้ว ${BRAND} จะถามเฉพาะสิ่งที่จำเป็น`} />
     <div className={s.tyg}>
       {ORDER.map((k, i) => { const x = SPECS[k]; return (
         <button key={k} className={`${s.ty} ${d.type === k ? s.on : ''} press rise`} style={{ '--i': i } as React.CSSProperties} onClick={() => pick(k)}>
@@ -317,7 +317,7 @@ function StepPrice({ d, patch, set }: { d: ListingDraft; patch: (p: Partial<List
   }
   return <>
     <H t="ตั้งราคาและแบบที่ขาย" s="เปิดเฉพาะแบบที่อยากขาย ผู้ซื้อเลือกเองบนหน้าผลงาน" />
-    {d.type === 'hire' ? <p className="hint" style={{ marginTop: 0 }}>{FEATURES.launch ? 'ช่วงเปิดตัว: ผู้จ้างทักแชตและตกลงงานกันก่อน · การชำระเงินผ่าน LUMI จะเปิดภายหลัง · ราคาแพ็กเกจใช้แสดงเป็นราคาเริ่มต้น' : 'งานจ้างต้องตั้งราคาอย่างน้อย 1 แพ็กเกจ · ผู้จ้างจ่ายเมื่อรับข้อเสนอ · เงินโอนให้คุณเมื่อผู้จ้างกดรับงาน หรือครบ 3 วันหลังส่งงาน'}</p> : <div className={`${s.bx} ${d.free ? s.freeOn : ''}`}>
+    {d.type === 'hire' ? <p className="hint" style={{ marginTop: 0 }}>{FEATURES.launch ? `ช่วงเปิดตัว: ผู้จ้างทักแชตและตกลงงานกันก่อน · การชำระเงินผ่าน ${BRAND} จะเปิดภายหลัง · ราคาแพ็กเกจใช้แสดงเป็นราคาเริ่มต้น` : 'งานจ้างต้องตั้งราคาอย่างน้อย 1 แพ็กเกจ · ผู้จ้างจ่ายเมื่อรับข้อเสนอ · เงินโอนให้คุณเมื่อผู้จ้างกดรับงาน หรือครบ 3 วันหลังส่งงาน'}</p> : <div className={`${s.bx} ${d.free ? s.freeOn : ''}`}>
       <Row icon="gift" c="#16A34A" bg="#E5F8EC" t="แจกฟรี" sub={FEATURES.launch ? 'ช่วงเปิดตัวลงได้เฉพาะผลงานฟรี · การขายแบบชำระเงินจะเปิดภายหลัง' : 'ผู้ใช้กดรับได้เลย ยังต้องกรอกข้อมูลให้ครบเหมือนของขาย · สลับกลับเป็นขายได้ทุกเมื่อ'} on={d.free} set={(v) => (FEATURES.launch ? undefined : patch({ free: v }))} />
       {d.free && FEATURES.tips && <Row icon="coin" c="#B45309" bg="#FFF4DB" t="เปิดรับทิป" sub="ผู้ใช้ให้ทิปได้ตามใจ" on={d.tips} set={(v) => patch({ tips: v })} />}
     </div>}
@@ -329,7 +329,7 @@ function StepPrice({ d, patch, set }: { d: ListingDraft; patch: (p: Partial<List
           {x.on && <div className={s.opP}><span>฿</span><input inputMode="numeric" value={x.price || ''} onChange={(e) => upd(x.id, { price: Math.min(999999, parseInt(e.target.value.replace(/\D/g, '')) || 0) })} aria-label={`ราคา ${x.label}`} placeholder="0" />{x.suffix && <em>{x.suffix}</em>}</div>}
         </div>
       ))}
-      {top > 0 && <><div className={s.earn}><div><small>ราคาสูงสุด</small><b>{baht(top)}</b></div><div><small>ค่าธรรมเนียม LUMI 10%</small><b>−{baht(Math.round(top * FEE))}</b></div><div><small>คุณได้รับ</small><b className={s.y}>{baht(top - Math.round(top * FEE))}</b></div></div><p className="hint" style={{ marginTop: 6, marginBottom: 14 }}>ตัวอย่าง · ยังไม่รวม VAT และค่าธรรมเนียมการชำระเงิน</p></>}
+      {top > 0 && <><div className={s.earn}><div><small>ราคาสูงสุด</small><b>{baht(top)}</b></div><div><small>ค่าธรรมเนียม {BRAND} 10%</small><b>−{baht(Math.round(top * FEE))}</b></div><div><small>คุณได้รับ</small><b className={s.y}>{baht(top - Math.round(top * FEE))}</b></div></div><p className="hint" style={{ marginTop: 6, marginBottom: 14 }}>ตัวอย่าง · ยังไม่รวม VAT และค่าธรรมเนียมการชำระเงิน</p></>}
     </>}
     <Fields fs={t.fields} step="price" spec={d.spec} set={setP} />
   </>
@@ -433,7 +433,7 @@ function FilesEdit({ f, v, set, type, spec, draftId }: { f: Field; v: SpecValue 
       <button className={`${s.drop} press`} onClick={() => ref.current?.click()}><Icon name="upload" size={22} color="var(--p)" /><b>เลือกไฟล์จากเครื่อง</b><small>{f.hint}</small></button>
       <input ref={ref} type="file" multiple hidden accept={rule.exts.map((x) => '.' + x).join(',') || undefined} onChange={(e) => { add(e.target.files); e.target.value = '' }} />
       <span className="hint">รองรับ {rule.exts.map((x) => '.' + x).join(' ')} · ไม่เกิน {fmtMB(rule.maxMB)} ต่อไฟล์ · สูงสุด {MAX_FILES} ไฟล์</span>
-      <span className="hint"><Icon name="shield" size={12} /> {REAL ? 'ไฟล์อัปโหลดขึ้นระบบ LUMI และสแกนไวรัสอัตโนมัติก่อนขาย ผู้ซื้อดาวน์โหลดได้หลังรับของเท่านั้น' : 'ทดลอง: ไฟล์ไม่ถูกส่งขึ้นเซิร์ฟเวอร์ ระบบจำลองการสแกน (ชื่อไฟล์มีคำว่า virus จะไม่ผ่าน)'}</span>
+      <span className="hint"><Icon name="shield" size={12} /> {REAL ? `ไฟล์อัปโหลดขึ้นระบบ ${BRAND} และสแกนไวรัสอัตโนมัติก่อนขาย ผู้ซื้อดาวน์โหลดได้หลังรับของเท่านั้น` : 'ทดลอง: ไฟล์ไม่ถูกส่งขึ้นเซิร์ฟเวอร์ ระบบจำลองการสแกน (ชื่อไฟล์มีคำว่า virus จะไม่ผ่าน)'}</span>
     </div>
   )
 }
@@ -445,7 +445,7 @@ function Row({ icon, c, bg, t, sub, on: v, set }: { icon: string; c: string; bg:
 function CheckList({ checks, go, compact }: { checks: ReturnType<typeof checkListing>; go: (n: number) => void; compact?: boolean }) {
   const miss = checks.filter((c) => !c.ok)
   const list = compact ? miss : checks
-  if (compact && !miss.length) return <div className={s.allOk}><span className="ok-ic"><Icon name="check" size={14} stroke={3} /></span>ตรวจอัตโนมัติผ่านครบ {checks.length} ข้อ พร้อมส่งให้ทีม LUMI ตรวจก่อนขึ้นขาย</div>
+  if (compact && !miss.length) return <div className={s.allOk}><span className="ok-ic"><Icon name="check" size={14} stroke={3} /></span>ตรวจอัตโนมัติผ่านครบ {checks.length} ข้อ พร้อมส่งให้ทีม {BRAND} ตรวจก่อนขึ้นขาย</div>
   return (
     <div className={compact ? s.ckC : s.ck}>
       {compact && <b className={s.ckH}>ยังขาด {miss.length} อย่างก่อนลงขาย</b>}
@@ -476,13 +476,13 @@ function Success({ id, d, share, notify, onNext, edited }: { id: string; d: List
       <div className={`narrow ${s.okp}`}>
         <div className={`${s.okBg} pop-in`} style={pending || revPending ? { background: 'linear-gradient(135deg,#F59E0B,#B45309)' } : undefined}><Icon name={pending || revPending ? 'clock' : 'check'} size={48} color="#fff" stroke={3} /></div>
         <h2 className="rise" data-success={pending || revPending ? 'pending' : passed || !edited ? 'live' : 'edited'}>{pending ? 'ส่งตรวจแล้ว!' : revPending ? 'ส่งการแก้ไขตรวจแล้ว' : revPassed ? 'อัปเดตผลงานแล้ว · ผ่านการตรวจ' : passed ? d.free && d.type !== 'hire' ? 'แจกฟรีแล้ว · ผ่านการตรวจ' : 'ลงขายแล้ว · ผ่านการตรวจ' : 'อัปเดตผลงานแล้ว!'}</h2>
-        <p className="rise" style={{ '--i': 1 } as React.CSSProperties}>{pending ? `ทีม LUMI ตรวจทุกชิ้นก่อนขึ้นขาย ปกติไม่เกิน 24 ชม.${REAL ? '' : ' (ตัวอย่างนี้ใช้เวลาราว 20 วินาที)'} · ระหว่างรอ ผลงานยังไม่ขึ้นหน้าแรก หน้าค้นหา และหน้าร้าน · ผลตรวจจะแจ้งในการแจ้งเตือน` : revPending ? `ส่งการแก้ไขให้ทีม LUMI ตรวจแล้ว ปกติไม่เกิน 24 ชม.${REAL ? '' : ' (ตัวอย่างนี้ราว 20 วินาที)'} · ระหว่างรอ ผู้ซื้อยังเห็นฉบับเดิม` : revPassed ? 'การแก้ไขผ่านการตรวจแล้ว · ผู้ซื้อเห็นฉบับใหม่แล้ว' : passed ? 'ขึ้นหน้าแรก หน้าค้นหา และหน้าร้านแล้ว · ถ้าพบว่าผิดกฎภายหลัง LUMI ลบได้' : 'แก้ราคาและเงื่อนไขแล้ว มีผลทันที · การแก้รูป ไฟล์ ชื่อ หรือรายละเอียด จะส่งให้ทีม LUMI ตรวจก่อน'}</p>
+        <p className="rise" style={{ '--i': 1 } as React.CSSProperties}>{pending ? `ทีม ${BRAND} ตรวจทุกชิ้นก่อนขึ้นขาย ปกติไม่เกิน 24 ชม.${REAL ? '' : ' (ตัวอย่างนี้ใช้เวลาราว 20 วินาที)'} · ระหว่างรอ ผลงานยังไม่ขึ้นหน้าแรก หน้าค้นหา และหน้าร้าน · ผลตรวจจะแจ้งในการแจ้งเตือน` : revPending ? `ส่งการแก้ไขให้ทีม ${BRAND} ตรวจแล้ว ปกติไม่เกิน 24 ชม.${REAL ? '' : ' (ตัวอย่างนี้ราว 20 วินาที)'} · ระหว่างรอ ผู้ซื้อยังเห็นฉบับเดิม` : revPassed ? 'การแก้ไขผ่านการตรวจแล้ว · ผู้ซื้อเห็นฉบับใหม่แล้ว' : passed ? `ขึ้นหน้าแรก หน้าค้นหา และหน้าร้านแล้ว · ถ้าพบว่าผิดกฎภายหลัง ${BRAND} ลบได้` : `แก้ราคาและเงื่อนไขแล้ว มีผลทันที · การแก้รูป ไฟล์ ชื่อ หรือรายละเอียด จะส่งให้ทีม ${BRAND} ตรวจก่อน`}</p>
         {reviewed && <div className="rise" data-mod-steps style={{ '--i': 1, display: 'flex', justifyContent: 'center', gap: 6, fontSize: 12, margin: '4px 0 10px' } as React.CSSProperties}>
           {['ส่งตรวจ', 'รอตรวจ', 'ขึ้นขาย'].map((x, i) => { const done = i === 0 || (i === 1 && !pending) || (i === 2 && passed); const cur = (i === 1 && pending) || (i === 2 && passed); return <span key={x} className={`pill ${done ? 'pill-g' : cur ? 'pill-w' : ''}`}>{done && <Icon name="check" size={11} stroke={3} />}{x}</span> })}
         </div>}
         <Link to={`/product/${id}`} className={`${s.mini} rise press`} style={{ '--i': 2 } as React.CSSProperties}><Img src={p.covers?.[0] ?? p.image?.src} className={s.drbI} /><span className="grow"><b className="ell">{p.title}</b><small>{p.price === 0 ? 'แจกฟรี' : `${opts.length} แบบ · เริ่ม ${baht(p.price)}`}</small></span><Icon name="chev" size={18} /></Link>
         <div className={`${s.bx} rise`} style={{ '--i': 3, textAlign: 'left' } as React.CSSProperties}>
-          <div className={s.row}><span className={s.ri} style={{ background: '#F3ECFF' }}><Icon name="share" size={18} color="#6C2BD9" /></span><span className="grow"><b>แชร์ลงชุมชน LUMI</b><small>{share ? pending ? 'จะโพสต์ให้เมื่อผ่านการตรวจ' : 'โพสต์แล้ว พร้อมลิงก์ผลงาน' : 'ไม่ได้แชร์'}</small></span>{share && !pending && <span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>}</div>
+          <div className={s.row}><span className={s.ri} style={{ background: '#F3ECFF' }}><Icon name="share" size={18} color="#6C2BD9" /></span><span className="grow"><b>แชร์ลงชุมชน {BRAND}</b><small>{share ? pending ? 'จะโพสต์ให้เมื่อผ่านการตรวจ' : 'โพสต์แล้ว พร้อมลิงก์ผลงาน' : 'ไม่ได้แชร์'}</small></span>{share && !pending && <span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>}</div>
           <div className={s.row}><span className={s.ri} style={{ background: '#FDEBF2' }}><Icon name="megaphone" size={18} color="#D6336C" /></span><span className="grow"><b>แจ้งผู้ติดตาม {creatorStats(ME).followersLabel} คน</b><small>{notify ? pending ? REAL ? 'จะแจ้งเมื่อผ่านการตรวจ' : 'จะแจ้งเมื่อผ่านการตรวจ (ทดลอง)' : REAL ? 'แจ้งในแอปแล้ว' : 'จำลองการแจ้งแล้ว (ทดลอง)' : 'ไม่ได้แจ้ง'}</small></span>{notify && !pending && <span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>}</div>
         </div>
         <SampleNote>โหมดทดลอง · เก็บในเครื่องนี้เท่านั้น</SampleNote>

@@ -15,7 +15,7 @@ import { MentionInput, liveMentions, type MentionApi } from '../../social/Mentio
 import { TAG_COLOR, isVideo } from './PostCard'
 import c from './Community.module.css'
 import s from '../../social/Social.module.css'
-import { REAL } from '../../config'
+import { REAL, BRAND } from '../../config'
 
 const TAGS: PostTag[] = ['โชว์ผลงาน', 'ความรู้', 'เบื้องหลัง', 'ถาม-ตอบ', 'แจกฟรี']
 export const FEELINGS = ['รู้สึก 😊 มีความสุข', 'รู้สึก 🤩 ตื่นเต้น', 'รู้สึก 🙏 ขอบคุณ', 'รู้สึก 😌 ภูมิใจ', 'รู้สึก 😴 เหนื่อย', 'รู้สึก 🤔 สงสัย', 'กำลัง 🎨 สร้างผลงาน', 'กำลัง 📚 เรียนรู้', 'กำลัง 🚀 เปิดตัวผลงาน', 'กำลัง ☕ พักผ่อน']
@@ -150,7 +150,7 @@ export function Compose() {
         {TAGS.map((t) => <button key={t} className="list-row" onClick={() => { setTag(t); setSheet(null) }}><span className="pill" style={{ background: TAG_COLOR[t][1], color: TAG_COLOR[t][0] }}>{t}</span><span className="grow" />{(tag ?? 'โชว์ผลงาน') === t && <Icon name="check" size={18} color="var(--p)" />}</button>)}
       </Sheet>
       <Sheet open={sheet === 'aud'} onClose={() => setSheet(null)} title="ใครเห็นโพสต์นี้ได้บ้าง">
-        <div className="list-row" style={{ margin: '0 -16px' }}><Icon name="globe" size={20} /><span className="grow">สาธารณะ<small>ทุกคนบน LUMI · ตอนนี้ชุมชนเป็นแบบสาธารณะเท่านั้น</small></span><Icon name="check" size={18} color="var(--p)" /></div>
+        <div className="list-row" style={{ margin: '0 -16px' }}><Icon name="globe" size={20} /><span className="grow">สาธารณะ<small>ทุกคนบน {BRAND} · ตอนนี้ชุมชนเป็นแบบสาธารณะเท่านั้น</small></span><Icon name="check" size={18} color="var(--p)" /></div>
       </Sheet>
       <Sheet open={sheet === 'feel'} onClose={() => setSheet(null)} title="ความรู้สึก/กิจกรรม">
         <div className={s.feelGrid}>{FEELINGS.map((f) => <button key={f} type="button" className={feeling === f ? s.on : ''} onClick={() => { setFeeling(feeling === f ? undefined : f); setSheet(null) }}>{f}</button>)}</div>
