@@ -60,7 +60,7 @@ export function Group() {
       <div className="narrow">
         {tab === 'feed' && <>
           <div style={{ marginTop: 8 }}>{joined ? <Composer room={id} /> : (
-            <div className={s.card} style={{ marginTop: 0, padding: 14, display: 'flex', alignItems: 'center', gap: 10 }}><span className="grow muted" style={{ fontSize: 14 }}>เข้าร่วมกลุ่มเพื่อโพสต์และคอมเมนต์</span><button type="button" className="btn btn-sm btn-p" onClick={join}>+ เข้าร่วม</button></div>
+            <div className={s.card} style={{ marginTop: 0, padding: 14, display: 'flex', alignItems: 'center', gap: 10 }}><span className="grow muted" style={{ fontSize: 15 }}>เข้าร่วมกลุ่มเพื่อโพสต์และคอมเมนต์</span><button type="button" className="btn btn-sm btn-p" onClick={join}>+ เข้าร่วม</button></div>
           )}</div>
           {r.announcement && <div className={s.pin}><small>📌 ประกาศจากแอดมิน</small><p>{r.announcement}</p></div>}
           {posts.length ? posts.map((p, i) => <PostCard key={p.id} p={p} i={i} inGroup />) : <div className={s.card}><Empty icon="comment" title="ยังไม่มีโพสต์ในกลุ่มนี้" text="เริ่มโพสต์แรกได้เลย" /></div>}

@@ -146,7 +146,7 @@ function Creator() {
       <div className={s.grid}>
         <button type="button" className={s.camBtn} onClick={() => camRef.current?.click()}><Icon name="camera" size={28} color="#fff" />กล้อง</button>
         {REAL ? (
-          <button type="button" className={s.camBtn} onClick={() => fileRef.current?.click()}><Icon name="image" size={28} color="#fff" />เลือกรูป/วิดีโอ<small style={{ opacity: .7, fontSize: 11 }}>วิดีโอไม่เกิน {MAX_VIDEO_S} วิ</small></button>
+          <button type="button" className={s.camBtn} onClick={() => fileRef.current?.click()}><Icon name="image" size={28} color="#fff" />เลือกรูป/วิดีโอ<small style={{ opacity: .7, fontSize: 12 }}>วิดีโอไม่เกิน {MAX_VIDEO_S} วิ</small></button>
         ) : DEMO_GALLERY.map((f) => {
           const n = picked.indexOf(f)
           return (
@@ -160,7 +160,7 @@ function Creator() {
       {panel === 'mine' && (
         <div className={s.dsheet} style={{ top: 200 }} role="dialog" aria-label="สตอรี่ของฉัน">
           <div className={s.grab} /><button type="button" className={s.dclose} aria-label="ปิดแผง" onClick={() => setPanel(null)}><Icon name="x" size={20} color="#fff" /></button>
-          <b style={{ display: 'block', fontSize: 16, marginBottom: 4 }}>สตอรี่ของฉัน</b><small style={{ color: '#aaa', fontSize: 12.5 }}>สตอรี่หายเองใน 24 ชม. · ลบก่อนได้</small>
+          <b style={{ display: 'block', fontSize: 17, marginBottom: 4 }}>สตอรี่ของฉัน</b><small style={{ color: '#aaa', fontSize: 13 }}>สตอรี่หายเองใน 24 ชม. · ลบก่อนได้</small>
           {!mine?.slides.some((x) => x.storyId) && <p style={{ color: '#aaa', marginTop: 14 }}>ยังไม่มีสตอรี่ที่กำลังแสดง</p>}
           {mine?.slides.filter((x) => x.storyId).map((x) => (
             <div key={x.storyId} className={s.prow}>
@@ -321,9 +321,9 @@ function Editor({ slide, index, total, panel, setPanel, onChange, onNext, onAdd,
       <div className={s.etop}>
         <button type="button" className={s.vbtn} aria-label="ปิดตัวแก้ไข" onClick={onClose}><Icon name="x" size={26} color="#fff" /></button>
         <span style={{ display: 'flex', gap: 6 }}>
-          {total > 1 && <button type="button" style={{ fontWeight: 700, fontSize: 13, padding: '6px 12px', borderRadius: 99, background: 'rgba(0,0,0,.35)' }} aria-label="ภาพถัดไปที่จะแก้" onClick={onNext}>{index + 1} / {total} ▸</button>}
-          <button type="button" style={{ fontWeight: 700, fontSize: 13, padding: '6px 12px', borderRadius: 99, background: 'rgba(0,0,0,.35)' }} aria-label="เพิ่มภาพ" onClick={onAdd}>＋</button>
-          <button type="button" style={{ fontWeight: 700, fontSize: 13, padding: '6px 10px', borderRadius: 99, background: 'rgba(0,0,0,.35)' }} aria-label="เอาภาพนี้ออก" onClick={onRemove}><Icon name="trash" size={16} color="#fff" /></button>
+          {total > 1 && <button type="button" style={{ fontWeight: 700, fontSize: 13, minHeight: 44, minWidth: 44, padding: '0 12px', borderRadius: 99, background: 'rgba(0,0,0,.35)' }} aria-label="ภาพถัดไปที่จะแก้" onClick={onNext}>{index + 1} / {total} ▸</button>}
+          <button type="button" style={{ fontWeight: 700, fontSize: 13, minHeight: 44, minWidth: 44, padding: '0 12px', borderRadius: 99, background: 'rgba(0,0,0,.35)' }} aria-label="เพิ่มภาพ" onClick={onAdd}>＋</button>
+          <button type="button" style={{ fontWeight: 700, fontSize: 13, minHeight: 44, minWidth: 44, padding: '0 10px', borderRadius: 99, background: 'rgba(0,0,0,.35)' }} aria-label="เอาภาพนี้ออก" onClick={onRemove}><Icon name="trash" size={16} color="#fff" /></button>
         </span>
       </div>
       {draw ? (
@@ -391,7 +391,7 @@ function Editor({ slide, index, total, panel, setPanel, onChange, onNext, onAdd,
       {panel === 'prod' && (
         <div className={s.dsheet} style={{ top: 170 }} role="dialog" aria-label="ลิงก์ผลงาน">
           <div className={s.grab} /><button type="button" className={s.dclose} aria-label="ปิดแผง" onClick={() => setPanel(null)}><Icon name="x" size={20} color="#fff" /></button>
-          <b style={{ display: 'block', fontSize: 16, marginBottom: 4 }}>ลิงก์ไปที่ผลงานของคุณ</b><small style={{ color: '#aaa', fontSize: 12.5 }}>ไม่ใส่ก็ได้ · คนดูกดแล้วไปหน้าผลงานบน LUMI</small>
+          <b style={{ display: 'block', fontSize: 17, marginBottom: 4 }}>ลิงก์ไปที่ผลงานของคุณ</b><small style={{ color: '#aaa', fontSize: 13 }}>ไม่ใส่ก็ได้ · คนดูกดแล้วไปหน้าผลงานบน LUMI</small>
           <div className={s.lblPick}>{LABELS.map((l) => <button key={l} type="button" className={lbl === l ? s.on : ''} onClick={() => setLbl(l)}>{l}</button>)}</div>
           <input className={s.dsearch} value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาผลงานของฉัน" aria-label="ค้นหาผลงานของฉัน" />
           {myWorks.length === 0 && <p style={{ color: '#aaa' }}>ยังไม่มีผลงานของคุณ · ลงผลงานก่อนแล้วค่อยใส่ลิงก์</p>}

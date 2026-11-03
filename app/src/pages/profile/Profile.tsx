@@ -103,7 +103,7 @@ export function Profile() {
               </div>
               <div className="sec">
                 <div className="sec-h">โพสต์ที่บันทึก<span className="more">{savedPosts.length} โพสต์</span></div>
-                {savedPosts.length === 0 ? <div className={s.emp}><p className="muted">ยังไม่มีโพสต์ที่บันทึก กด “บันทึก” ใต้โพสต์ในชุมชน</p><Link to="/community" className="btn btn-o btn-xs">ไปที่ชุมชน</Link></div> : (
+                {savedPosts.length === 0 ? <div className={s.emp}><p className="muted">ยังไม่มีโพสต์ที่บันทึก กด ⋯ บนโพสต์ในชุมชน แล้วเลือก “บันทึกโพสต์”</p><Link to="/community" className="btn btn-o btn-xs">ไปที่ชุมชน</Link></div> : (
                   <div className="card2" style={{ padding: 0, overflow: 'hidden' }}>{savedPosts.map((p) => (
                     <Link key={p.id} to={`/community/post/${p.id}`} className="list-row"><Av src={creatorById(p.authorId).avatar} size={36} /><span className="grow"><b className="ell" style={{ display: 'block' }}>{p.text}</b><small className="ell">{creatorById(p.authorId).name} · {ago(p.at)}</small></span><Icon name="chev" size={16} color="var(--mut)" /></Link>
                   ))}</div>

@@ -119,7 +119,7 @@ function Cmt({ c, onReply, rep, postAuthor }: { c: Comment; onReply: () => void;
       <Link to={`/creator/${a.id}`} aria-label={a.name}><Av src={a.avatar} size={rep ? 28 : 36} /></Link>
       <div className={s.cmb}>
         <span className={`${s.bub} ${menu ? s.hiBub : ''}`} {...press}>
-          <b>{a.name}{c.authorId === postAuthor && <span className="pill" style={{ fontSize: 10.5 }}>ผู้โพสต์</span>}{c.badge === 'buyer' && <span className="pill pill-g" style={{ fontSize: 10.5 }}>ซื้อแล้ว</span>}</b>
+          <b>{a.name}{c.authorId === postAuthor && <span className="pill" style={{ fontSize: 12 }}>ผู้โพสต์</span>}{c.badge === 'buyer' && <span className="pill pill-g" style={{ fontSize: 12 }}>ซื้อแล้ว</span>}</b>
           <MentionText text={c.text} mentions={c.mentions} />
           {c.likes > 0 && <span className={s.brx}>{(rx.length ? rx : [REACTIONS[0]]).map((r) => r.e).join('')} {c.likes}</span>}
         </span>

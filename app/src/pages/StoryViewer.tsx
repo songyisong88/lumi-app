@@ -300,7 +300,7 @@ function Face({ g, active, paused, hideUi, slide, setSlide, onNextGroup, onPrevG
         <div className={s.mineBar} style={chrome}>
           <button type="button" data-nogest onClick={() => setUi('act')} aria-label="ดูคนที่ดูสตอรี่">👁 {acts.length} คนดู</button>
           <span style={{ flex: 1 }} />
-          {left && <button type="button" data-nogest style={{ fontWeight: 600, fontSize: 12.5 }} onClick={() => toast(`สตอรี่นี้จะหายไปใน ${left} ชม.`)}>⏱ {left} ชม.</button>}
+          {left && <button type="button" data-nogest style={{ fontWeight: 600, fontSize: 13, minHeight: 44 }} onClick={() => toast(`สตอรี่นี้จะหายไปใน ${left} ชม.`)}>⏱ {left} ชม.</button>}
           <Link to="/story/new" className="press" data-nogest aria-label="สร้างสตอรี่ใหม่" style={{ height: 44, width: 44, borderRadius: 99, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="plus" size={20} color="#fff" /></Link>
         </div>
       ) : (

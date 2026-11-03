@@ -87,7 +87,7 @@ export function SavedPosts() {
     <div className="v2 page">
       <TopBar title="โพสต์ที่บันทึก" sub={`${posts.length} โพสต์`} />
       <div style={{ height: 12 }} />
-      {posts.length === 0 ? <Empty icon="bookmark" title="ยังไม่มีโพสต์ที่บันทึก" text="กด “บันทึก” ใต้โพสต์ในชุมชน" action={<Link to="/community" className="btn btn-s btn-sm">ไปที่ชุมชน</Link>} /> : (
+      {posts.length === 0 ? <Empty icon="bookmark" title="ยังไม่มีโพสต์ที่บันทึก" text="กด ⋯ บนโพสต์ในชุมชน แล้วเลือก “บันทึกโพสต์”" action={<Link to="/community" className="btn btn-s btn-sm">ไปที่ชุมชน</Link>} /> : (
         <section className="v2-card flush">{posts.map((p) => (
           <Link key={p.id} to={`/community/post/${p.id}`} className="v2-li"><Av src={creatorById(p.authorId).avatar} size={40} /><span className="tx"><span className="ell" style={{ display: 'block' }}>{p.text}</span><small>{creatorById(p.authorId).name} · {ago(p.at)}</small></span><Icon name="chev" size={16} color="var(--mut)" /></Link>
         ))}</section>
