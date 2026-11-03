@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history: the DEMO build merges main into the demo branch
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -38,13 +40,13 @@ jobs:
       - name: Build DEMO site
         run: |
           if git ls-remote --exit-code --heads origin demo >/dev/null 2>&1; then
-            git fetch --no-tags --depth 300 origin +refs/heads/main:refs/remotes/origin/main +refs/heads/demo:refs/remotes/origin/demo
+            git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/demo:refs/remotes/origin/demo
             git worktree add --detach "$RUNNER_TEMP/demo-src" origin/demo
             cd "$RUNNER_TEMP/demo-src"
             # keep the demo up to date with main: merge main in (only inside this runner, nothing is pushed)
             if ! git merge-base --is-ancestor origin/main HEAD; then
               git -c user.name=ci -c user.email=ci@localhost merge --no-edit origin/main \
-                || { git merge --abort; echo "::warning::demo branch conflicts with main - DEMO built from demo branch only; merge main into demo"; }
+                || { git merge --abort || true; echo "::warning::demo branch conflicts with main - DEMO built from demo branch only; merge main into demo"; }
             fi
             echo "DEMO built from demo branch @ $(git rev-parse --short origin/demo) (+ main @ $(git rev-parse --short origin/main) if merged)"
             cd app && npm ci
