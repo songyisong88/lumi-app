@@ -93,7 +93,60 @@ export function toProduct(r: Row): Product {
     real: { reviews: r.review_count ?? 0, rating: r.rating != null ? Number(r.rating) : 0, sales: r.sales_count ?? 0, likes: r.favorite_count ?? 0 },
   }
 }
-const PRODUCT_COLS = '*, product_options(*)'
+/** Only the columns toProduct / rowToDraft read (status, kind, type_key, layout, instant are not used on screen). */
+const PRODUCT_COLS = 'id, creator_id, sell_type, label, title, use_text, description, tags, covers, spec, is_free, tips_enabled, price, has_prompt, tryable, days, revisions, '
+  + 'favorite_count, sales_count, review_count, rating, published_at, created_at, updated_at, review_status, review_reason, submitted_at, '
+  + 'product_options(id, code, label, sub, price, suffix, enabled, sort)'
+
+// ---------- live-listings feed in pages (24 at a time, newest first; keyset on published_at, id)
+export const FEED_PAGE = 24
+const feed = { limit: FEED_PAGE, more: true, busy: null as Promise<void> | null, cursor: null as { at: string; id: string } | null }
+const feedSubs = new Set<() => void>()
+const feedChanged = () => feedSubs.forEach((f) => f())
+/** Is there another page of live listings on the server? */
+export const feedHasMore = () => feed.more
+export const onFeedChange = (f: () => void) => { feedSubs.add(f); return () => { feedSubs.delete(f) } }
+function liveProducts(n: number, after: { at: string; id: string } | null) {
+  let q = S().from('products').select(PRODUCT_COLS).eq('status', 'published').eq('review_status', 'live')
+  if (cloudOn()) q = q.neq('creator_id', ME)
+  if (after) q = q.or(`published_at.lt."${after.at}",and(published_at.eq."${after.at}",id.lt.${after.id})`)
+  return q.order('published_at', { ascending: false, nullsFirst: false }).order('id', { ascending: false }).limit(n)
+}
+/** Remember where the first `rows.length` listings end (after a full reload of the loaded pages). */
+function feedReset(rows: Row[], asked: number) {
+  const last = rows[rows.length - 1]
+  feed.cursor = last ? { at: last.published_at, id: last.id } : null
+  feed.more = rows.length >= asked && !!last?.published_at
+  feedChanged()
+}
+/** Next page of live listings (Home feed infinite scroll). Safe to call often: one request at a time. */
+export function loadMoreProducts(): Promise<void> {
+  if (!sb || !feed.more || !feed.cursor) return Promise.resolve()
+  return (feed.busy ??= (async () => {
+    const rows = (must(await liveProducts(FEED_PAGE, feed.cursor), 'products') as Row[])
+    await loadTestIds()
+    const ok = rows.filter((r) => shown(r.creator_id))
+    await loadProfiles(ok.map((r) => r.creator_id))
+    const prods = ok.map(toProduct)
+    update((d) => { const have = new Set(d.published.map((x) => x.id)); d.published = [...d.published, ...prods.filter((x) => !have.has(x.id))] })
+    feed.limit += rows.length
+    feedReset(rows, FEED_PAGE)
+  })().finally(() => { feed.busy = null }))
+}
+/** A creator page opened directly: that creator's live listings (they may not be in the loaded feed pages yet). */
+export async function loadCreatorProducts(creatorId: string) {
+  if (!sb || !isRemoteId(creatorId)) return
+  const rows = must(await S().from('products').select(PRODUCT_COLS).eq('status', 'published').eq('review_status', 'live').eq('creator_id', creatorId)
+    .order('published_at', { ascending: false }).limit(200), 'creator products') as Row[]
+  await loadTestIds()
+  const prods = rows.filter((r) => shown(r.creator_id)).map(toProduct)
+  if (!prods.length) return
+  update((d) => { const have = new Set(d.published.map((x) => x.id)); const add = prods.filter((x) => !have.has(x.id)); if (add.length) d.published = [...d.published, ...add] })
+}
+/** Load pages until at least `n` live listings are loaded or none are left (Search keeps searching the first 200, as before). */
+export async function ensureProducts(n: number) {
+  while (feed.more && feed.limit < n) { const before = feed.limit; await loadMoreProducts(); if (feed.limit === before) break }
+}
 
 // ---------- community
 export function toPost(r: Row): Post {
@@ -190,9 +243,10 @@ async function doHydrate() {
   const prof = must(await c.from('profiles').select('*').eq('id', me).maybeSingle(), 'my profile') as Profile | null
   if (prof) { setProfile(prof); registerCreators([toCreator(prof)]) }
   await Promise.all([loadTestIds(), loadRoomCounts()])
+  const asked = feed.limit
   const [mine, live, posts, likes, saves, clikes, follows, members, ents, notifs, stories] = await Promise.all([
     c.from('products').select(PRODUCT_COLS).eq('creator_id', me).eq('status', 'published').order('updated_at', { ascending: false }),
-    c.from('products').select(PRODUCT_COLS).eq('status', 'published').eq('review_status', 'live').neq('creator_id', me).order('published_at', { ascending: false }).limit(200),
+    liveProducts(asked, null),
     c.from('posts').select('*').eq('status', 'visible').order('created_at', { ascending: false }).limit(100),
     c.from('post_likes').select('post_id').eq('user_id', me),
     c.from('post_saves').select('post_id').eq('user_id', me),
@@ -204,7 +258,8 @@ async function doHydrate() {
     c.from('stories').select('*').gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(200),
   ])
   const myProducts = (must(mine, 'my products') as Row[]).map(toProduct)
-  const otherProducts = (must(live, 'products') as Row[]).filter((r) => shown(r.creator_id)).map(toProduct)
+  const liveRows = must(live, 'products') as Row[]
+  const otherProducts = liveRows.filter((r) => shown(r.creator_id)).map(toProduct)
   const postRows = (must(posts, 'posts') as Row[]).filter((r) => shown(r.author_id))
   const postIds = postRows.map((p) => p.id)
   const comments = postIds.length ? (must(await c.from('comments').select('*').in('post_id', postIds).order('created_at'), 'comments') as Row[]).filter((r) => shown(r.author_id)) : []
@@ -507,14 +562,16 @@ export async function loadProduct(id: string) {
 export async function loadPublic() {
   const c = S()
   await Promise.all([loadTestIds(), loadRoomCounts()])
+  const asked = feed.limit
   const [live, posts, stories] = await Promise.all([
-    c.from('products').select(PRODUCT_COLS).eq('status', 'published').eq('review_status', 'live').order('published_at', { ascending: false }).limit(200),
+    liveProducts(asked, null),
     c.from('posts').select('*').eq('status', 'visible').order('created_at', { ascending: false }).limit(60),
     c.from('stories').select('*').gt('expires_at', new Date().toISOString()).limit(100),
   ])
   const ok = (r: Row) => shown(r.creator_id ?? r.author_id)
   const prods = ((live.data ?? []) as Row[]).filter(ok).map(toProduct), ps = ((posts.data ?? []) as Row[]).filter(ok).map(toPost), ss = ((stories.data ?? []) as Row[]).filter(ok).map(toStory)
   await loadProfiles([...prods.map((p) => p.creatorId), ...ps.map((p) => p.authorId), ...ss.map((s) => s.authorId)])
+  feedReset((live.data ?? []) as Row[], asked)
   update((d) => { d.published = prods; d.posts = [...ps, ...keepLocal(d.posts)].sort((a, b) => b.at - a.at); d.stories = ss })
 }
 export { S as client, must }

@@ -10,6 +10,7 @@ import { ProductCard } from '../components/ProductCard'
 import { CREATORS, ME, PRODUCTS, creatorById, imgUrl, isHidden, isLive } from '../data/sampleData'
 import { HIRE_ON, REAL } from '../config'
 import { useDb } from '../services/db'
+import { ensureProducts } from '../services/cloud'
 import type { Product } from '../data/types'
 import { creatorStats, statsOf } from '../data/productExtras'
 import {
@@ -295,6 +296,8 @@ export function Search() {
   const sort = ((RESULT_FILTERS && SORTS.find((x) => x.id === params.get('sort'))?.id) || 'rel') as SortId
   const price = ((RESULT_FILTERS && PRICES.find((x) => x.id === params.get('price'))?.id) || 'all') as PriceId
   const published = useDb().published
+  // listings load in pages on the home feed; search keeps looking through the newest 200 live works, as before
+  useEffect(() => { void ensureProducts(200).catch(() => {}) }, [])
   const found = useMemo(() => searchWorks(q, cat), [q, cat, published]) // eslint-disable-line react-hooks/exhaustive-deps
   /** “ผลงานสำหรับคุณ”: the sample works on the demo site, the live works on the real site. */
   const forYou = useMemo(() => (REAL ? published.filter(isLive) : PRODUCTS.filter((p) => !isHidden(p.id))), [published])

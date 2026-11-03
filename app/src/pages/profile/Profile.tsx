@@ -5,7 +5,7 @@ import { HeaderActions } from '../../components/Header'
 import { Icon } from '../../components/Icon'
 import { isCloud } from '../../services/session'
 import { FEATURES, REAL } from '../../config'
-import { loadProfiles } from '../../services/cloud'
+import { loadCreatorProducts, loadProfiles } from '../../services/cloud'
 import { MasonryFeed } from '../../components/MasonryFeed'
 import { ReportButton } from '../../components/Report'
 import { ISSUE_DAYS, IssueSheet, WriteReviewSheet, issueOpen } from '../../components/OrderHelp'
@@ -219,6 +219,8 @@ export function CreatorPage() {
   // real accounts (e.g. LUMI OFFICIAL): load the profile when the page is opened directly
   const [, bump] = useState(0)
   useEffect(() => { if (!c && isRemoteId(id)) void loadProfiles([id]).then(() => bump((n) => n + 1), () => {}) }, [c, id]) // eslint-disable-line react-hooks/exhaustive-deps
+  // listings load in pages: make sure all of this creator's live works are here (no visual change)
+  useEffect(() => { if (isRemoteId(id) && id !== ME) void loadCreatorProducts(id).catch(() => {}) }, [id])
   if (!c) return <><TopBar title="ครีเอเตอร์" /><Empty icon="user" title="ไม่พบครีเอเตอร์" action={<Link to="/search" className="btn btn-o btn-sm">ค้นหาครีเอเตอร์</Link>} /></>
   const works = ALL_PRODUCTS.filter((p) => p.creatorId === id && isLive(p))
   const posts = db.posts.filter((p) => p.authorId === id)
