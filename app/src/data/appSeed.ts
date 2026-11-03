@@ -7,18 +7,23 @@ import { REAL } from '../config'
 const M = 60_000, H = 60 * M, D = 24 * H
 
 export const ROOMS: Room[] = [
-  { id: 'ai', name: 'ห้องภาพ AI', icon: 'image', color: '#6C2BD9', bg: '#F3ECFF', members: 12400, desc: 'แชร์ภาพ พรอมต์ และเทคนิคสร้างภาพด้วย AI', cover: 'g_anime.jpg', rules: ['แชร์พรอมต์ได้ แต่ห้ามขายของคนอื่น', 'ติดแท็กโมเดลที่ใช้ทุกครั้ง', 'คอมเมนต์อย่างสร้างสรรค์'] },
-  { id: 'newbie', name: 'มือใหม่หัดขาย', icon: 'sparkle', color: '#DB2777', bg: '#FDEBF2', members: 15200, desc: 'ถามได้ทุกเรื่อง ตั้งราคา ถ่ายรูป ลงขายครั้งแรก', cover: 'g_lotus.jpg', rules: ['ไม่มีคำถามโง่', 'ห้ามสแปมลิงก์', 'ช่วยกันตอบ ได้แต้มชุมชน'] },
-  { id: 'tpl', name: 'คนทำเทมเพลต', icon: 'megaphone', color: '#2563EB', bg: '#EAF1FF', members: 5100, desc: 'Canva Figma สไลด์ และไฟล์พิมพ์', cover: 'cafe.jpg', rules: ['บอกแอปและฟอนต์ที่ใช้', 'ห้ามแจกไฟล์ที่ซื้อมา'] },
-  { id: 'code', name: 'โค้ดและเกม', icon: 'code', color: '#4F46E5', bg: '#EEF2FF', members: 3200, desc: 'โปรแกรม แอป เกมอินดี้ ปลั๊กอิน', cover: 'c_game.jpg', rules: ['แชร์โค้ดใส่บล็อกโค้ด', 'ห้ามแจกไฟล์แคร็ก'] },
-  { id: 'bot', name: 'บอทและระบบอัตโนมัติ', icon: 'robot', color: '#15803D', bg: '#E5F8EC', members: 2800, desc: 'LINE OA n8n Make และ Sheets', cover: 'c_bot.jpg', rules: ['ห้ามโพสต์ API key จริง', 'แชร์ฟลว์เป็นรูปหรือไฟล์'] },
-  { id: 'sticker', name: 'คนขายสติกเกอร์ LINE', icon: 'heart', color: '#F59E0B', bg: '#FFF4DB', members: 8900, desc: 'ออกแบบ ส่งตรวจ และโปรโมตสติกเกอร์', cover: 'shiba.jpg', rules: ['โชว์งานได้วันละ 1 โพสต์'] },
+  { id: 'ai', name: 'ห้องภาพ AI', icon: 'image', color: '#6C2BD9', bg: '#F3ECFF', members: 12400, today: 38, announcement: 'แชร์ภาพ AI ได้ทุกสไตล์ ใส่พรอมต์ช่วยเพื่อน ๆ ด้วยนะ ห้ามโพสต์ขายซ้ำ ⭐', desc: 'แชร์ภาพ พรอมต์ และเทคนิคสร้างภาพด้วย AI', cover: 'g_island.jpg', rules: ['แชร์พรอมต์ได้ แต่ห้ามขายของคนอื่น', 'ติดแท็กโมเดลที่ใช้ทุกครั้ง', 'คอมเมนต์อย่างสร้างสรรค์'] },
+  { id: 'newbie', name: 'มือใหม่หัดขาย', icon: 'sparkle', color: '#DB2777', bg: '#FDEBF2', members: 15200, today: 52, desc: 'ถามได้ทุกเรื่อง ตั้งราคา ถ่ายรูป ลงขายครั้งแรก', cover: 'g_lotus.jpg', rules: ['ไม่มีคำถามโง่', 'ห้ามสแปมลิงก์', 'ช่วยกันตอบ ได้แต้มชุมชน'] },
+  { id: 'tpl', name: 'คนทำเทมเพลต', icon: 'megaphone', color: '#2563EB', bg: '#EAF1FF', members: 5100, today: 9, desc: 'Canva Figma สไลด์ และไฟล์พิมพ์', cover: 'cafe.jpg', rules: ['บอกแอปและฟอนต์ที่ใช้', 'ห้ามแจกไฟล์ที่ซื้อมา'] },
+  { id: 'code', name: 'โค้ดและเกม', icon: 'code', color: '#4F46E5', bg: '#EEF2FF', members: 3200, today: 6, desc: 'โปรแกรม แอป เกมอินดี้ ปลั๊กอิน', cover: 'c_game.jpg', rules: ['แชร์โค้ดใส่บล็อกโค้ด', 'ห้ามแจกไฟล์แคร็ก'] },
+  { id: 'bot', name: 'บอทและระบบอัตโนมัติ', icon: 'robot', color: '#15803D', bg: '#E5F8EC', members: 2800, today: 4, desc: 'LINE OA n8n Make และ Sheets', cover: 'c_bot.jpg', rules: ['ห้ามโพสต์ API key จริง', 'แชร์ฟลว์เป็นรูปหรือไฟล์'] },
+  { id: 'sticker', name: 'คนขายสติกเกอร์ LINE', icon: 'heart', color: '#F59E0B', bg: '#FFF4DB', members: 8900, today: 17, desc: 'ออกแบบ ส่งตรวจ และโปรโมตสติกเกอร์', cover: 'g_anime.jpg', rules: ['โชว์งานได้วันละ 1 โพสต์'] },
 ]
 /** The member numbers above are sample numbers (demo site). The real site starts at 0 and takes the server's
  *  room member counts (cloud.ts loadRoomCounts). */
-if (REAL) for (const r of ROOMS) r.members = 0
-export function setRoomCounts(rows: { id: string; member_count: number | null }[]) {
-  for (const row of rows) { const r = ROOMS.find((x) => x.id === row.id); if (r) r.members = row.member_count ?? 0 }
+if (REAL) for (const r of ROOMS) { r.members = 0; r.today = undefined; r.announcement = undefined }
+export function setRoomCounts(rows: { id: string; member_count: number | null; announcement?: string | null; privacy?: string | null }[]) {
+  for (const row of rows) {
+    const r = ROOMS.find((x) => x.id === row.id); if (!r) continue
+    r.members = row.member_count ?? 0
+    if (row.announcement !== undefined) r.announcement = row.announcement ?? undefined
+    if (row.privacy) r.privacy = row.privacy === 'private' ? 'private' : 'public'
+  }
 }
 
 export function seed(): DB {
@@ -70,20 +75,33 @@ export function seed(): DB {
     ],
   }
   const posts: Post[] = [
-    { id: 'c1', authorId: 'nova', at: t(40 * M), tag: 'โชว์ผลงาน', text: 'ลองทำชุดภาพโปรโมตตุ๊กตุ๊กดินปั้น 3 ภาพ ใช้เวลาแค่ 20 นาที 🛺✨ ใครอยากได้สูตร แชร์พรอมต์ไว้ในโพสต์แล้วนะครับ #ภาพAI #ตุ๊กตุ๊ก #ดินปั้น', images: ['g_tuktuk.jpg', 'g_poster.jpg', 'thaitea.jpg'], productIds: ['p09'], prompt: '/imagine prompt: a cute clay tuk-tuk on a pastel Bangkok street, soft studio light, tiny details, isometric, 3D render --ar 3:4 --stylize 500', roomId: 'ai', likes: 248, comments: 3, shares: 12 },
-    { id: 'c2', authorId: 'ton', at: t(2 * H), tag: 'ความรู้', text: '3 สูตร Google Sheets ที่ร้านเล็กต้องมี ตัดสต็อกเองไม่ต้องนั่งนับ 📊 เซฟเก็บไว้ได้เลย #Sheets #ร้านค้าออนไลน์', images: [], code: ['=SUMIF(ยอดขาย!B:B, A2, ยอดขาย!C:C)', '=IF(D2<5, "ใกล้หมด", "พอ")', '=QUERY(A:D, "select A, sum(C) group by A")'], productIds: ['p03'], roomId: 'bot', likes: 512, comments: 1, shares: 88 },
-    { id: 'c3', authorId: 'kenji', at: t(5 * H), tag: 'เบื้องหลัง', text: 'เบื้องหลังแอปจองคิวร้านเสริมสวย ทำ 2 สัปดาห์ ส่วนที่ยากสุดคือปฏิทินวันหยุดร้าน 😅 ใครทำแอปอยู่มาแลกเปลี่ยนกันครับ #แอปมือถือ #เบื้องหลัง', images: ['c_app.jpg', 'c_software.jpg'], productIds: ['n06'], roomId: 'code', likes: 136, comments: 0, shares: 5 },
-    { id: 'c4', authorId: 'mint', at: t(9 * H), tag: 'ถาม-ตอบ', text: 'ถามหน่อยค่ะ เทมเพลตโพสต์ร้านกาแฟ ควรทำ 4:5 หรือ 1:1 ดีคะ ลูกค้าส่วนใหญ่ลง IG กับ Facebook 🙏 #ถามตอบ #เทมเพลต', images: [], productIds: [], roomId: 'tpl', likes: 42, comments: 1, shares: 0 },
-    { id: 'c5', authorId: 'pim', at: t(1 * D), tag: 'แจกฟรี', text: 'แจกฟรี! ฟอนต์ลายมือ “ใบเตย” ใช้ได้ทั้งไทยและอังกฤษ 🌿 โหลดไปใช้ส่วนตัวได้เลยค่ะ #แจกฟรี #ฟอนต์ไทย', images: ['c_creator.jpg'], productIds: ['n10'], roomId: 'newbie', likes: 890, comments: 0, shares: 120 },
-    { id: 'c6', authorId: 'toy', at: t(1 * D + 3 * H), tag: 'โชว์ผลงาน', text: 'มาสคอตร้านขนมที่เพิ่งส่งงาน ลูกค้าเอาไปทำสติกเกอร์แจกด้วย 🧁 รับคิวเดือนนี้อีก 3 งานครับ #มาสคอต #3D', images: ['mascot.jpg', 'toys.jpg'], productIds: ['p14'], hireButton: true, roomId: 'ai', likes: 301, comments: 0, shares: 9 },
-    { id: 'c7', authorId: 'fasai', at: t(2 * D), tag: 'โชว์ผลงาน', text: 'ภาพบัวสีน้ำชุดใหม่ โทนพาสเทลอ่อน ๆ เหมาะทำปกเพจสปาและร้านชา 🪷 #สีน้ำ #ภาพAI', images: ['g_lotus.jpg'], productIds: ['p01'], roomId: 'ai', likes: 77, comments: 0, shares: 2, mine: true },
+    { id: 'c1', authorId: 'nova', at: t(40 * M), tag: 'โชว์ผลงาน', text: 'ลองทำชุดภาพโปรโมตตุ๊กตุ๊กดินปั้น 3 ภาพ ใช้เวลาแค่ 20 นาที 🛺✨ ขอบคุณ @ฟ้าใส ครีเอท ที่แนะนำเรื่องแสงครับ #ภาพAI #ตุ๊กตุ๊ก ใครอยากได้สูตร แชร์พรอมต์ไว้ในโพสต์แล้วนะครับ #ดินปั้น', images: ['g_tuktuk.jpg', 'g_poster.jpg', 'thaitea.jpg'], productIds: ['p09'], prompt: '/imagine prompt: a cute clay tuk-tuk on a pastel Bangkok street, soft studio light, tiny details, isometric, 3D render --ar 3:4 --stylize 500', likes: 248, comments: 12, shares: 3, rx: { like: 151, love: 64, fire: 33 }, mentions: [{ id: 'fasai', name: 'ฟ้าใส ครีเอท' }] },
+    { id: 'c2', authorId: 'ton', at: t(2 * H), tag: 'ความรู้', text: '3 สูตร Google Sheets ที่ร้านเล็กต้องมี ตัดสต็อกเองไม่ต้องนั่งนับ 📊 เซฟเก็บไว้ได้เลย #Sheets #ร้านค้าออนไลน์', images: [], code: ['=SUMIF(ยอดขาย!B:B, A2, ยอดขาย!C:C)', '=IF(D2<5, "ใกล้หมด", "พอ")', '=QUERY(A:D, "select A, sum(C) group by A")'], productIds: ['p03'], roomId: 'bot', likes: 512, comments: 1, shares: 88, rx: { idea: 300, like: 160, love: 52 } },
+    { id: 'c3', authorId: 'kenji', at: t(5 * H), tag: 'เบื้องหลัง', text: 'เบื้องหลังแอปจองคิวร้านเสริมสวย ทำ 2 สัปดาห์ ส่วนที่ยากสุดคือปฏิทินวันหยุดร้าน 😅 ใครทำแอปอยู่มาแลกเปลี่ยนกันครับ #แอปมือถือ #เบื้องหลัง', images: ['c_app.jpg', 'c_software.jpg'], productIds: [], roomId: 'code', likes: 136, comments: 4, shares: 1, rx: { idea: 80, like: 56 } },
+    { id: 'c4', authorId: 'mint', at: t(9 * H), tag: 'ถาม-ตอบ', text: 'ถามหน่อยค่ะ เทมเพลตโพสต์ร้านกาแฟ ควรทำ 4:5 หรือ 1:1 ดีคะ ลูกค้าส่วนใหญ่ลง IG กับ Facebook 🙏 #ถามตอบ #เทมเพลต', images: [], productIds: [], roomId: 'tpl', likes: 42, comments: 1, shares: 0, rx: { like: 30, idea: 12 } },
+    { id: 'c5', authorId: 'pim', at: t(1 * D), tag: 'แจกฟรี', text: 'แจกฟรี! ฟอนต์ลายมือ “ใบเตย” ใช้ได้ทั้งไทยและอังกฤษ 🌿 โหลดไปใช้ส่วนตัวได้เลยค่ะ #แจกฟรี #ฟอนต์ไทย', images: ['c_creator.jpg'], productIds: ['n10'], roomId: 'newbie', likes: 890, comments: 0, shares: 120, rx: { love: 500, like: 390 } },
+    { id: 'c6', authorId: 'toy', at: t(1 * D + 3 * H), tag: 'โชว์ผลงาน', text: 'มาสคอตร้านขนมที่เพิ่งส่งงาน ลูกค้าเอาไปทำสติกเกอร์แจกด้วย 🧁 รับคิวเดือนนี้อีก 3 งานครับ #มาสคอต #3D', images: ['mascot.jpg', 'toys.jpg'], productIds: ['p14'], hireButton: true, roomId: 'ai', likes: 301, comments: 0, shares: 9, rx: { fire: 200, like: 101 } },
+    { id: 'c7', authorId: 'fasai', at: t(2 * D), tag: 'โชว์ผลงาน', text: 'ภาพบัวสีน้ำชุดใหม่ โทนพาสเทลอ่อน ๆ เหมาะทำปกเพจสปาและร้านชา 🪷 #สีน้ำ #ภาพAI', images: ['g_lotus.jpg'], productIds: ['p01'], roomId: 'ai', likes: 77, comments: 0, shares: 2, mine: true, rx: { like: 60, love: 17 } },
   ]
-  const comments = [
-    { id: 'k1', postId: 'c1', authorId: 'ton', text: 'สวยมากครับ ขอถามว่าแสงนุ่ม ๆ แบบนี้ใส่คำว่าอะไรครับ', at: t(30 * M), likes: 12 },
-    { id: 'k2', postId: 'c1', authorId: 'nova', text: 'ใส่ “soft studio light” กับ “isometric” ครับ ลองดูได้เลย', at: t(25 * M), likes: 20, replyTo: 'k1', badge: 'author' as const },
-    { id: 'k3', postId: 'c1', authorId: 'somjai', text: 'ซื้อชุดนี้ไปทำป้ายร้านแล้วค่ะ ลูกค้าชมเยอะมาก', at: t(15 * M), likes: 8, badge: 'buyer' as const },
-    { id: 'k4', postId: 'c2', authorId: 'mint', text: 'สูตร QUERY ช่วยชีวิตมากค่ะ ขอบคุณค่ะ', at: t(H), likes: 5 },
-    { id: 'k5', postId: 'c4', authorId: 'nova', text: '4:5 ครับ กินพื้นที่ฟีดมากกว่า แล้วค่อยครอปเป็น 1:1 ทีหลังได้', at: t(8 * H), likes: 9 },
+  const comments: DB['comments'] = [
+    { id: 'k1', postId: 'c1', authorId: 'mint', text: 'สีพาสเทลสวยมากค่ะ ขอสูตรแสงด้วย 🙏', at: t(32 * M), likes: 18, rx: { like: 11, love: 7 } },
+    { id: 'k2', postId: 'c1', authorId: 'nova', text: '@มิ้นท์ สตูดิโอ ใส่ไว้ในพรอมต์ท้ายโพสต์แล้วครับ ใช้ soft studio light', at: t(30 * M), likes: 6, replyTo: 'k1', badge: 'author', rx: { like: 6 }, mentions: [{ id: 'mint', name: 'มิ้นท์ สตูดิโอ' }] },
+    { id: 'k3', postId: 'c1', authorId: 'pim', text: 'ขอบคุณค่ะ จะลองบ้าง', at: t(29 * M), likes: 1, replyTo: 'k1', rx: { like: 1 } },
+    { id: 'k4', postId: 'c1', authorId: 'mint', text: 'ได้แล้วค่ะ สวยเลย 😍', at: t(28 * M), likes: 2, replyTo: 'k1', rx: { love: 2 } },
+    { id: 'k5', postId: 'c1', authorId: 'toy', text: 'แสงแบบนี้ใช้กับงานปั้นได้ดีมากครับ', at: t(27 * M), likes: 0, replyTo: 'k1' },
+    { id: 'k6', postId: 'c1', authorId: 'ton', text: 'ใช้ทำปกโพสต์ร้านค้าได้ไหมครับ', at: t(20 * M), likes: 2, rx: { idea: 2 } },
+    { id: 'k7', postId: 'c1', authorId: 'somjai', text: 'ซื้อชุดนี้ไปทำป้ายร้านแล้วค่ะ ลูกค้าชมเยอะมาก', at: t(15 * M), likes: 8, badge: 'buyer', rx: { like: 8 } },
+    { id: 'k8', postId: 'c1', authorId: 'kenji', text: 'ฉากหลังสีชมพูเข้ากันมากครับ', at: t(14 * M), likes: 3, rx: { like: 3 } },
+    { id: 'k9', postId: 'c1', authorId: 'pim', text: 'อยากได้แบบรถสองแถวด้วยค่ะ 🛻', at: t(12 * M), likes: 4, rx: { haha: 2, like: 2 } },
+    { id: 'k10', postId: 'c1', authorId: 'nova', text: '@พิมพ์ดาว เดี๋ยวทำให้ครับ 😆', at: t(11 * M), likes: 2, replyTo: 'k9', badge: 'author', rx: { haha: 2 }, mentions: [{ id: 'pim', name: 'พิมพ์ดาว' }] },
+    { id: 'k11', postId: 'c1', authorId: 'toy', text: 'ใช้เวลาเรนเดอร์นานไหมครับ', at: t(9 * M), likes: 1, rx: { like: 1 } },
+    { id: 'k12', postId: 'c1', authorId: 'nova', text: '@Toy Mascot ประมาณ 2 นาทีต่อภาพครับ', at: t(8 * M), likes: 1, replyTo: 'k11', badge: 'author', mentions: [{ id: 'toy', name: 'Toy Mascot' }] },
+    { id: 'k13', postId: 'c2', authorId: 'mint', text: 'สูตร QUERY ช่วยชีวิตมากค่ะ ขอบคุณค่ะ', at: t(H), likes: 5, rx: { idea: 5 } },
+    { id: 'k14', postId: 'c4', authorId: 'nova', text: '4:5 ครับ กินพื้นที่ฟีดมากกว่า แล้วค่อยครอปเป็น 1:1 ทีหลังได้', at: t(8 * H), likes: 9, rx: { idea: 6, like: 3 } },
+    { id: 'k15', postId: 'c3', authorId: 'ton', text: 'ปฏิทินวันหยุดใช้ Google Calendar API ช่วยได้ครับ', at: t(4 * H), likes: 3, rx: { idea: 3 } },
+    { id: 'k16', postId: 'c3', authorId: 'kenji', text: '@Ton Data ขอบคุณครับ เดี๋ยวลองดู', at: t(3 * H), likes: 1, replyTo: 'k15', badge: 'author', mentions: [{ id: 'ton', name: 'Ton Data' }] },
+    { id: 'k17', postId: 'c3', authorId: 'mint', text: 'UI สวยมากค่ะ', at: t(2 * H), likes: 2, rx: { love: 2 } },
+    { id: 'k18', postId: 'c3', authorId: 'pim', text: 'อยากได้แอปแบบนี้ให้ร้านทำเล็บค่ะ', at: t(1 * H), likes: 0 },
   ]
   const draft = (x: Partial<ListingDraft> & { id: string }): ListingDraft => ({ type: null, step: 0, title: '', use: '', desc: '', tags: [], covers: [], spec: {}, free: false, tips: false, options: [], updatedAt: now, ...x })
   return {
@@ -106,14 +124,20 @@ export function seed(): DB {
     liked: ['c5'], saved: ['c2'], comments, likedComments: [],
     joined: ['ai', 'newbie'], votes: [],
     notifs: [
-      { id: 'n1', kind: 'order', text: 'Toy Mascot ส่งใบเสนอราคา ฿1,200 · กดรับเพื่อเริ่มงาน', at: t(5 * M), link: '/chat/t-toy', read: false, avatar: 'av_toy.jpg' },
-      { id: 'n2', kind: 'chat', text: 'ร้านกาแฟบ้านสวน ถามเรื่อง “ภาพบัวชมพูสีน้ำ”', at: t(18 * M), link: '/chat/t-shop', read: false, avatar: 'av_shop.jpg' },
-      { id: 'n3', kind: 'order', text: 'Kenji Web ส่งงานรอบที่ 2 แล้ว · ตรวจงานภายใน 3 วัน', at: t(2 * H), link: '/chat/t-kenji', read: false, avatar: 'av_kenji.jpg' },
+      { id: 'n0', kind: 'community', sub: 'mention', badge: '@', actor: 'NOVA Lab', text: 'NOVA Lab กล่าวถึงคุณในโพสต์: “ขอบคุณ @ฟ้าใส ครีเอท ที่แนะนำเรื่องแสง…”', at: t(40 * M), link: '/community/post/c1', read: false, avatar: 'av_nova.jpg' },
+      { id: 'n8', kind: 'like', sub: 'reaction', badge: '🔥', actor: 'มิ้นท์ สตูดิโอ', text: 'มิ้นท์ สตูดิโอ และคนอื่นอีก 23 คน แสดงความรู้สึกต่อโพสต์ของคุณ', at: t(1 * H), link: '/community/post/c7', read: false, avatar: 'av_mint.jpg' },
+      { id: 'n9', kind: 'community', sub: 'reply', badge: '💬', actor: 'Ton Data', text: 'Ton Data ตอบกลับความคิดเห็นของคุณใน ห้องภาพ AI', at: t(3 * H), link: '/community/post/c1', read: true, avatar: 'av_ton.jpg' },
+      { id: 'n10', kind: 'community', sub: 'group_invite', badge: '👥', actor: 'พิมพ์ดาว', text: 'พิมพ์ดาว เชิญคุณเข้ากลุ่ม คนขายสติกเกอร์ LINE', at: t(20 * H), link: '/community/group/sticker', read: true, avatar: 'av_pim.jpg' },
+      { id: 'n1', kind: 'order', text: 'Toy Mascot ส่งใบเสนอราคา ฿1,200 · กดรับเพื่อเริ่มงาน', at: t(5 * M), link: '/chat/t-toy', read: false, avatar: 'av_toy.jpg', actor: 'Toy Mascot' },
+      { id: 'n2', kind: 'chat', text: 'ร้านกาแฟบ้านสวน ถามเรื่อง “ภาพบัวชมพูสีน้ำ”', at: t(18 * M), link: '/chat/t-shop', read: false, avatar: 'av_shop.jpg', actor: 'ร้านกาแฟบ้านสวน' },
+      { id: 'n3', kind: 'order', text: 'Kenji Web ส่งงานรอบที่ 2 แล้ว · ตรวจงานภายใน 3 วัน', at: t(2 * H), link: '/chat/t-kenji', read: false, avatar: 'av_kenji.jpg', actor: 'Kenji Web' },
       { id: 'n4', kind: 'sale', text: 'ขายได้! คุณสมใจ ซื้อ “ภาพเทพธิดาชุดไทยแฟนตาซี” ฿190 · ไฟล์ส่งให้อัตโนมัติแล้ว', at: t(5 * H), link: '/chat/t-somjai', read: false, image: 'fantasy.jpg' },
-      { id: 'n5', kind: 'like', text: 'Ton Data และอีก 24 คน ถูกใจโพสต์ของคุณ', at: t(8 * H), link: '/community/post/c7', read: true, avatar: 'av_ton.jpg' },
-      { id: 'n6', kind: 'system', text: 'NOVA Lab ออกเวอร์ชัน v1.3 · ดูรายละเอียดการอัปเดต', at: t(1 * D), link: '/chat/t-nova', read: true, avatar: 'av_nova.jpg' },
+      { id: 'n5', kind: 'like', sub: 'reaction', badge: '❤️', actor: 'Ton Data', text: 'Ton Data และอีก 24 คน ถูกใจโพสต์ของคุณ', at: t(8 * H), link: '/community/post/c7', read: true, avatar: 'av_ton.jpg' },
+      { id: 'n6', kind: 'system', text: 'NOVA Lab ออกเวอร์ชัน v1.3 · ดูรายละเอียดการอัปเดต', at: t(1 * D), link: '/chat/t-nova', read: true, avatar: 'av_nova.jpg', actor: 'NOVA Lab' },
       { id: 'n7', kind: 'community', text: 'ประกวดภาพ “ลอยกระทงแห่งแสง” เปิดรับผลงานแล้ว', at: t(2 * D), link: '/community/activities', read: true, image: 'g_anime.jpg' },
     ],
+    reactions: { c5: 'love' }, commentReactions: {},
+    invites: [{ roomId: 'sticker', by: 'pim', at: t(20 * H) }], requested: [], hidden: [], storyReactions: {},
     drafts: [
       draft({ id: 'd-lotus', type: 'img', step: 3, title: 'ภาพบัวชมพูสีน้ำ ชุดที่ 2', use: 'ปกเพจสปา ร้านชา', desc: 'ภาพบัวสีน้ำโทนพาสเทล 4 ภาพ ใช้ทำปกเพจ', covers: ['g_lotus.jpg'], spec: { ...SPECS.img.defaults, files: [JSON.stringify({ name: 'lotus-set2.zip', size: '32 MB', scan: 'ok' })], count: '4 ภาพ', sellPrompt: false, model: 'Midjourney v7' }, options: [{ id: 'img', label: 'ภาพอย่างเดียว', sub: 'ไฟล์ 4K', price: 290, on: true }, { id: 'both', label: 'ภาพ + พรอมต์', sub: 'ไฟล์และสูตรครบ', price: 0, on: false }], updatedAt: t(1 * D) }),
       draft({ id: 'd-course', type: 'course', step: 1, title: 'คอร์สแต่งภาพสินค้าด้วยมือถือ', covers: ['c_course.jpg'], spec: { ...SPECS.course.defaults, lessons: ['ตอนที่ 1 · เตรียมแสง · 08:00'] }, updatedAt: t(3 * D) }),

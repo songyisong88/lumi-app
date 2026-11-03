@@ -9,7 +9,7 @@ import { Icon } from '../../components/Icon'
 import { Av, Empty, SampleNote, Sheet, Tabs, TopBar, blockTap } from '../../components/ui'
 import type { Sale } from '../../data/appTypes'
 import { ME, baht, creatorById, productById } from '../../data/sampleData'
-import { account, orders, stories } from '../../services/api'
+import { account, orders } from '../../services/api'
 import { refreshSales, thaiError } from '../../services/cloud'
 import { useDb } from '../../services/db'
 import { endRecovery, leaveDemo, signOut, startDemo, useSession } from '../../services/session'
@@ -374,39 +374,3 @@ function ShopOrdersPage() {
   )
 }
 
-// ---------------- new story (24 h) ----------------
-export const NewStory = () => <NeedAccount><NewStoryPage /></NeedAccount>
-function NewStoryPage() {
-  const nav = useNavigate()
-  const db = useDb()
-  const [f, setF] = useState<File>()
-  const [url, setUrl] = useState<string>()
-  const [cap, setCap] = useState('')
-  const [prod, setProd] = useState<string>()
-  const [busy, setBusy] = useState(false)
-  const file = useRef<HTMLInputElement>(null)
-  const kind = f?.type.startsWith('video/') ? 'video' : 'image'
-  const mine = db.published.filter((p) => p.creatorId === ME).slice(0, 12)
-  const pick = (x?: File) => { if (!x) return; if (x.size > 10 * 1048576) return toast('ไฟล์ใหญ่เกิน 10 MB'); setF(x); setUrl(URL.createObjectURL(x)) }
-  const mineStories = (db.stories ?? []).filter((s) => s.authorId === ME && s.expires > Date.now())
-  return (
-    <div className="page">
-      <TopBar title="ลงสตอรี่" sub="หายไปเองใน 24 ชั่วโมง" right={<button className="btn btn-sm btn-p" disabled={busy} {...blockTap(!f, 'เลือกรูปหรือคลิปก่อน')} onClick={async () => { setBusy(true); try { await stories.post(f!, kind, cap.trim(), prod); toast('ลงสตอรี่แล้ว'); nav(`/story/${ME}`, { replace: true }) } catch (e) { err(e) } finally { setBusy(false) } }}>{busy ? 'กำลังลง…' : 'ลงสตอรี่'}</button>} />
-      <div className="narrow" style={pad}>
-        <button className="card2 press" style={{ width: '100%', aspectRatio: '9/14', maxHeight: 420, display: 'grid', placeItems: 'center', overflow: 'hidden', padding: 0 }} onClick={() => file.current?.click()}>
-          {!url ? <span className="muted" style={{ display: 'grid', placeItems: 'center', gap: 8 }}><Icon name="camera" size={30} color="var(--p)" />เลือกรูปหรือวิดีโอ (ไม่เกิน 10 MB)</span>
-            : kind === 'video' ? <video src={url} muted autoPlay loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-        </button>
-        <input ref={file} type="file" accept="image/*,video/mp4,video/webm" hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
-        <label className="field" style={{ marginTop: 14 }}><span className="flabel">ข้อความ (ไม่บังคับ)</span><input className="inp" value={cap} onChange={(e) => setCap(e.target.value)} maxLength={200} placeholder="เช่น งานใหม่มาแล้ว ✨" /></label>
-        {mine.length > 0 && <><span className="flabel">แท็กผลงาน (ไม่บังคับ)</span><div className="chips hscroll">{mine.map((p) => <button key={p.id} className={`chip ${prod === p.id ? 'on' : ''}`} onClick={() => setProd(prod === p.id ? undefined : p.id)}>{p.title}</button>)}</div></>}
-        {mineStories.length > 0 && <div className="sec" style={{ padding: '16px 0 0' }}>
-          <div className="sec-h">สตอรี่ที่ยังแสดงอยู่</div>
-          <div className="card2" style={{ padding: 0, overflow: 'hidden' }}>
-            {mineStories.map((s) => <div key={s.id} className="list-row"><Icon name={s.kind === 'video' ? 'play' : 'image'} size={20} /><span className="grow">{s.caption || (s.kind === 'video' ? 'วิดีโอ' : 'รูปภาพ')}<small>{ago(s.at)} · ดู {s.views} ครั้ง</small></span><button className="btn btn-xs btn-s" onClick={async () => { if (!confirm('ลบสตอรี่นี้?')) return; try { await stories.remove(s.id); toast('ลบสตอรี่แล้ว') } catch (e) { err(e) } }}><Icon name="trash" size={14} />ลบ</button></div>)}
-          </div>
-        </div>}
-      </div>
-    </div>
-  )
-}

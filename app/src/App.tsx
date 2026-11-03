@@ -28,7 +28,7 @@ const CreatorPage = lz(() => import('./pages/profile/Profile'), 'CreatorPage')
 const Community = lz(() => import('./pages/community/Community'), 'Community')
 const Activities = lz(() => import('./pages/community/More'), 'Activities')
 const PostDetail = lz(() => import('./pages/community/More'), 'PostDetail')
-const Room = lz(() => import('./pages/community/More'), 'Room')
+const Group = lz(() => import('./pages/community/Group'), 'Group')
 const Compose = lz(() => import('./pages/community/Compose'), 'Compose')
 const Sell = lz(() => import('./pages/sell/Sell'), 'Sell')
 const Drafts = lz(() => import('./pages/sell/Sell'), 'Drafts')
@@ -39,7 +39,7 @@ const SignIn = lz(() => import('./pages/account/Account'), 'SignIn')
 const NewPassword = lz(() => import('./pages/account/Account'), 'NewPassword')
 const AccountSettings = lz(() => import('./pages/account/Account'), 'AccountSettings')
 const ShopOrders = lz(() => import('./pages/account/Account'), 'ShopOrders')
-const NewStory = lz(() => import('./pages/account/Account'), 'NewStory')
+const StoryCreator = lz(() => import('./pages/story/StoryCreator'), 'StoryCreator')
 if (typeof window !== 'undefined') {
   const prefetch = () => loaders.forEach((l) => void l().catch(() => {}))
   const idle = (window as Window & { requestIdleCallback?: (f: () => void) => void }).requestIdleCallback ?? ((f: () => void) => setTimeout(f, 1200))
@@ -61,6 +61,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
             <Route path="/favorites" element={<Favorites />} />
+            <Route path="/story/new" element={<StoryCreator />} />
             <Route path="/story/:creatorId" element={<StoryViewer />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/cart" element={<Cart />} />
@@ -75,14 +76,14 @@ export default function App() {
             <Route path="/community" element={<Community />} />
             <Route path="/community/new" element={<Compose />} />
             <Route path="/community/post/:id" element={<PostDetail />} />
-            <Route path="/community/room/:id" element={<Room />} />
+            <Route path="/community/group/:id" element={<Group />} />
+            <Route path="/community/room/:id" element={<Group />} />
             <Route path="/community/activities" element={<Activities />} />
             {FEATURES.accounts && <>
               <Route path="/account/login" element={<SignIn />} />
               <Route path="/account/password" element={<NewPassword />} />
               <Route path="/account" element={<AccountSettings />} />
               <Route path="/shop/orders" element={<ShopOrders />} />
-              <Route path="/story/new" element={<NewStory />} />
             </>}
             <Route path="/sell" element={<Sell />} />
             <Route path="/sell/drafts" element={<Drafts />} />

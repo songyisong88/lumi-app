@@ -3,10 +3,11 @@
  * signed in (FEATURES.accounts on + session mode 'cloud') AND the target is a server row (uuid).
  * Sample data (non-uuid ids) keeps the local demo behaviour, so the approved demo never changes.
  */
-import type { CartItem, Message, Post, PostTag } from '../data/appTypes'
+import type { CartItem, Mention, Message, Post, PostTag, ReactKind, StoryActivity, StoryLinkLabel, StoryOverlay } from '../data/appTypes'
 import { ME, isRemoteId } from '../data/sampleData'
+import { REAL } from '../config'
 import { getDb, update } from './db'
-import { client as S, must, hydrate, refreshChats, refreshSales, toast, uploadPreview, toPaths, toStory, signedFileUrl, checkoutCloud, thaiError } from './cloud'
+import { client as S, must, hydrate, refreshChats, refreshSales, toast, uploadPreview, toPaths, toStory, signedFileUrl, checkoutCloud, thaiError, loadProfiles } from './cloud'
 import { setProfile, type Profile } from './session'
 
 type Row = Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -31,19 +32,76 @@ async function toggleRow(table: string, col: string, id: string, list: 'liked' |
   if (was) must(await S().from(table).delete().eq('user_id', ME).eq(col, id), table)
   else must(await S().from(table).insert({ [col]: id } as Row), table)
 }
-export const likePost = (id: string) => toggleRow('post_likes', 'post_id', id, 'liked')
+/** Set my reaction on a post/comment (null = remove). Optimistic, then insert / update kind / delete. */
+async function setReaction(isPost: boolean, id: string, kind: ReactKind | null) {
+  const map = isPost ? 'reactions' : 'commentReactions'
+  const prev = (getDb()[map] ?? {})[id] ?? ((isPost ? getDb().liked : getDb().likedComments).includes(id) ? 'like' : undefined)
+  if ((prev ?? null) === kind) return
+  update((d) => applyReaction(d, isPost, id, prev, kind))
+  const table = isPost ? 'post_likes' : 'comment_likes', col = isPost ? 'post_id' : 'comment_id'
+  if (!kind) must(await S().from(table).delete().eq('user_id', ME).eq(col, id), table)
+  else if (!prev) must(await S().from(table).insert({ [col]: id, kind } as Row), table)
+  else must(await S().from(table).update({ kind }).eq('user_id', ME).eq(col, id), table)
+}
+/** Shared by the local demo and the cloud cache: move one reaction from `prev` to `kind`. */
+export function applyReaction(d: ReturnType<typeof getDb>, isPost: boolean, id: string, prev: ReactKind | undefined, kind: ReactKind | null) {
+  const item = isPost ? d.posts.find((x) => x.id === id) : d.comments.find((x) => x.id === id)
+  const map = (isPost ? (d.reactions ??= {}) : (d.commentReactions ??= {}))
+  const list = isPost ? 'liked' : 'likedComments'
+  if (kind) map[id] = kind; else delete map[id]
+  d[list] = kind ? (d[list].includes(id) ? d[list] : [...d[list], id]) : d[list].filter((x) => x !== id)
+  if (!item) return
+  const rx = { ...(item.rx ?? {}) }
+  if (prev) { rx[prev] = Math.max(0, (rx[prev] ?? 0) - 1); if (!rx[prev]) delete rx[prev] }
+  if (kind) rx[kind] = (rx[kind] ?? 0) + 1
+  item.rx = rx
+  item.likes = Math.max(0, item.likes + (kind ? 1 : 0) - (prev ? 1 : 0))
+}
+export const reactPost = (id: string, kind: ReactKind | null) => setReaction(true, id, kind)
+export const reactComment = (id: string, kind: ReactKind | null) => setReaction(false, id, kind)
+export const likePost = (id: string) => setReaction(true, id, (getDb().reactions?.[id] || getDb().liked.includes(id)) ? null : 'like')
 export const savePost = (id: string) => toggleRow('post_saves', 'post_id', id, 'saved')
-export const likeComment = (id: string) => toggleRow('comment_likes', 'comment_id', id, 'likedComments')
-export async function addComment(postId: string, text: string, replyTo?: string) {
-  must(await S().from('comments').insert({ post_id: postId, body: text, reply_to: replyTo && R(replyTo) ? replyTo : null }), 'comment')
+export const likeComment = (id: string) => setReaction(false, id, (getDb().commentReactions?.[id] || getDb().likedComments.includes(id)) ? null : 'like')
+void toggleRow
+/** Tag rows for the @names still in the text (the server sends the notices). */
+async function saveMentions(kind: 'post' | 'comment' | 'story', sourceId: string, text: string, list?: Mention[]) {
+  const seen = new Set<string>()
+  const rows = (list ?? []).filter((m) => R(m.id) && m.id !== ME && text.includes('@' + m.name) && !seen.has(m.id) && seen.add(m.id))
+    .slice(0, 10).map((m) => ({ source_kind: kind, source_id: sourceId, mentioned_id: m.id, name: m.name.slice(0, 60) }))
+  if (rows.length) await soft(S().from('mentions').insert(rows))
+}
+export async function addComment(postId: string, text: string, replyTo?: string, mentions?: Mention[]) {
+  const row = must(await S().from('comments').insert({ post_id: postId, body: text, reply_to: replyTo && R(replyTo) ? replyTo : null }).select('id').single(), 'comment') as Row
+  await saveMentions('comment', row.id, text, mentions)
   await hydrate()
+}
+/** People to suggest after “@”: followed, in this post, commented on my posts, in this group (server ranks them). */
+export async function mentionCandidates(q: string, postId?: string, roomId?: string) {
+  const rows = (must(await S().rpc('search_mention_candidates', { q, p_post: postId && R(postId) ? postId : null, p_room: roomId ?? null, p_real: REAL }), 'mention search') as Row[]) ?? []
+  const ids = rows.map((r) => r.id as string)
+  if (ids.length) await loadProfiles(ids)
+  return rows.map((r) => ({ id: r.id as string, reason: (r.reason as string) ?? '' }))
+}
+export async function inviteToRoom(roomId: string, userId: string) {
+  must(await S().from('room_members').insert({ room_id: roomId, user_id: userId, status: 'invited', invited_by: ME } as Row), 'invite')
+}
+export async function acceptInvite(roomId: string) {
+  update((d) => { d.invites = (d.invites ?? []).filter((x) => x.roomId !== roomId); if (!d.joined.includes(roomId)) d.joined = [...d.joined, roomId] })
+  must(await S().from('room_members').update({ status: 'joined' }).eq('user_id', ME).eq('room_id', roomId).eq('status', 'invited'), 'accept invite')
+}
+export async function groupMembers(roomId: string) {
+  const rows = (must(await S().from('room_members').select('user_id, role').eq('room_id', roomId).eq('status', 'joined').limit(60), 'members') as Row[]) ?? []
+  const ids = rows.map((r) => r.user_id as string)
+  if (ids.length) await loadProfiles(ids)
+  return rows.map((r) => ({ id: r.user_id as string, role: (r.role as string) ?? 'member' }))
 }
 export async function createPost(p: Omit<Post, 'id' | 'at' | 'likes' | 'comments' | 'shares' | 'authorId' | 'mine'>) {
   const images = await toPaths(p.images ?? [], 'posts')
   const row = must(await S().from('posts').insert({
     tag: p.tag, body: p.text, images, product_ids: (p.productIds ?? []).filter(R), prompt: p.prompt ?? null, code: p.code ?? null,
-    room_id: p.roomId ?? null, hire_button: !!p.hireButton,
+    room_id: p.roomId ?? null, hire_button: !!p.hireButton, feeling: p.feeling ?? null,
   }).select('id').single(), 'post') as Row
+  await saveMentions('post', row.id, p.text, p.mentions)
   await hydrate()
   return row.id as string
 }
@@ -68,10 +126,19 @@ export async function deleteComment(id: string) {
   })
 }
 export async function joinRoom(roomId: string) {
-  const joined = !getDb().joined.includes(roomId)
-  update((d) => { d.joined = joined ? [...d.joined, roomId] : d.joined.filter((x) => x !== roomId) })
-  await soft(joined ? S().from('room_members').insert({ room_id: roomId }) : S().from('room_members').delete().eq('user_id', ME).eq('room_id', roomId))
-  return joined
+  const db = getDb()
+  if ((db.invites ?? []).some((x) => x.roomId === roomId)) { await acceptInvite(roomId); return true }
+  const leaving = db.joined.includes(roomId) || (db.requested ?? []).includes(roomId)
+  update((d) => {
+    d.joined = d.joined.filter((x) => x !== roomId); d.requested = (d.requested ?? []).filter((x) => x !== roomId)
+    if (!leaving) d.joined = [...d.joined, roomId]
+  })
+  if (leaving) { await soft(S().from('room_members').delete().eq('user_id', ME).eq('room_id', roomId)); return false }
+  // the server decides: public group → joined, private → requested
+  const r = await S().from('room_members').insert({ room_id: roomId }).select('status').single()
+  if (r.error) { console.warn('[lumi cloud]', r.error.message); return true }
+  if ((r.data as Row)?.status === 'requested') update((d) => { d.joined = d.joined.filter((x) => x !== roomId); d.requested = [...(d.requested ?? []), roomId] })
+  return (r.data as Row)?.status !== 'requested'
 }
 
 // ---------- notifications
@@ -183,10 +250,50 @@ export async function replyReview(reviewId: string, text: string) {
 export const downloadUrl = (assetValue: string) => signedFileUrl(assetValue.replace(/^cloud:/, ''))
 
 // ---------- stories (24 h)
-export async function postStory(file: Blob, kind: 'image' | 'video', caption: string, productId?: string) {
-  const path = await uploadPreview(file, 'stories', kind === 'video' ? 'story.mp4' : 'story.jpg')
-  const row = must(await S().from('stories').insert({ media_path: path, media_kind: kind, caption: caption.slice(0, 200), product_id: productId && R(productId) ? productId : null }).select('*').single(), 'story') as Row
+export interface StoryInput { file: Blob; kind: 'image' | 'video'; caption: string; productId?: string; linkLabel?: StoryLinkLabel; overlays?: StoryOverlay[]; durationMs?: number; mentions?: Mention[] }
+export async function postStory(x: StoryInput) {
+  const path = await uploadPreview(x.file, 'stories', x.kind === 'video' ? (x.file.type.includes('webm') ? 'story.webm' : x.file.type.includes('quicktime') ? 'story.mov' : 'story.mp4') : 'story.jpg')
+  const product = x.productId && R(x.productId) ? x.productId : null
+  const row = must(await S().from('stories').insert({
+    media_path: path, media_kind: x.kind, caption: x.caption.slice(0, 200), product_id: product,
+    link_label: product ? (x.linkLabel ?? 'ดูสินค้า') : null, overlays: (x.overlays ?? []).slice(0, 30), duration_ms: x.durationMs ? Math.min(60000, Math.max(500, Math.round(x.durationMs))) : null,
+  }).select('*').single(), 'story') as Row
+  const names = (x.mentions ?? []).map((m) => '@' + m.name).join(' ')
+  await saveMentions('story', row.id, names, x.mentions)
   update((d) => { d.stories = [toStory(row), ...(d.stories ?? [])] })
+}
+/** My emoji on someone's story (one per person; null removes). */
+export async function reactStory(id: string, emoji: string | null) {
+  update((d) => { d.storyReactions = { ...(d.storyReactions ?? {}) }; if (emoji) d.storyReactions[id] = emoji; else delete d.storyReactions[id] })
+  if (!emoji) return soft(S().from('story_reactions').delete().eq('story_id', id).eq('user_id', ME))
+  await soft(S().from('story_reactions').upsert({ story_id: id, emoji } as Row, { onConflict: 'story_id,user_id' }))
+}
+/** Reply to a story: a chat message that points at the story. */
+export async function replyStory(id: string, authorId: string, text: string) {
+  const thread = await openChat(authorId)
+  must(await S().from('messages').insert({ thread_id: thread, kind: 'text', body: text, story_id: id } as Row), 'story reply')
+  await refreshChats()
+  return thread
+}
+export async function storyLinkClicked(id: string) {
+  await soft(S().from('story_views').update({ clicked_link: true }).eq('story_id', id).eq('viewer_id', ME))
+}
+/** Viewers, emoji and replies on my own stories (the server shows them only to the author, 48 h). */
+export async function storyActivity(ids: string[]): Promise<Record<string, StoryActivity[]>> {
+  const out: Record<string, StoryActivity[]> = {}
+  const live = ids.filter(R); if (!live.length) return out
+  const [v, rx, rp] = await Promise.all([
+    S().from('story_views').select('story_id, viewer_id, created_at, clicked_link').in('story_id', live).limit(500),
+    S().from('story_reactions').select('story_id, user_id, emoji, created_at').in('story_id', live).limit(500),
+    S().from('messages').select('story_id, sender_id').in('story_id', live).limit(500),
+  ])
+  const add = (sid: string, uid: string) => { const l = (out[sid] ??= []); let a = l.find((x) => x.userId === uid); if (!a) { a = { userId: uid, at: 0 }; l.push(a) } return a }
+  for (const r of (v.data ?? []) as Row[]) { if (r.viewer_id === ME) continue; const a = add(r.story_id, r.viewer_id); a.at = Math.max(a.at, Date.parse(r.created_at)); a.clicked = a.clicked || !!r.clicked_link }
+  for (const r of (rx.data ?? []) as Row[]) { const a = add(r.story_id, r.user_id); a.emoji = r.emoji; a.at = Math.max(a.at, Date.parse(r.created_at)) }
+  for (const r of (rp.data ?? []) as Row[]) { if (r.sender_id === ME) continue; add(r.story_id, r.sender_id).replied = true }
+  const people = [...new Set(Object.values(out).flat().map((a) => a.userId))]
+  if (people.length) await loadProfiles(people)
+  return out
 }
 export async function deleteStory(id: string) {
   const gone = must(await S().from('stories').delete().eq('id', id).eq('author_id', ME).select('media_path'), 'delete story') as Row[]

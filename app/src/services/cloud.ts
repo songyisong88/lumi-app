@@ -3,11 +3,11 @@
  * so every screen keeps reading the same DB shape. Only used when session mode is 'cloud'.
  * Sample creators/products (ids that are not uuids) stay simulated locally, as in the demo.
  */
-import type { CartItem, CloudReview, Message, Notif, Order, Post, Purchase, Sale, Thread, UserStory, Asset } from '../data/appTypes'
+import type { CartItem, CloudReview, Mention, Message, Notif, Order, Post, Purchase, ReactKind, Sale, Thread, UserStory, Asset } from '../data/appTypes'
 import { LAUNCH_MAX_MB, type ListingDraft } from '../data/listingSpec'
 import type { Creator, Product } from '../data/types'
 import { ME, NO_AVATAR, isRemoteId, productById, registerCreators, remoteCreator } from '../data/sampleData'
-import { setRoomCounts } from '../data/appSeed'
+import { ROOMS, setRoomCounts } from '../data/appSeed'
 import { REAL } from '../config'
 import { getDb, update } from './db'
 import { publicUrl, sb } from './supabase'
@@ -101,9 +101,25 @@ export function toPost(r: Row): Post {
     id: r.id, authorId: r.author_id, at: ms(r.created_at), tag: r.tag, text: r.body, images: (r.images ?? []).map((i: string) => publicUrl(i)!),
     productIds: r.product_ids ?? [], prompt: r.prompt ?? undefined, code: r.code ?? undefined, roomId: r.room_id ?? undefined,
     likes: (REAL ? r.real_like_count : r.like_count) ?? 0, comments: (REAL ? r.real_comment_count : r.comment_count) ?? 0, shares: r.share_count ?? 0, hireButton: !!r.hire_button, mine: r.author_id === ME,
+    rx: rxOf(REAL ? r.real_reaction_counts : r.reaction_counts), feeling: r.feeling ?? undefined,
   }
 }
-const toComment = (r: Row) => ({ id: r.id, postId: r.post_id, authorId: r.author_id, text: r.body, at: ms(r.created_at), likes: r.like_count ?? 0, replyTo: r.reply_to ?? undefined })
+const RX_KEYS = ['like', 'love', 'haha', 'wow', 'fire', 'idea'] as const
+function rxOf(j: unknown): Post['rx'] {
+  if (!j || typeof j !== 'object') return undefined
+  const out: Post['rx'] = {}
+  for (const k of RX_KEYS) { const v = Number((j as Record<string, unknown>)[k] ?? 0); if (v > 0) out[k] = v }
+  return out
+}
+const toComment = (r: Row) => ({ id: r.id, postId: r.post_id, authorId: r.author_id, text: r.body, at: ms(r.created_at), likes: (REAL ? r.real_like_count ?? r.like_count : r.like_count) ?? 0, replyTo: r.reply_to ?? undefined, rx: rxOf(REAL ? r.real_reaction_counts : r.reaction_counts) })
+/** @-tags on these posts/comments, keyed by source id. */
+async function loadMentions(ids: string[]) {
+  const out = new Map<string, Mention[]>()
+  const list = uids(ids); if (!list.length) return out
+  const r = await S().from('mentions').select('source_id, mentioned_id, name').in('source_id', list).limit(1000)
+  for (const m of ((r.data ?? []) as Row[])) { if (!shown(m.mentioned_id)) continue; const l = out.get(m.source_id) ?? []; l.push({ id: m.mentioned_id, name: m.name }); out.set(m.source_id, l) }
+  return out
+}
 
 // ---------- chat
 const JOB_TEXT: Record<string, [string, string, Thread['tone']]> = {
@@ -160,7 +176,7 @@ function toMsg(m: Row, offers: Map<string, Row>, job?: Row, latestDelivery?: str
 /** Latest notices. The real site leaves out notices a test account caused (notifications.from_test, set server-side). */
 const notifQuery = () => { const q = S().from('notifications').select('*'); return (REAL ? q.eq('from_test', false) : q).order('created_at', { ascending: false }).limit(100) }
 const NOTIF_KIND: Record<string, Notif['kind']> = { moderation: 'system', payout: 'sale', refund: 'order' }
-const toNotif = (n: Row): Notif => ({ id: n.id, kind: NOTIF_KIND[n.kind] ?? n.kind, text: n.text, at: ms(n.created_at), link: n.link ?? '/', read: !!n.read_at, avatar: remoteCreator(n.actor_id)?.avatar, image: publicUrl(n.image) })
+const toNotif = (n: Row): Notif => ({ id: n.id, kind: NOTIF_KIND[n.kind] ?? n.kind, text: n.text, at: ms(n.created_at), link: n.link ?? '/', read: !!n.read_at, avatar: remoteCreator(n.actor_id)?.avatar, image: publicUrl(n.image), sub: n.sub ?? undefined, badge: n.badge ?? undefined, actor: remoteCreator(n.actor_id)?.name })
 
 // ---------- real site vs demo site
 /** Test accounts (profiles.is_test, the lumi-qa-* QA accounts). The real site hides their listings, posts, comments,
@@ -175,9 +191,11 @@ async function loadTestIds() {
 const shown = (id?: string | null) => !REAL || !id || id === ME || !TEST.has(id)
 /** Real member counts of the community rooms (the demo site keeps its sample numbers). */
 async function loadRoomCounts() {
-  if (!REAL) return
-  const r = await S().from('rooms').select('id, member_count')
-  if (!r.error && r.data) setRoomCounts(r.data as { id: string; member_count: number | null }[])
+  const r = await S().from('rooms').select('id, member_count, announcement, privacy')
+  if (r.error || !r.data) return
+  const rows = r.data as { id: string; member_count: number | null; announcement: string | null; privacy: string | null }[]
+  // the demo site keeps its sample member numbers and announcements; the real site uses the server's
+  setRoomCounts(REAL ? rows : rows.map((x) => ({ id: x.id, member_count: ROOMS.find((y) => y.id === x.id)?.members ?? 0, privacy: x.privacy })))
 }
 
 // ---------- hydrate (sign-in, reload, realtime refresh)
@@ -194,11 +212,11 @@ async function doHydrate() {
     c.from('products').select(PRODUCT_COLS).eq('creator_id', me).eq('status', 'published').order('updated_at', { ascending: false }),
     c.from('products').select(PRODUCT_COLS).eq('status', 'published').eq('review_status', 'live').neq('creator_id', me).order('published_at', { ascending: false }).limit(200),
     c.from('posts').select('*').eq('status', 'visible').order('created_at', { ascending: false }).limit(100),
-    c.from('post_likes').select('post_id').eq('user_id', me),
+    c.from('post_likes').select('post_id, kind').eq('user_id', me),
     c.from('post_saves').select('post_id').eq('user_id', me),
-    c.from('comment_likes').select('comment_id').eq('user_id', me),
+    c.from('comment_likes').select('comment_id, kind').eq('user_id', me),
     c.from('follows').select('creator_id').eq('follower_id', me),
-    c.from('room_members').select('room_id').eq('user_id', me),
+    c.from('room_members').select('room_id, status, invited_by, created_at').eq('user_id', me),
     c.from('entitlements').select('*, products(id, title, covers, creator_id, sell_type)').eq('user_id', me).order('granted_at', { ascending: false }),
     notifQuery(),
     c.from('stories').select('*').gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(200),
@@ -211,7 +229,9 @@ async function doHydrate() {
   const entRows = must(ents, 'entitlements') as Row[]
   const storyRows = (must(stories, 'stories') as Row[]).filter((r) => shown(r.author_id))
   const notifRows = must(notifs, 'notifications') as Row[]
-  await loadProfiles([...otherProducts.map((p) => p.creatorId), ...postRows.map((p) => p.author_id), ...comments.map((x) => x.author_id),
+  const memberRows = (members.data ?? []) as Row[]
+  const tags = await loadMentions([...postIds, ...comments.map((x) => x.id)])
+  await loadProfiles([...[...tags.values()].flat().map((m) => m.id), ...memberRows.map((m) => m.invited_by), ...otherProducts.map((p) => p.creatorId), ...postRows.map((p) => p.author_id), ...comments.map((x) => x.author_id),
     ...entRows.map((e) => e.products?.creator_id), ...storyRows.map((s) => s.author_id), ...notifRows.map((n) => n.actor_id)])
   // edits of live listings waiting for review
   const pend = must(await c.from('listing_drafts').select('*').eq('owner_id', me).not('published_product_id', 'is', null), 'pending edits') as Row[]
@@ -222,17 +242,23 @@ async function doHydrate() {
     p.rev = { status: dr.submitted_at ? 'pending' : 'rejected', reason: dr.review_reason ?? undefined, at: ms(dr.submitted_at ?? dr.updated_at), next }
   }
   const purchases = await purchasesFrom(entRows)
-  const remotePosts = postRows.map(toPost)
+  const remotePosts = postRows.map((r) => ({ ...toPost(r), mentions: tags.get(r.id) }))
+  const remoteComments = comments.map((r) => ({ ...toComment(r), mentions: tags.get(r.id) }))
   update((d) => {
     d.published = [...myProducts, ...otherProducts]
     d.posts = [...remotePosts, ...keepLocal(d.posts)].sort((a, b) => b.at - a.at)
-    d.comments = [...comments.map(toComment), ...keepLocal(d.comments)]
+    d.comments = [...remoteComments, ...keepLocal(d.comments)]
     const L = (xs: Row[] | null, k: string) => (xs ?? []).map((x) => x[k] as string)
     d.liked = [...L(likes.data, 'post_id'), ...d.liked.filter((x) => !isRemoteId(x))]
     d.saved = [...L(saves.data, 'post_id'), ...d.saved.filter((x) => !isRemoteId(x))]
     d.likedComments = [...L(clikes.data, 'comment_id'), ...d.likedComments.filter((x) => !isRemoteId(x))]
+    const keepRx = (m?: Record<string, ReactKind>) => Object.fromEntries(Object.entries(m ?? {}).filter(([k]) => !isRemoteId(k)))
+    d.reactions = { ...keepRx(d.reactions), ...Object.fromEntries(((likes.data ?? []) as Row[]).map((x) => [x.post_id, (x.kind ?? 'like') as ReactKind])) }
+    d.commentReactions = { ...keepRx(d.commentReactions), ...Object.fromEntries(((clikes.data ?? []) as Row[]).map((x) => [x.comment_id, (x.kind ?? 'like') as ReactKind])) }
     d.follows = [...L(follows.data, 'creator_id'), ...d.follows.filter((x) => !isRemoteId(x))]
-    d.joined = [...new Set([...L(members.data, 'room_id'), ...d.joined])]
+    d.joined = [...new Set(memberRows.filter((m) => (m.status ?? 'joined') === 'joined').map((m) => m.room_id as string))]
+    d.requested = memberRows.filter((m) => m.status === 'requested').map((m) => m.room_id as string)
+    d.invites = memberRows.filter((m) => m.status === 'invited').map((m) => ({ roomId: m.room_id as string, by: (m.invited_by as string) ?? '', at: ms(m.created_at) }))
     d.purchases = [...purchases, ...d.purchases.filter((x) => !isRemoteId(x.id))]
     d.notifs = [...notifRows.map(toNotif), ...keepLocal(d.notifs)].sort((a, b) => b.at - a.at)
     d.stories = storyRows.map(toStory)
@@ -354,7 +380,10 @@ export const cloudOn = () => getSession().mode === 'cloud' && isRemoteId(ME)
 
 // ---------- stories
 export function toStory(s: Row): UserStory {
-  return { id: s.id, authorId: s.author_id, media: publicUrl(s.media_path)!, kind: s.media_kind, caption: s.caption ?? '', at: ms(s.created_at), expires: ms(s.expires_at), views: s.view_count ?? 0, productId: s.product_id ?? undefined }
+  return {
+    id: s.id, authorId: s.author_id, media: publicUrl(s.media_path)!, kind: s.media_kind, caption: s.caption ?? '', at: ms(s.created_at), expires: ms(s.expires_at), views: s.view_count ?? 0, productId: s.product_id ?? undefined,
+    linkLabel: s.product_id ? (s.link_label ?? 'ดูสินค้า') : undefined, overlays: Array.isArray(s.overlays) ? s.overlays : undefined, durationMs: s.duration_ms ?? undefined,
+  }
 }
 
 // ---------- uploads
@@ -363,9 +392,9 @@ const safe = (name: string) => name.replace(/[^\w.\-]+/g, '_').slice(-80)
 /** data: URL or File → previews/<me>/<folder>/… ; returns the storage path. */
 export async function uploadPreview(src: string | Blob, folder: string, name = 'img.jpg') {
   const blob = typeof src === 'string' ? await (await fetch(src)).blob() : src
-  if (blob.size > 10 * 1024 * 1024) throw new CloudError('ไฟล์ภาพ/วิดีโอใหญ่เกิน 10 MB')
+  if (blob.size > 50 * 1024 * 1024) throw new CloudError('ไฟล์ภาพ/วิดีโอใหญ่เกิน 50 MB')
   const type = blob.type || 'image/jpeg'
-  const path = `${ME}/${folder}/${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}.${type.split('/')[1]?.replace('jpeg', 'jpg') ?? ext(name)}`
+  const path = `${ME}/${folder}/${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}.${type.split('/')[1]?.replace('jpeg', 'jpg').replace('quicktime', 'mov') ?? ext(name)}`
   must(await S().storage.from('previews').upload(path, blob, { contentType: type, upsert: false }), 'upload')
   return path
 }
@@ -513,8 +542,10 @@ export async function loadPublic() {
     c.from('stories').select('*').gt('expires_at', new Date().toISOString()).limit(100),
   ])
   const ok = (r: Row) => shown(r.creator_id ?? r.author_id)
-  const prods = ((live.data ?? []) as Row[]).filter(ok).map(toProduct), ps = ((posts.data ?? []) as Row[]).filter(ok).map(toPost), ss = ((stories.data ?? []) as Row[]).filter(ok).map(toStory)
-  await loadProfiles([...prods.map((p) => p.creatorId), ...ps.map((p) => p.authorId), ...ss.map((s) => s.authorId)])
+  const postRows = ((posts.data ?? []) as Row[]).filter(ok)
+  const tags = await loadMentions(postRows.map((r) => r.id))
+  const prods = ((live.data ?? []) as Row[]).filter(ok).map(toProduct), ps = postRows.map((r) => ({ ...toPost(r), mentions: tags.get(r.id) })), ss = ((stories.data ?? []) as Row[]).filter(ok).map(toStory)
+  await loadProfiles([...[...tags.values()].flat().map((m) => m.id), ...prods.map((p) => p.creatorId), ...ps.map((p) => p.authorId), ...ss.map((s) => s.authorId)])
   update((d) => { d.published = prods; d.posts = [...ps, ...keepLocal(d.posts)].sort((a, b) => b.at - a.at); d.stories = ss })
 }
 export { S as client, must }

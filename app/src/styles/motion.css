@@ -58,6 +58,7 @@ a{-webkit-tap-highlight-color:transparent}
 /* bottom sheets */
 .sheet-back{position:fixed;inset:0;z-index:200;background:rgba(22,19,43,.42);opacity:0;transition:opacity .36s var(--ios)}
 .sheet-back.open{opacity:1}
+.sheet-back:not(.open){pointer-events:none} /* a closing backdrop must not eat the next tap */
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:201;max-height:92vh;background:#fff;border-radius:22px 22px 0 0;display:flex;flex-direction:column;transform:translate3d(0,105%,0);transition:transform .5s var(--ios);box-shadow:0 -10px 40px rgba(22,19,43,.16);padding-bottom:env(safe-area-inset-bottom);will-change:transform}
 .sheet::after{content:'';position:absolute;left:0;right:0;top:100%;height:60px;background:#fff}
 .sheet.open{transform:none}
@@ -80,3 +81,11 @@ a{-webkit-tap-highlight-color:transparent}
 }
 .card-press{transition:scale .18s var(--out)}
 .card-press:has(> a:active){scale:.97}
+
+/* shared-element zoom (services/motion.ts): old page stays put, new page is hidden until it starts its zoom */
+.l-zoom-out{transform:none}
+.l-zoom-in{animation:zoomFallback .2s ease-out .32s both}
+@keyframes zoomFallback{from{opacity:0}to{opacity:1}}
+.l-peek{transform:none}
+.layer.dismissing{border-radius:24px;box-shadow:0 20px 60px rgba(22,19,43,.25);will-change:transform}
+.sk-dark{background:linear-gradient(100deg,#1d1b26 30%,#2a2736 50%,#1d1b26 70%) #1d1b26!important;background-size:220% 100%!important;animation:sk 1.3s linear infinite}

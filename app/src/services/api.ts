@@ -4,11 +4,12 @@
  * of a chat. Later: implement the same interfaces with Supabase (auth + Postgres + Storage
  * + Realtime) and a payment gateway; no screen code has to change.
  */
-import type { CartItem, Comment, DB, Message, Order, Post, Purchase, Thread } from '../data/appTypes'
+import type { CartItem, Comment, DB, Mention, Message, Order, Post, Purchase, ReactKind, StoryActivity, StoryLinkLabel, StoryOverlay, Thread, UserStory } from '../data/appTypes'
 import { HIRE_STEPS } from '../data/appTypes'
 import type { ListingDraft } from '../data/listingSpec'
 import { SPECS, checkListing, on, sellTypeOf, specOf } from '../data/listingSpec'
-import { ME, creatorById, isRemoteId, productById, unregisterProduct } from '../data/sampleData'
+import { CREATORS, ME, creatorById, isRemoteId, productById, unregisterProduct } from '../data/sampleData'
+import { ROOMS } from '../data/appSeed'
 import { creatorStats } from '../data/productExtras'
 import type { Product } from '../data/types'
 import { getDb, resetDb, uid, update } from './db'
@@ -38,8 +39,11 @@ export interface CommunityService {
   like(postId: string): Promise<void>
   save(postId: string): Promise<void>
   share(postId: string): Promise<void>
-  comment(postId: string, text: string, replyTo?: string): Promise<void>
+  comment(postId: string, text: string, replyTo?: string, mentions?: Mention[]): Promise<void>
   likeComment(id: string): Promise<void>
+  /** Set / change / remove (null) my reaction. */
+  react(postId: string, kind: ReactKind | null): Promise<void>
+  reactComment(id: string, kind: ReactKind | null): Promise<void>
   create(p: Omit<Post, 'id' | 'at' | 'likes' | 'comments' | 'shares' | 'authorId' | 'mine'>): Promise<string>
   join(roomId: string): Promise<boolean>
   vote(entryId: string): Promise<void>
@@ -351,51 +355,70 @@ class LocalChat implements ChatService {
 }
 
 class LocalCommunity implements CommunityService {
-  async like(id: string) {
-    update((d) => {
-      const p = d.posts.find((x) => x.id === id)!
-      const was = d.liked.includes(id)
-      d.liked = was ? d.liked.filter((x) => x !== id) : [...d.liked, id]
-      p.likes += was ? -1 : 1
-    })
+  async like(id: string) { await this.react(id, myReaction(getDb(), id) ? null : 'like') }
+  async react(id: string, kind: ReactKind | null) {
+    const prev = myReaction(getDb(), id)
+    if ((prev ?? null) === kind) return
+    update((d) => K.applyReaction(d, true, id, prev, kind))
+  }
+  async reactComment(id: string, kind: ReactKind | null) {
+    const prev = myCommentReaction(getDb(), id)
+    if ((prev ?? null) === kind) return
+    update((d) => K.applyReaction(d, false, id, prev, kind))
   }
   async share(id: string) { update((d) => { const x = d.posts.find((y) => y.id === id); if (x) x.shares += 1 }) }
   async save(id: string) { update((d) => { d.saved = d.saved.includes(id) ? d.saved.filter((x) => x !== id) : [id, ...d.saved] }) }
-  async comment(postId: string, text: string, replyTo?: string) {
+  async comment(postId: string, text: string, replyTo?: string, mentions?: Mention[]) {
     update((d) => {
-      const c: Comment = { id: uid('k'), postId, authorId: ME, text, at: now(), likes: 0, replyTo }
+      const tags = (mentions ?? []).filter((m) => m.id !== ME && text.includes('@' + m.name))
+      const c: Comment = { id: uid('k'), postId, authorId: ME, text, at: now(), likes: 0, replyTo, mentions: tags.length ? tags : undefined }
       d.comments.push(c)
       d.posts.find((x) => x.id === postId)!.comments += 1
     })
   }
-  async likeComment(id: string) {
-    update((d) => {
-      const c = d.comments.find((x) => x.id === id)!
-      const was = d.likedComments.includes(id)
-      d.likedComments = was ? d.likedComments.filter((x) => x !== id) : [...d.likedComments, id]
-      c.likes += was ? -1 : 1
-    })
-  }
+  async likeComment(id: string) { await this.reactComment(id, myCommentReaction(getDb(), id) ? null : 'like') }
   async create(p: Omit<Post, 'id' | 'at' | 'likes' | 'comments' | 'shares' | 'authorId' | 'mine'>) {
     const id = uid('u')
-    update((d) => { d.posts.unshift({ ...p, id, at: now(), likes: 0, comments: 0, shares: 0, authorId: ME, mine: true }) })
+    const mentions = (p.mentions ?? []).filter((m) => m.id !== ME && p.text.includes('@' + m.name))
+    update((d) => { d.posts.unshift({ ...p, mentions: mentions.length ? mentions : undefined, id, at: now(), likes: 0, comments: 0, shares: 0, authorId: ME, mine: true }) })
     later(5000, () => update((d) => {
       const post = d.posts.find((x) => x.id === id)
       if (!post) return
-      post.likes += 3
-      notify(d, { kind: 'like', text: 'NOVA Lab และอีก 2 คน ถูกใจโพสต์ใหม่ของคุณ', link: `/community/post/${id}`, avatar: 'av_nova.jpg' })
+      post.likes += 3; post.rx = { ...(post.rx ?? {}), like: (post.rx?.like ?? 0) + 2, love: (post.rx?.love ?? 0) + 1 }
+      notify(d, { kind: 'like', sub: 'reaction', badge: '❤️', actor: 'NOVA Lab', text: 'NOVA Lab และอีก 2 คน แสดงความรู้สึกต่อโพสต์ใหม่ของคุณ', link: `/community/post/${id}`, avatar: 'av_nova.jpg' })
     }))
     return id
   }
   async join(roomId: string) {
     let joined = false
     update((d) => {
-      joined = !d.joined.includes(roomId)
-      d.joined = joined ? [...d.joined, roomId] : d.joined.filter((x) => x !== roomId)
+      const invited = (d.invites ?? []).some((x) => x.roomId === roomId)
+      d.invites = (d.invites ?? []).filter((x) => x.roomId !== roomId)
+      joined = invited || !d.joined.includes(roomId)
+      d.joined = joined ? [...new Set([...d.joined, roomId])] : d.joined.filter((x) => x !== roomId)
     })
     return joined
   }
   async vote(id: string) { update((d) => { d.votes = d.votes.includes(id) ? d.votes.filter((x) => x !== id) : [...d.votes, id] }) }
+}
+
+export const myReaction = (d: DB, id: string): ReactKind | undefined => d.reactions?.[id] ?? (d.liked.includes(id) ? 'like' : undefined)
+export const myCommentReaction = (d: DB, id: string): ReactKind | undefined => d.commentReactions?.[id] ?? (d.likedComments.includes(id) ? 'like' : undefined)
+
+function localCandidates(q: string, postId?: string, roomId?: string) {
+  const d = getDb(), query = q.trim().toLowerCase()
+  const post = postId ? d.posts.find((p) => p.id === postId) : undefined
+  const inPost = new Set(post ? [post.authorId, ...d.comments.filter((c) => c.postId === postId).map((c) => c.authorId)] : [])
+  const onMine = new Set(d.comments.filter((c) => d.posts.some((p) => p.id === c.postId && p.authorId === ME)).map((c) => c.authorId))
+  const room = roomId ? ROOMS.find((r) => r.id === roomId) : undefined
+  const inRoom = new Set(roomId ? d.posts.filter((p) => p.roomId === roomId).map((p) => p.authorId) : [])
+  const people = CREATORS.filter((c) => c.id !== ME)
+  return people.map((c) => {
+    const reason = d.follows.includes(c.id) ? 'คุณติดตาม' : inPost.has(c.id) ? 'อยู่ในโพสต์นี้' : onMine.has(c.id) ? 'เคยคอมเมนต์โพสต์ของคุณ' : room && inRoom.has(c.id) ? `อยู่ในกลุ่ม ${room.name}` : ''
+    const rank = reason === 'คุณติดตาม' ? 0 : reason === 'อยู่ในโพสต์นี้' ? 1 : reason ? 2 : 3
+    return { id: c.id, reason, rank, name: c.name.toLowerCase() }
+  }).filter((x) => (query ? x.name.includes(query) || x.id.includes(query) : x.rank < 3))
+    .sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name)).slice(0, 8).map(({ id, reason }) => ({ id, reason }))
 }
 
 export const ISSUE_STATUS = 'รอครีเอเตอร์ตอบภายใน 3 วัน · ถ้าไม่ตอบหรือตกลงกันไม่ได้ ทีม LUMI จะตัดสิน'
@@ -591,16 +614,40 @@ export interface CommunityEdits {
   deletePost(id: string): Promise<void>
   editComment(id: string, text: string): Promise<void>
   deleteComment(id: string): Promise<void>
+  hide(id: string, on?: boolean): Promise<void>
+  invite(roomId: string, userId: string): Promise<void>
+  mentionCandidates(q: string, postId?: string, roomId?: string): Promise<{ id: string; reason: string }[]>
+  members(roomId: string): Promise<{ id: string; role: string }[]>
 }
 export const community: CommunityService & CommunityEdits = {
   like: (id) => { gate(); return live(id) ? K.likePost(id) : L.community.like(id) },
   save: (id) => { gate(); return live(id) ? K.savePost(id) : L.community.save(id) },
   share: (id) => L.community.share(id),
-  comment: (id, text, replyTo) => { gate(); return live(id) ? K.addComment(id, text, replyTo) : L.community.comment(id, text, replyTo) },
+  comment: (id, text, replyTo, m) => { gate(); return live(id) ? K.addComment(id, text, replyTo, m) : L.community.comment(id, text, replyTo, m) },
   likeComment: (id) => { gate(); return live(id) ? K.likeComment(id) : L.community.likeComment(id) },
+  react: (id, k) => { gate(); return live(id) ? K.reactPost(id, k) : L.community.react(id, k) },
+  reactComment: (id, k) => { gate(); return live(id) ? K.reactComment(id, k) : L.community.reactComment(id, k) },
   create: (p) => { gate(); return cloudOn() ? K.createPost(p) : L.community.create(p) },
   join: (id) => { gate(); return cloudOn() ? K.joinRoom(id) : L.community.join(id) },
   vote: (id) => L.community.vote(id),
+  /** Hide a post from my feed (× on the card). */
+  hide: async (id: string, on = true) => update((d) => { d.hidden = on ? [...new Set([...(d.hidden ?? []), id])] : (d.hidden ?? []).filter((x) => x !== id) }),
+  invite: async (roomId: string, userId: string) => {
+    gate()
+    if (cloudOn() && isRemoteId(userId)) return K.inviteToRoom(roomId, userId)
+    // demo: the sample person "gets" it; nothing is sent anywhere
+  },
+  /** People to suggest after “@” (with why), best first, at most 8. */
+  mentionCandidates: async (q: string, postId?: string, roomId?: string): Promise<{ id: string; reason: string }[]> => {
+    if (cloudOn()) { try { return await K.mentionCandidates(q, postId, roomId) } catch { return [] } }
+    return localCandidates(q, postId, roomId)
+  },
+  members: async (roomId: string): Promise<{ id: string; role: string }[]> => {
+    if (cloudOn()) { try { return await K.groupMembers(roomId) } catch { return [] } }
+    const ids = [...new Set(getDb().posts.filter((p) => p.roomId === roomId).map((p) => p.authorId))]
+    for (const c of CREATORS) if (ids.length < 6 && !ids.includes(c.id) && !['shop', 'somjai'].includes(c.id)) ids.push(c.id)
+    return ids.map((id, i) => ({ id, role: i === 0 ? 'admin' : 'member' }))
+  },
   // own posts/comments (screens for these are behind FEATURES.accounts until approved)
   editPost: async (id, patch) => {
     if (live(id)) return K.editPost(id, patch)
@@ -650,8 +697,38 @@ export const sell: SellService = {
   review: (id, pass, reason) => (live(id) ? Promise.resolve() : L.sell.review(id, pass, reason)),
 }
 /** Stories (24 h). Posting screens are behind FEATURES.accounts until approved. */
+export interface StoryInput { file: Blob; kind: 'image' | 'video'; caption: string; productId?: string; linkLabel?: StoryLinkLabel; overlays?: StoryOverlay[]; durationMs?: number; mentions?: Mention[] }
+const blobToDataUrl = (b: Blob) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(b) })
 export const stories = {
-  post: (file: Blob, kind: 'image' | 'video', caption: string, productId?: string) => { gate(); return K.postStory(file, kind, caption, productId) },
+  post: async (x: StoryInput) => {
+    gate()
+    if (cloudOn()) return K.postStory(x)
+    // demo persona: kept in this browser only (24 h), nothing is uploaded
+    const media = x.kind === 'image' || x.file.size <= 4 * 1024 * 1024 ? await blobToDataUrl(x.file) : URL.createObjectURL(x.file)
+    const s: UserStory = { id: uid('st'), authorId: ME, media, kind: x.kind, caption: x.caption, at: now(), expires: now() + 24 * 3600e3, views: 0, productId: x.productId, linkLabel: x.productId ? (x.linkLabel ?? 'ดูสินค้า') : undefined, overlays: x.overlays, durationMs: x.durationMs }
+    update((d) => { d.stories = [s, ...(d.stories ?? [])] })
+  },
+  react: (id: string, emoji: string | null) => { gate(); return live(id) ? K.reactStory(id, emoji) : Promise.resolve(update((d) => { d.storyReactions = { ...(d.storyReactions ?? {}) }; if (emoji) d.storyReactions[id] = emoji; else delete d.storyReactions[id] })) },
+  /** Reply in chat. Returns the thread id. */
+  reply: async (id: string | undefined, authorId: string, text: string) => {
+    gate()
+    if (id && live(id, authorId)) return K.replyStory(id, authorId, text)
+    const t = await chat.openWith(authorId)
+    await chat.send(t, `ตอบกลับสตอรี่: ${text}`)
+    return t
+  },
+  clicked: (id: string) => (live(id) ? K.storyLinkClicked(id) : Promise.resolve()),
+  /** Who saw / reacted on my stories. Demo: sample viewers (nothing real). */
+  activity: async (ids: string[]): Promise<Record<string, StoryActivity[]>> => {
+    if (cloudOn()) { try { return await K.storyActivity(ids) } catch { return {} } }
+    const out: Record<string, StoryActivity[]> = {}
+    const sample: [string, number, string?, boolean?, boolean?][] = [['mint', 2, '😍', true], ['nova', 6, '🔥', false, true], ['somjai', 11, undefined, true], ['ton', 25], ['pim', 40, '❤️'], ['kenji', 55]]
+    for (const id of ids) {
+      const st = (getDb().stories ?? []).find((x) => x.id === id)
+      out[id] = sample.filter(() => !!st).map(([u, m, e, c, r]) => ({ userId: u, at: Math.max(st!.at, now() - m * 60e3), emoji: e, clicked: !!c && !!st!.productId, replied: r }))
+    }
+    return out
+  },
   remove: (id: string) => (live(id) ? K.deleteStory(id) : Promise.resolve(update((d) => { d.stories = (d.stories ?? []).filter((x) => x.id !== id) }))),
   view: (id: string) => (live(id) ? K.viewStory(id) : Promise.resolve()),
 }

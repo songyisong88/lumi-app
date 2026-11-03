@@ -122,13 +122,39 @@ export interface Post {
   shares: number
   hireButton?: boolean
   mine?: boolean
+  /** Reactions by kind (server: reaction_counts / real_reaction_counts). `likes` stays the total. */
+  rx?: Partial<Record<ReactKind, number>>
+  /** “รู้สึก …” / activity chosen in the composer (e.g. '😊 มีความสุข'). */
+  feeling?: string
+  /** People tagged with @ (ids + the name written in the text). */
+  mentions?: Mention[]
 }
 
-export interface Comment { id: string; postId: string; authorId: string; text: string; at: number; likes: number; replyTo?: string; badge?: 'author' | 'buyer' }
+/** The 6 reactions (long-press “ถูกใจ”). Stored in post_likes.kind / comment_likes.kind. */
+export type ReactKind = 'like' | 'love' | 'haha' | 'wow' | 'fire' | 'idea'
+export interface Mention { id: string; name: string }
 
-export interface Room { id: string; name: string; icon: string; color: string; bg: string; members: number; desc: string; cover: string; rules: string[] }
+export interface Comment { id: string; postId: string; authorId: string; text: string; at: number; likes: number; replyTo?: string; badge?: 'author' | 'buyer'; rx?: Partial<Record<ReactKind, number>>; mentions?: Mention[] }
 
-export interface Notif { id: string; kind: 'order' | 'chat' | 'like' | 'follow' | 'system' | 'community' | 'sale'; text: string; at: number; link: string; read: boolean; avatar?: string; image?: string }
+/** A community group (server table `rooms`). */
+export interface Room {
+  id: string; name: string; icon: string; color: string; bg: string; members: number; desc: string; cover: string; rules: string[]
+  privacy?: 'public' | 'private'
+  /** Admin announcement pinned at the top of the group. */
+  announcement?: string
+  /** Sample number of posts today (demo site only; the real site counts the posts it has). */
+  today?: number
+}
+
+export interface Notif {
+  id: string; kind: 'order' | 'chat' | 'like' | 'follow' | 'system' | 'community' | 'sale'; text: string; at: number; link: string; read: boolean; avatar?: string; image?: string
+  /** Finer type for the new community notices (server notifications.sub). */
+  sub?: 'reaction' | 'reply' | 'mention' | 'group_invite' | 'story_reaction' | 'story_reply'
+  /** Emoji shown on the avatar (server notifications.badge). */
+  badge?: string
+  /** Name of the person who caused it (shown bold). */
+  actor?: string
+}
 
 export interface DB {
   v: number
@@ -157,6 +183,17 @@ export interface DB {
   sales?: Sale[]
   /** Stories I posted (demo keeps them here; real accounts load them from Supabase). */
   stories?: UserStory[]
+  /** My reaction on each post / comment (the `liked` / `likedComments` lists stay in sync for older screens). */
+  reactions?: Record<string, ReactKind>
+  commentReactions?: Record<string, ReactKind>
+  /** Group invitations waiting for me. */
+  invites?: { roomId: string; by: string; at: number }[]
+  /** Groups I asked to join (private groups). */
+  requested?: string[]
+  /** Posts hidden with ×. */
+  hidden?: string[]
+  /** My emoji on other people's stories, by story id. */
+  storyReactions?: Record<string, string>
 }
 
 export interface Sale {
@@ -167,6 +204,27 @@ export interface Sale {
   releaseAt?: number; threadId?: string; hire?: boolean
   refund?: { id: string; status: 'open' | 'refunded' | 'declined' | 'escalated'; reason: string; note: string; at: number }
 }
-export interface UserStory { id: string; authorId: string; media: string; kind: 'image' | 'video'; caption: string; at: number; expires: number; views: number; productId?: string }
+export interface UserStory {
+  id: string; authorId: string; media: string; kind: 'image' | 'video'; caption: string; at: number; expires: number; views: number; productId?: string
+  /** Optional link button label (ดูสินค้า / ดูผลงาน / รับฟรี / จ้างเลย); only with a product. */
+  linkLabel?: StoryLinkLabel
+  /** Text / sticker / mention layers. Pictures have them baked in (only tap targets are used); videos draw them live. */
+  overlays?: StoryOverlay[]
+  durationMs?: number
+}
+export type StoryLinkLabel = 'ดูสินค้า' | 'ดูผลงาน' | 'รับฟรี' | 'จ้างเลย'
+/** One layer on a story. x/y = centre as a fraction of the 9:16 frame, s = scale, r = rotation (deg). */
+export interface StoryOverlay {
+  id: string; t: 'text' | 'sticker' | 'mention' | 'emoji'
+  text: string; x: number; y: number; s: number; r: number
+  /** text style: 0 box, 1 plain, 2 neon. */
+  st?: number; color?: string
+  /** mention: the tagged person. */
+  uid?: string
+  /** true when the picture already shows this layer (images). */
+  baked?: boolean
+}
+/** Who saw / reacted to my story (author only, 48 h). */
+export interface StoryActivity { userId: string; at: number; emoji?: string; clicked?: boolean; replied?: boolean }
 
 export interface CloudReview { id: string; authorId: string; stars: number; text: string; at: number; reply?: string }

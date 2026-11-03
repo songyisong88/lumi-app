@@ -14,7 +14,7 @@ const DEMO_KEY = 'lumi_app_db'
 let KEY = DEMO_KEY
 let seedFn: () => DB = seed
 // bump when the seed or stored shapes change; older local data is replaced by the new seed
-const VERSION = 6
+const VERSION = 7
 type Listener = () => void
 const listeners = new Set<Listener>()
 
