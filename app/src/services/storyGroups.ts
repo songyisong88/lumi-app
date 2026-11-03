@@ -3,6 +3,7 @@ import type { DB, UserStory } from '../data/appTypes'
 import { ME, STORIES, productById } from '../data/sampleData'
 import type { Story } from '../data/types'
 import { ago } from '../utils/time'
+import { getSeenStories } from './seenStories'
 
 const slideOf = (st: UserStory) => ({
   productId: st.productId && productById(st.productId) ? st.productId : undefined, postedAgo: ago(st.at), media: st.media, kind: st.kind, caption: st.caption,
@@ -30,3 +31,11 @@ export function storyGroups(db: DB): Story[] {
 }
 /** My own live stories (newest last). */
 export const myStories = (db: DB) => storyGroups(db).find((g) => g.creatorId === ME)
+/** The order of the home story row — yours first, then people with something new, then the ones already watched.
+ *  The viewer moves to the next person in this same order (like Instagram), so it never jumps around the row. */
+export function ringOrder(db: DB, seen: string[] = getSeenStories()): Story[] {
+  const all = storyGroups(db)
+  const mine = all.filter((g) => g.creatorId === ME)
+  const rest = all.filter((g) => g.creatorId !== ME).sort((a, b) => Number(seen.includes(a.creatorId)) - Number(seen.includes(b.creatorId)))
+  return [...mine, ...rest]
+}

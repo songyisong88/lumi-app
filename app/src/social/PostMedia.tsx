@@ -14,7 +14,7 @@ export function PostMedia({ srcs, alts, onDoubleLike, label }: { srcs: string[];
   const [hearts, setHearts] = useState<{ id: number; x: number; y: number }[]>([])
   const [ratio, setRatio] = useState<number>(1)
   const [counter, setCounter] = useState(true)
-  const last = useRef<{ t: number; x: number; y: number } | null>(null)
+  const last = useRef<{ t: number; x: number; y: number; chain?: boolean } | null>(null)
   const tapT = useRef(0)
   const moved = useRef(false)
   const p0 = useRef<{ x: number; y: number } | null>(null)
@@ -29,7 +29,8 @@ export function PostMedia({ srcs, alts, onDoubleLike, label }: { srcs: string[];
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const p = { x: e.clientX - r.left, y: e.clientY - r.top }, now = performance.now(), L = last.current
     if (L && now - L.t < 300 && Math.hypot(p.x - L.x, p.y - L.y) < 50) {
-      clearTimeout(tapT.current); last.current = null
+      // keep the chain: a 3rd, 4th… quick tap adds another heart (Instagram) instead of opening the viewer
+      clearTimeout(tapT.current); last.current = { t: now, ...p, chain: true }
       const id = now
       setHearts((h) => [...h, { id, ...p }]); setTimeout(() => setHearts((h) => h.filter((x) => x.id !== id)), 1000)
       navigator.vibrate?.(8)

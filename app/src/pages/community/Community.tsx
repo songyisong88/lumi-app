@@ -13,7 +13,7 @@ import { CHALLENGE, MY_RANK } from '../../data/searchData'
 import { community } from '../../services/api'
 import { useDb } from '../../services/db'
 import { toast } from '../../services/toast'
-import { storyGroups } from '../../services/storyGroups'
+import { ringOrder, storyGroups } from '../../services/storyGroups'
 import { REAL, BRAND } from '../../config'
 import { PostCard, isVideo } from './PostCard'
 import { Countdown, LEADERS } from './More'
@@ -49,7 +49,7 @@ export function Composer({ room }: { room?: string }) {
 /** Facebook-style story cards under the composer: “สร้างสตอรี่” then the people with live stories. */
 function StoryCards() {
   const db = useDb()
-  const list = storyGroups(db).filter((g) => g.creatorId !== ME)
+  const list = ringOrder(db).filter((g) => g.creatorId !== ME)
   const bgOf = (g: ReturnType<typeof storyGroups>[number]) => {
     const sl = g.slides[0]
     if (sl?.media && !isVideo(sl.media)) return sl.media.startsWith('data:') || sl.media.startsWith('blob:') || sl.media.startsWith('http') ? sl.media : imgUrl(sl.media)

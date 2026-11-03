@@ -15,7 +15,18 @@ const R = isRemoteId
 const soft = (p: PromiseLike<{ error: { message: string } | null }>) => Promise.resolve(p).then((r) => { if (r.error) console.warn('[lumi cloud]', r.error.message) })
 
 // ---------- follows / community
+const followBusy = new Set<string>()
+/** Follow / unfollow. A second tap while the first is still on its way is ignored (no crossed insert/delete). */
 export async function toggleFollow(id: string) {
+  if (followBusy.has(id)) return getDb().follows.includes(id)
+  followBusy.add(id)
+  const was = getDb().follows.includes(id)
+  try { return await followOnce(id) } catch (e) {
+    update((d) => { d.follows = was ? [id, ...d.follows.filter((x) => x !== id)] : d.follows.filter((x) => x !== id) }) // screen back to the server's state
+    throw e
+  } finally { followBusy.delete(id) }
+}
+async function followOnce(id: string) {
   const on = !getDb().follows.includes(id)
   update((d) => { d.follows = on ? [id, ...d.follows] : d.follows.filter((x) => x !== id) })
   if (on) {
@@ -35,26 +46,53 @@ export async function toggleFollow(id: string) {
   } else must(await S().from('follows').delete().eq('follower_id', ME).eq('creator_id', id), 'unfollow')
   return on
 }
+/** One server write at a time per item, always toward the latest tap. Rapid like/unlike/save taps used to fire
+ *  overlapping insert/delete requests that could land out of order (server ≠ screen, or a duplicate-key error).
+ *  Now the screen updates at once, the server catches up with the last state, and a failure puts the screen back. */
+type Sync<T> = { want: T; has: T; busy: boolean }
+const syncs = new Map<string, Sync<unknown>>()
+async function syncTo<T>(key: string, has: T, want: T, write: (from: T, to: T) => Promise<void>, undo: (to: T) => void) {
+  let st = syncs.get(key) as Sync<T> | undefined
+  if (st) { st.want = want; if (st.busy) return } else { st = { want, has, busy: false }; syncs.set(key, st as Sync<unknown>) }
+  st.busy = true
+  try {
+    while (st.has !== st.want) { const to = st.want; await write(st.has, to); st.has = to }
+  } catch (e) {
+    undo(st.has)
+    throw e
+  } finally { syncs.delete(key) }
+}
+const dup = (r: { error: { code?: string } | null }) => r.error?.code === '23505'
 async function toggleRow(table: string, col: string, id: string, list: 'liked' | 'saved' | 'likedComments') {
   const was = getDb()[list].includes(id)
-  update((d) => {
-    d[list] = was ? d[list].filter((x) => x !== id) : [...d[list], id]
-    if (list === 'liked') { const p = d.posts.find((x) => x.id === id); if (p) p.likes += was ? -1 : 1 }
-    if (list === 'likedComments') { const c = d.comments.find((x) => x.id === id); if (c) c.likes += was ? -1 : 1 }
+  const set = (on: boolean) => update((d) => {
+    const has = d[list].includes(id); if (has === on) return
+    d[list] = on ? [...d[list], id] : d[list].filter((x) => x !== id)
+    if (list === 'liked') { const p = d.posts.find((x) => x.id === id); if (p) p.likes += on ? 1 : -1 }
+    if (list === 'likedComments') { const c = d.comments.find((x) => x.id === id); if (c) c.likes += on ? 1 : -1 }
   })
-  if (was) must(await S().from(table).delete().eq('user_id', ME).eq(col, id), table)
-  else must(await S().from(table).insert({ [col]: id } as Row), table)
+  set(!was)
+  await syncTo(`${table}:${id}`, was, !was, async (_f, on) => {
+    if (!on) must(await S().from(table).delete().eq('user_id', ME).eq(col, id), table)
+    else { const r = await S().from(table).insert({ [col]: id } as Row); if (!dup(r)) must(r, table) }
+  }, set)
 }
 /** Set my reaction on a post/comment (null = remove). Optimistic, then insert / update kind / delete. */
 async function setReaction(isPost: boolean, id: string, kind: ReactKind | null) {
   const map = isPost ? 'reactions' : 'commentReactions'
-  const prev = (getDb()[map] ?? {})[id] ?? ((isPost ? getDb().liked : getDb().likedComments).includes(id) ? 'like' : undefined)
+  const cur = () => (getDb()[map] ?? {})[id] ?? ((isPost ? getDb().liked : getDb().likedComments).includes(id) ? 'like' : undefined)
+  const prev = cur()
   if ((prev ?? null) === kind) return
   update((d) => applyReaction(d, isPost, id, prev, kind))
   const table = isPost ? 'post_likes' : 'comment_likes', col = isPost ? 'post_id' : 'comment_id'
-  if (!kind) must(await S().from(table).delete().eq('user_id', ME).eq(col, id), table)
-  else if (!prev) must(await S().from(table).insert({ [col]: id, kind } as Row), table)
-  else must(await S().from(table).update({ kind }).eq('user_id', ME).eq(col, id), table)
+  await syncTo<ReactKind | null>(`${table}:${id}`, prev ?? null, kind, async (from, to) => {
+    if (!to) { must(await S().from(table).delete().eq('user_id', ME).eq(col, id), table); return }
+    if (!from) {
+      const r = await S().from(table).insert({ [col]: id, kind: to } as Row)
+      if (!dup(r)) { must(r, table); return }
+    }
+    must(await S().from(table).update({ kind: to }).eq('user_id', ME).eq(col, id), table)
+  }, (to) => { const now = cur() ?? null; if (now !== to) update((d) => applyReaction(d, isPost, id, now ?? undefined, to)) })
 }
 /** Shared by the local demo and the cloud cache: move one reaction from `prev` to `kind`. */
 export function applyReaction(d: ReturnType<typeof getDb>, isPost: boolean, id: string, prev: ReactKind | undefined, kind: ReactKind | null) {

@@ -39,6 +39,7 @@ export function PostDetail() {
   const [sort, setSort] = useState<'top' | 'new'>('top')
   const [open, setOpen] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
+  const sending = useRef(false)
   const api = useRef<MentionApi | null>(null)
   useEffect(() => { if (hash === '#c') setTimeout(() => document.getElementById('cmt-in')?.focus({ preventScroll: true }), 500) }, [hash])
   if (!p) return <><TopBar title="โพสต์" /><Empty icon="comment" title="ไม่พบโพสต์นี้" text="อาจถูกลบไปแล้ว" action={<Link to="/community" className="btn btn-o btn-sm">กลับไปที่ชุมชน</Link>} /></>
@@ -47,10 +48,10 @@ export function PostDetail() {
   const roots = cs.filter((c) => !c.replyTo).sort(sort === 'top' ? (x, y) => y.likes - x.likes || x.at - y.at : (x, y) => y.at - x.at)
   const repliesOf = (rid: string) => cs.filter((r) => r.replyTo === rid).sort((x, y) => x.at - y.at)
   const send = async () => {
-    const x = text.trim(); if (!x || busy) return
-    setBusy(true)
+    const x = text.trim(); if (!x || busy || sending.current) return
+    sending.current = true; setBusy(true) // the ref stops a double tap / Enter from posting the comment twice
     try { await community.comment(id, x, reply?.root, liveMentions(x, ments)); setText(''); setMents([]); if (reply) setOpen((o) => [...o, reply.root]); setReply(undefined); toast('ส่งความคิดเห็นแล้ว') } catch (e) { toast((e as Error).message) }
-    setBusy(false)
+    sending.current = false; setBusy(false)
   }
   const startReply = (c: Comment) => {
     const root = c.replyTo ?? c.id

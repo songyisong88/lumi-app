@@ -83,30 +83,40 @@ export function Compose() {
     setMedia((a) => { const n = [...a]; n[i] = out; return n })
   }
 
+  // pictures are shrunk on the device first; until that is done “โพสต์” waits (a big batch used to post without them)
+  const [prep, setPrep] = useState(0)
+  const posting = useRef(false)
   const addFiles = async (fs: FileList | null) => {
     if (!fs) return
+    const files = Array.from(fs).slice(0, Math.max(0, MAX_MEDIA - media.length - prep))
+    if (fs.length > files.length) toast(`เพิ่มได้สูงสุด ${MAX_MEDIA} รูป/วิดีโอต่อโพสต์`)
+    setPrep((n) => n + files.length)
     const out: string[] = []
-    for (const f of Array.from(fs).slice(0, MAX_MEDIA - media.length)) {
-      if (f.type.startsWith('image/')) out.push(await fileToDataUrl(f, 1280))
-      else if (f.type.startsWith('video/')) {
-        if (f.size > MAX_VIDEO) { toast('วิดีโอใหญ่เกิน 50 MB'); continue }
-        // the cloud uploads the file itself; the sample mode keeps small clips on this device only
-        if (!cloudOn() && f.size > 4 * 1024 * 1024) { toast('โหมดตัวอย่างเก็บวิดีโอได้ไม่เกิน 4 MB'); continue }
-        out.push(cloudOn() ? URL.createObjectURL(f) : await new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.readAsDataURL(f) }))
+    try {
+      for (const f of files) {
+        if (f.type.startsWith('image/')) { try { out.push(await fileToDataUrl(f, 1280)) } catch { toast(`เปิดรูป ${f.name} ไม่ได้ ลองใช้ไฟล์ JPG หรือ PNG`) } }
+        else if (f.type.startsWith('video/')) {
+          if (f.size > MAX_VIDEO) { toast('วิดีโอใหญ่เกิน 50 MB'); continue }
+          // the cloud uploads the file itself; the sample mode keeps small clips on this device only
+          if (!cloudOn() && f.size > 4 * 1024 * 1024) { toast('โหมดตัวอย่างเก็บวิดีโอได้ไม่เกิน 4 MB'); continue }
+          out.push(cloudOn() ? URL.createObjectURL(f) : await new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.readAsDataURL(f) }))
+        }
       }
+    } finally {
+      setMedia((x) => [...x, ...out].slice(0, MAX_MEDIA))
+      setPrep((n) => n - files.length)
     }
-    setMedia((x) => [...x, ...out].slice(0, MAX_MEDIA))
   }
   const post = async () => {
-    if (!ok || busy) return
-    setBusy(true)
+    if (!ok || busy || prep > 0 || posting.current) return
+    posting.current = true; setBusy(true)
     try {
       const id = await community.create({ tag: tag ?? 'โชว์ผลงาน', text: text.trim(), images: media, productIds: prods, prompt: prompt.trim() || undefined, roomId: room, feeling, mentions: liveMentions(text, mentions),
         audience, location: location.trim() || undefined, alt: media.map((_, i) => (alt[i] ?? '').trim()), tagged: tagged.length ? tagged : undefined })
       clearDraft()
       toast('โพสต์แล้ว 🎉')
       nav(`/community/post/${id}`, { replace: true })
-    } catch (e) { toast((e as Error).message); setBusy(false) }
+    } catch (e) { toast((e as Error).message); setBusy(false); posting.current = false }
   }
   const r = ROOMS.find((x) => x.id === room)
   const OPTS: [string, string, () => void, boolean?][] = [
@@ -124,7 +134,7 @@ export function Compose() {
   return (
     <div className={`${s.composeWrap} ${typing ? s.typing : ''}`}>
       <TopBar title="สร้างโพสต์" center back onBack={() => (ok ? setSheet('leave') : leave())}
-        right={<button className="btn btn-sm btn-p" style={ok ? undefined : { background: '#EEEAF5', color: '#A9A4BA', boxShadow: 'none' }} disabled={busy} {...blockTap(!ok, 'เขียนข้อความหรือเพิ่มรูปก่อนโพสต์')} onClick={post}>{busy ? 'กำลังโพสต์…' : 'โพสต์'}</button>} />
+        right={<button className="btn btn-sm btn-p" style={ok ? undefined : { background: '#EEEAF5', color: '#A9A4BA', boxShadow: 'none' }} disabled={busy} {...blockTap(!ok || prep > 0, prep > 0 ? 'กำลังเตรียมรูป รอสักครู่' : 'เขียนข้อความหรือเพิ่มรูปก่อนโพสต์')} onClick={post}>{busy ? 'กำลังโพสต์…' : 'โพสต์'}</button>} />
       <div className="narrow">
         <div className={s.ctop}><Av src={me.avatar} size={44} /><div style={{ minWidth: 0 }}>
           <b>{me.name}{feeling && <span className={s.feel}> — {feeling}</span>}</b>

@@ -15,7 +15,7 @@ export function FollowButton({ id, className, onClass, style, guard }: { id: str
         e.preventDefault(); e.stopPropagation()
         if (guard?.()) return
         const name = creatorById(id).name
-        follows.toggle(id).then((v) => toast(v ? `ติดตาม ${name} แล้ว` : `เลิกติดตาม ${name} แล้ว`))
+        follows.toggle(id).then((v) => toast(v ? `ติดตาม ${name} แล้ว` : `เลิกติดตาม ${name} แล้ว`), (e: Error) => toast(e?.message || 'ทำรายการไม่สำเร็จ ลองอีกครั้ง'))
       }}>
       {on ? 'ติดตามแล้ว' : '+ ติดตาม'}
     </button>

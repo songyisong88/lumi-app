@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ME, creatorById, imgUrl } from '../data/sampleData'
 import { useDb } from '../services/db'
-import { storyGroups } from '../services/storyGroups'
+import { ringOrder } from '../services/storyGroups'
 import { getSeenStories } from '../services/seenStories'
 import { Icon } from './Icon'
 import { rememberOrigin } from '../services/motion'
@@ -11,9 +11,9 @@ import s from '../social/Social.module.css'
 export function StoriesRow() {
   const db = useDb()
   const seen = getSeenStories()
-  const all = storyGroups(db)
+  const all = ringOrder(db, seen)
   const mine = all.find((g) => g.creatorId === ME)
-  const list = all.filter((g) => g.creatorId !== ME).sort((a, b) => Number(seen.includes(a.creatorId)) - Number(seen.includes(b.creatorId)))
+  const list = all.filter((g) => g.creatorId !== ME)
   const me = creatorById(ME)
   return (
     <div className={`hscroll ${s.ringRow}`} role="list" aria-label="สตอรี่">

@@ -9,6 +9,7 @@ import { community, follows } from '../services/api'
 import { useDb } from '../services/db'
 import { AUDIENCE, blockOf, likers, setBlock, setPostOptions, type Liker } from '../services/social'
 import { toast } from '../services/toast'
+import { settle } from '../services/backClose'
 import { REACTIONS } from './reactions'
 import s from './Social.module.css'
 import { ago } from '../utils/time'
@@ -39,7 +40,7 @@ export function PostMenu({ p, open, onClose, full, onEdit, onReport, onShare }: 
     <>
       <Sheet open={open} onClose={onClose} title="ตัวเลือกโพสต์">
         <div className={s.qa}>
-          <button type="button" aria-pressed={saved} onClick={() => { community.save(p.id); onClose(); toast(saved ? 'เอาออกจากที่บันทึกแล้ว' : 'บันทึกโพสต์แล้ว') }}><Icon name="bookmark" size={22} fill={saved ? 'currentColor' : 'none'} />{saved ? 'บันทึกแล้ว' : 'บันทึก'}</button>
+          <button type="button" aria-pressed={saved} onClick={() => { Promise.resolve(community.save(p.id)).catch(err); onClose(); toast(saved ? 'เอาออกจากที่บันทึกแล้ว' : 'บันทึกโพสต์แล้ว') }}><Icon name="bookmark" size={22} fill={saved ? 'currentColor' : 'none'} />{saved ? 'บันทึกแล้ว' : 'บันทึก'}</button>
           <button type="button" onClick={() => { onClose(); onShare() }}><Icon name="link" size={22} />คัดลอกลิงก์</button>
           <button type="button" onClick={() => void nativeShare()}><Icon name="share" size={22} />แชร์</button>
         </div>
@@ -53,7 +54,7 @@ export function PostMenu({ p, open, onClose, full, onEdit, onReport, onShare }: 
           </div>
           <div className={s.mgrp}>
             <R icon="edit" t="แก้ไข" sub="ข้อความ สถานที่ และคำอธิบายรูป" onClick={later(onEdit)} />
-            <R icon="trash" red t="ลบ" sub="ลบแล้วกู้คืนไม่ได้" onClick={async () => { if (!confirm('ลบโพสต์นี้? ความคิดเห็นทั้งหมดจะหายไปด้วย')) return; try { await community.deletePost(p.id); onClose(); toast('ลบโพสต์แล้ว'); if (full) nav('/community', { replace: true }) } catch (e) { err(e) } }} />
+            <R icon="trash" red t="ลบ" sub="ลบแล้วกู้คืนไม่ได้" onClick={async () => { if (!confirm('ลบโพสต์นี้? ความคิดเห็นทั้งหมดจะหายไปด้วย')) return; onClose(); await settle(); try { await community.deletePost(p.id); toast('ลบโพสต์แล้ว'); if (full) nav('/community', { replace: true }) } catch (e) { err(e) } }} />
           </div>
         </> : <>
           <div className={s.mgrp}>
@@ -72,7 +73,7 @@ export function PostMenu({ p, open, onClose, full, onEdit, onReport, onShare }: 
         <AudiencePick value={p.audience ?? 'public'} onChange={async (v) => { setAud(false); try { await setPostOptions(p.id, { audience: v }); toast(`ตั้งเป็น “${AUDIENCE[v].l}” แล้ว`) } catch (e) { err(e) } }} />
       </Sheet>
       <Sheet open={blk} onClose={() => setBlk(false)} title={`บล็อก ${a.name}?`} sub="เขาจะไม่เห็นโพสต์ สตอรี่ และโปรไฟล์ของคุณ แท็ก คอมเมนต์ ถูกใจ หรือทักแชตคุณไม่ได้ เขาจะไม่ได้รับแจ้ง"
-        footer={<button type="button" className="btn btn-block" style={{ background: '#DC2626', color: '#fff' }} onClick={async () => { setBlk(false); try { await setBlock(p.authorId, 'block'); toast(`บล็อก ${a.name} แล้ว`); if (full) nav(-1) } catch (e) { err(e) } }}>บล็อก</button>}>
+        footer={<button type="button" className="btn btn-block" style={{ background: '#DC2626', color: '#fff' }} onClick={async () => { setBlk(false); await settle(); try { await setBlock(p.authorId, 'block'); toast(`บล็อก ${a.name} แล้ว`); if (full) nav(-1) } catch (e) { err(e) } }}>บล็อก</button>}>
         <p style={{ color: 'var(--mut)', fontSize: 13 }}>เลิกบล็อกได้ที่ เมนู › ความเป็นส่วนตัว › บัญชีที่บล็อก</p>
       </Sheet>
     </>

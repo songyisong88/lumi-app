@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useBackClose } from '../services/backClose'
 import { imgUrl } from '../data/sampleData'
 import { reducedMotion } from '../services/motion'
 import s from './Social.module.css'
@@ -73,6 +74,8 @@ export function PhotoViewer({ srcs, start, origin, onClose }: { srcs: string[]; 
     document.documentElement.classList.add('pv-open')
     return () => { window.removeEventListener('keydown', k); window.removeEventListener('resize', rs); document.documentElement.classList.remove('pv-open') }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useBackClose(true, () => close())
 
   const go = (to: number) => {
     to = Math.max(0, Math.min(srcs.length - 1, to))

@@ -5,6 +5,7 @@ import { imgSrcSet, imgUrl } from '../data/sampleData'
 import { Icon } from './Icon'
 import { toast } from '../services/toast'
 import { REAL } from '../config'
+import { useBackClose } from '../services/backClose'
 
 /** A button that is not ready yet keeps the disabled look (aria-disabled) but still answers a tap
  *  with a toast saying what is missing, so it never feels frozen. */
@@ -24,6 +25,7 @@ export function Sheet({ open, onClose, title, sub, children, footer, tall }: {
   const drag = useRef<{ y0: number; t0: number; dy: number } | null>(null)
 
   if (open && !mounted) setMounted(true)
+  useBackClose(open, onClose)
   useEffect(() => {
     if (open) {
       const r = requestAnimationFrame(() => requestAnimationFrame(() => setShown(true)))

@@ -24,6 +24,7 @@ export const TAG_COLOR: Record<string, [string, string]> = {
   'โชว์ผลงาน': ['#6C2BD9', '#F3ECFF'], 'ความรู้': ['#0B7A6E', '#E2F6F2'], 'เบื้องหลัง': ['#2563EB', '#EAF1FF'], 'ถาม-ตอบ': ['#B45309', '#FFF4DB'], 'แจกฟรี': ['#15803D', '#E5F8EC'],
 }
 export const isVideo = (u: string) => /^data:video|\.(mp4|webm|mov)(\?|#|$)/i.test(u)
+const fail = (e: unknown) => toast((e as Error)?.message || 'ทำรายการไม่สำเร็จ ลองอีกครั้ง')
 const shortAgo = (t: number) => ago(t).replace('ที่แล้ว', '').trim()
 
 export function sharePost(id: string) {
@@ -61,7 +62,7 @@ export function PostCard({ p, full, i = 0, inGroup }: { p: Post; full?: boolean;
   const imgs = p.images
   const online = useOnline(isMine ? undefined : p.authorId)
   const likesHidden = !!p.hideLikes && !isMine
-  const doFollow = () => follows.toggle(p.authorId).then((v) => toast(v ? `ติดตาม ${a.name} แล้ว` : `เลิกติดตาม ${a.name} แล้ว`))
+  const doFollow = () => follows.toggle(p.authorId).then((v) => toast(v ? `ติดตาม ${a.name} แล้ว` : `เลิกติดตาม ${a.name} แล้ว`), fail)
   return (
     <article className={`${s.card} rise`} style={{ '--i': Math.min(i, 6), marginTop: full ? 0 : undefined } as React.CSSProperties}>
       <div className={s.ph}>
@@ -82,7 +83,7 @@ export function PostCard({ p, full, i = 0, inGroup }: { p: Post; full?: boolean;
       <div className={s.tx} onClick={open}>
         <MentionText text={p.text} mentions={p.mentions} max={full ? 0 : 140} />
       </div>
-      {imgs.length > 0 && <PostMedia srcs={imgs} alts={p.alt} onDoubleLike={() => { if (!mine) void community.react(p.id, 'like') }} />}
+      {imgs.length > 0 && <PostMedia srcs={imgs} alts={p.alt} onDoubleLike={() => { if (!mine) community.react(p.id, 'like').catch(fail) }} />}
       {p.tagged && p.tagged.length > 0 && <div className={s.tagged} data-tagged><Icon name="user" size={14} />{p.tagged.map((m) => <Link key={m.id} to={`/creator/${m.id}`}>{m.name}</Link>)}</div>}
       {p.code && (
         <div className={c.code} style={{ margin: '8px 14px 0' }}>{p.code.map((x, k) => <div key={x}><i>{k + 1}</i><code>{x}</code><button onClick={() => { copyText(x); toast('คัดลอกสูตรแล้ว') }} aria-label="คัดลอก"><Icon name="copy" size={14} /></button></div>)}</div>
@@ -124,7 +125,7 @@ export function PostCard({ p, full, i = 0, inGroup }: { p: Post; full?: boolean;
         <button type="button" onClick={() => focusComment(p.id, full, nav)}>{p.commentsOff ? 'ปิดความคิดเห็น' : `${nComments} ความคิดเห็น`} · {p.shares} แชร์</button>
       </div>
       <div className={s.acts} style={{ position: 'relative' }}>
-        <ReactButton mine={mine} onDock={(o) => { if (o && !coachSeen()) setCoach(true); if (!o) setCoach(false) }} onPick={(k) => { void community.react(p.id, k) }} />
+        <ReactButton mine={mine} onDock={(o) => { if (o && !coachSeen()) setCoach(true); if (!o) setCoach(false) }} onPick={(k) => { community.react(p.id, k).catch(fail) }} />
         {!p.commentsOff && <button type="button" onClick={() => focusComment(p.id, full, nav)}><Icon name="comment" size={20} />แสดงความคิดเห็น</button>}
         <button type="button" onClick={() => sharePost(p.id)}><Icon name="share" size={20} />แชร์</button>
       </div>

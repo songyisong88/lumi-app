@@ -13,6 +13,7 @@ import type { Product } from '../../data/types'
 import { cart, chat, checkout } from '../../services/api'
 import { getDb, useDb } from '../../services/db'
 import { toast } from '../../services/toast'
+import { settle } from '../../services/backClose'
 import { Modules } from './modules'
 import { WriteReviewSheet } from '../../components/OrderHelp'
 import { ReportSheet } from '../../components/Report'
@@ -348,7 +349,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
           <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setSheet(null); nav(`/sell?edit=${p.id}&step=2`) }}><Icon name="edit" size={20} color="var(--p)" /><span className="grow">แก้ไขรายละเอียด<small>ชื่อ ภาพ ไฟล์ และข้อมูลทั้งหมด</small></span><Icon name="chev" size={18} /></button>
           {(!FEATURES.launch || t === 'hire') && <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setSheet(null); nav(`/sell?edit=${p.id}&step=3`) }}><Icon name={p.price === 0 || t === 'hire' ? 'tag' : 'gift'} size={20} color="var(--p)" /><span className="grow">{t === 'hire' ? 'เปลี่ยนราคาแพ็กเกจ' : p.price === 0 ? 'เปลี่ยนเป็นขาย (ตั้งราคา)' : 'เปลี่ยนราคา หรือเปลี่ยนเป็นแจกฟรี'}<small>{t === 'hire' ? 'งานจ้างต้องมีราคา · งานที่รับไปแล้วใช้ราคาเดิม' : 'สลับฟรีหรือขายได้ทุกเมื่อ · ผู้ที่ได้ไปแล้วยังใช้ได้ตามเดิม'}</small></span><Icon name="chev" size={18} /></button>}
           <button className="list-row" style={{ width: '100%', textAlign: 'left' }} onClick={() => { setSheet(null); nav('/profile?mode=creator') }}><Icon name="store" size={20} color="var(--p)" /><span className="grow">ไปหน้าจัดการร้าน<small>ยอดขาย ร่าง และผลงานทั้งหมด</small></span><Icon name="chev" size={18} /></button>
-          {p.mine && <button className="list-row" style={{ width: '100%', textAlign: 'left', color: '#DC2626' }} onClick={async () => { await sell.unpublish(p.id); setSheet(null); toast('เลิกขายแล้ว · ผู้ที่ซื้อไปแล้วยังเปิดไฟล์ได้'); nav('/profile?mode=creator', { replace: true }) }}><Icon name="trash" size={20} color="#DC2626" /><span className="grow">เลิกขายผลงานนี้<small>ซ่อนจากหน้าร้าน ฟีด และหน้าค้นหา</small></span></button>}
+          {p.mine && <button className="list-row" style={{ width: '100%', textAlign: 'left', color: '#DC2626' }} onClick={async () => { setSheet(null); await settle(); await sell.unpublish(p.id); toast('เลิกขายแล้ว · ผู้ที่ซื้อไปแล้วยังเปิดไฟล์ได้'); nav('/profile?mode=creator', { replace: true }) }}><Icon name="trash" size={20} color="#DC2626" /><span className="grow">เลิกขายผลงานนี้<small>ซ่อนจากหน้าร้าน ฟีด และหน้าค้นหา</small></span></button>}
         </div>
       </Sheet>
       <Sheet open={sheet === 'share'} onClose={() => setSheet(null)} title="แชร์ผลงานนี้">

@@ -11,7 +11,8 @@ import { follows, stories } from '../services/api'
 import { useDb } from '../services/db'
 import { SPRING, peekUnder, reducedMotion, skipNextTransition, zoomIn, zoomOut } from '../services/motion'
 import { markStorySeen } from '../services/seenStories'
-import { storyGroups } from '../services/storyGroups'
+import { settle } from '../services/backClose'
+import { ringOrder, storyGroups } from '../services/storyGroups'
 import { toast } from '../services/toast'
 import { STORY_EMOJI } from '../social/reactions'
 import { bgCss, fitBox, mediaCss, ovlColors, ovlKind } from '../social/storyCanvas'
@@ -29,7 +30,8 @@ const bgOf = (sl: StorySlide) => {
   const p = sl.productId ? productById(sl.productId) : undefined
   return p ? imgUrl(heroOf(p)) : undefined
 }
-const close = (nav: ReturnType<typeof useNavigate>) => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/', { replace: true }))
+// settle(): a menu sheet that just closed gives its history entry back first, so -1 really leaves the viewer
+const close = (nav: ReturnType<typeof useNavigate>) => void settle().then(() => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/', { replace: true })))
 
 /** Full-screen stories (Instagram-like). Zooms out of the ring, follow-the-finger cube between people,
  *  swipe down to shrink back into the ring, hold to pause, smooth progress, 24 h expiry (server / storyGroups). */
@@ -38,10 +40,11 @@ export function StoryViewer() {
   const db = useDb()
   // the list is frozen when the viewer opens so it doesn't reshuffle while you watch
   const live = storyGroups(db)
-  const [order] = useState(() => live.map((g) => g.creatorId))
+  const [order] = useState(() => ringOrder(db).map((g) => g.creatorId))
   const groups = order.map((id) => live.find((g) => g.creatorId === id)).filter(Boolean) as Story[]
-  const start = groups.findIndex((g) => g.creatorId === creatorId)
-  if (start < 0) return <Navigate to="/" replace />
+  // where it opened is fixed too: muting / blocking that person later must not throw you out of the viewer
+  const [start] = useState(() => groups.findIndex((g) => g.creatorId === creatorId))
+  if (start < 0 || !groups.length) return <Navigate to="/" replace />
   return <Viewer groups={groups} start={start} />
 }
 
@@ -49,21 +52,37 @@ function Viewer({ groups, start }: { groups: Story[]; start: number }) {
   const nav = useNavigate()
   const root = useRef<HTMLDivElement>(null)
   const cube = useRef<HTMLDivElement>(null)
-  const [gi, setGi] = useState(start)
+  // the person on screen is kept by id: when someone leaves the list (mute, block, last story deleted) the
+  // index of everyone after them shifts, and an index would jump over the next person or point past the end
+  const [cid, setCid] = useState(() => groups[start].creatorId) // lazy: groups[start] can be gone on later renders
+  const lastGi = useRef(start)
+  const found = groups.findIndex((x) => x.creatorId === cid)
+  const gi = found >= 0 ? found : Math.min(lastGi.current, groups.length - 1)
+  const setGi = (n: number) => { if (groups[n]) setCid(groups[n].creatorId) }
+  useEffect(() => { if (found >= 0) lastGi.current = found }, [found])
   const [slideOf, setSlideOf] = useState<Record<string, number>>({})
   const [hint, setHint] = useState(() => !localStorage.getItem(HINT_KEY))
   const [held, setHeld] = useState(false)
   const [ui, setUi] = useState<null | 'more' | 'act' | 'typing'>(null)
   const pos = useRef(start) // continuous cube position (gi while idle)
-  const anim = useRef<{ cancel: () => void } | null>(null)
+  const anim = useRef<{ cancel: () => void; to: number } | null>(null)
   const g = groups[gi]
 
   // entrance: zoom out of the ring that was tapped
+  // once, on open (groups is a new array every render and may have lost the opened person since)
+  const [opened] = useState(() => groups[start].creatorId)
   useLayoutEffect(() => {
     const layer = root.current?.closest<HTMLElement>('.layer')
-    zoomIn(layer ?? null, `s:${groups[start].creatorId}`, null, { fit: 'center' })
-  }, [groups, start])
+    zoomIn(layer ?? null, `s:${opened}`, null, { fit: 'center' })
+  }, [])
   useEffect(() => { markStorySeen(g.creatorId) }, [g.creatorId])
+  useEffect(() => () => anim.current?.cancel(), [])
+  // the person on screen was removed: the next one is now at the same place (or close if it was the last)
+  useLayoutEffect(() => {
+    if (found >= 0) return
+    if (lastGi.current >= groups.length) { anim.current?.cancel(); close(nav); return }
+    anim.current?.cancel(); pos.current = gi; paint(gi); setCid(groups[gi].creatorId)
+  }, [found]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Instagram cube: each face turns around the edge it shares with its neighbour. Shading is an overlay's opacity
   // (no CSS filter → no repaint each frame), only transform/opacity change, so it stays on the compositor at 60 fps.
@@ -97,7 +116,7 @@ function Viewer({ groups, start }: { groups: Story[]; start: number }) {
     anim.current?.cancel()
     if (to < 0) to = 0
     if (to >= groups.length) { void dismiss(); return }
-    const done = () => { pos.current = to; paint(to); if (to !== gi) setGi(to) }
+    const done = () => { anim.current = null; pos.current = to; paint(to); if (to !== gi) setGi(to) }
     if (reducedMotion() || Math.abs(to - from) < 0.001) return done()
     const dist = Math.abs(to - from)
     const ms = Math.max(160, Math.min(380, (dist / Math.max(2.6, vel)) * 1000))
@@ -111,7 +130,7 @@ function Viewer({ groups, start }: { groups: Story[]; start: number }) {
       if (k < 1) raf = requestAnimationFrame(tick); else done()
     }
     raf = requestAnimationFrame(tick)
-    anim.current = { cancel: () => { stop = true; cancelAnimationFrame(raf) } }
+    anim.current = { to, cancel: () => { stop = true; cancelAnimationFrame(raf); anim.current = null } }
   }
   const dismiss = async (fromGesture = false) => {
     const layer = root.current?.closest<HTMLElement>('.layer')
@@ -123,14 +142,16 @@ function Viewer({ groups, start }: { groups: Story[]; start: number }) {
   }
 
   // gestures: horizontal = cube between people (1:1 with the finger), down = shrink back to the ring, hold = pause
-  const gs = useRef<null | { x0: number; y0: number; t0: number; mode: '' | 'x' | 'y' | 'no'; dx: number; dy: number; holdT: number; dragged: boolean; raf: number }>(null)
+  const gs = useRef<null | { x0: number; y0: number; t0: number; mode: '' | 'x' | 'y' | 'no'; dx: number; dy: number; holdT: number; dragged: boolean; raf: number; heading?: number }>(null)
   const suppressClick = useRef(false)
   const grab = useRef(start)
   const onDown = (e: React.PointerEvent) => {
     if (ui || hint || (e.target as HTMLElement).closest('input,textarea,[data-nogest]')) return
+    // a finger landing while the cube is still turning grabs it; remember where it was heading in case this is only a tap
+    const heading = anim.current?.to
     anim.current?.cancel(); grab.current = pos.current
     const holdT = window.setTimeout(() => { setHeld(true); suppressClick.current = true }, HOLD_MS)
-    gs.current = { x0: e.clientX, y0: e.clientY, t0: performance.now(), mode: '', dx: 0, dy: 0, holdT, dragged: false, raf: 0 }
+    gs.current = { x0: e.clientX, y0: e.clientY, t0: performance.now(), mode: '', dx: 0, dy: 0, holdT, dragged: false, raf: 0, heading }
     suppressClick.current = false
   }
   const onMove = (e: React.PointerEvent) => {
@@ -182,6 +203,12 @@ function Viewer({ groups, start }: { groups: Story[]; start: number }) {
         layer.style.transform = ''; layer.style.borderRadius = ''
         a.onfinish = () => { layer.classList.remove('dismissing'); peekUnder(false) }
       }
+    }
+    // a tap / hold / upward flick that interrupted a turn: finish the turn (and swallow the tap) instead of
+    // leaving the cube frozen half-way between two people
+    if (G.mode !== 'x' && (G.heading != null || Math.abs(pos.current - Math.round(pos.current)) > 0.001)) {
+      suppressClick.current = true
+      goGroup(G.heading ?? Math.round(pos.current))
     }
   }
 
@@ -364,10 +391,10 @@ function Face({ g, active, paused, hideUi, slide, setSlide, onNextGroup, onPrevG
           {!mine && <button type="button" className="list-row" onClick={() => { void follows.toggle(g.creatorId).then((v) => toast(v ? `ติดตาม ${c.name} แล้ว` : `เลิกติดตาม ${c.name} แล้ว`), (e: Error) => toast(e.message)); setUi(null) }}>
             <Icon name="user" size={20} /><span className="grow">{following ? 'เลิกติดตาม' : '+ ติดตาม'}<small>{c.name}</small></span></button>}
           <button type="button" className="list-row" aria-label="แชร์" onClick={() => { share(); setUi(null) }}><Icon name="share" size={20} /><span className="grow">แชร์{p ? 'ผลงานในสตอรี่' : 'สตอรี่'}<small>คัดลอกลิงก์</small></span></button>
-          {!mine && <button type="button" className="list-row" data-opt="story-mute" onClick={() => { setUi(null); void setBlock(g.creatorId, 'mute').then(() => { toast(`ปิดเสียงสตอรี่ของ ${c.name} แล้ว`); onNextGroup() }, (e: Error) => toast(e.message)) }}><Icon name="bell" size={20} /><span className="grow">ปิดเสียง {c.name}<small>ไม่เห็นโพสต์และสตอรี่ เขาไม่รู้</small></span></button>}
+          {!mine && <button type="button" className="list-row" data-opt="story-mute" onClick={() => { setUi(null); void setBlock(g.creatorId, 'mute').then(() => { toast(`ปิดเสียงสตอรี่ของ ${c.name} แล้ว`) }, (e: Error) => toast(e.message)) }}><Icon name="bell" size={20} /><span className="grow">ปิดเสียง {c.name}<small>ไม่เห็นโพสต์และสตอรี่ เขาไม่รู้</small></span></button>}
           {mine && sl.storyId && <button type="button" className="list-row" style={{ color: '#E5484D' }} onClick={() => { if (!confirm('ลบสตอรี่นี้?')) return; void stories.remove(sl.storyId!).then(() => { toast('ลบสตอรี่แล้ว'); setUi(null); if (g.slides.length <= 1) onClose(); else setSlide(Math.max(0, i - 1)) }, (e: Error) => toast(e.message)) }}>
             <Icon name="trash" size={20} color="#E5484D" /><span className="grow">ลบสตอรี่นี้</span></button>}
-          {!mine && <button type="button" className="list-row" style={{ color: '#E5484D' }} data-opt="story-block" onClick={() => { if (!confirm(`บล็อก ${c.name}? เขาจะไม่เห็นโพสต์และสตอรี่ของคุณ และติดต่อคุณไม่ได้`)) return; setUi(null); void setBlock(g.creatorId, 'block').then(() => { toast(`บล็อก ${c.name} แล้ว`); onNextGroup() }, (e: Error) => toast(e.message)) }}><Icon name="x" size={20} color="#E5484D" /><span className="grow">บล็อก {c.name}</span></button>}
+          {!mine && <button type="button" className="list-row" style={{ color: '#E5484D' }} data-opt="story-block" onClick={() => { if (!confirm(`บล็อก ${c.name}? เขาจะไม่เห็นโพสต์และสตอรี่ของคุณ และติดต่อคุณไม่ได้`)) return; setUi(null); void setBlock(g.creatorId, 'block').then(() => { toast(`บล็อก ${c.name} แล้ว`) }, (e: Error) => toast(e.message)) }}><Icon name="x" size={20} color="#E5484D" /><span className="grow">บล็อก {c.name}</span></button>}
           {!mine && <button type="button" className="list-row" onClick={() => { setUi(null); toast(`ส่งรายงานให้ทีม ${BRAND} แล้ว · ขอบคุณที่ช่วยดูแลชุมชน`) }}><Icon name="flag" size={20} /><span className="grow">รายงานสตอรี่</span></button>}
         </Sheet>
       )}
