@@ -31,8 +31,23 @@ jobs:
         run: |
           npm ci
           npm run build
-          # DEMO site (sample data + sample persona + test accounts) from the same code at /lumi-app/demo/
-          VITE_SITE=demo npx vite build --outDir dist-demo
+      # DEMO site (sample data + sample persona + test accounts) at /lumi-app/demo/.
+      # New features are tried on the DEMO site first: when a `demo` branch exists, the demo is built from it
+      # (the REAL site above is always built from main). Without a `demo` branch it is built from main as before.
+      # After pushing `demo`, redeploy with: gh workflow run pages.yml --ref main
+      - name: Build DEMO site
+        run: |
+          if git ls-remote --exit-code --heads origin demo >/dev/null 2>&1; then
+            git fetch --depth 1 origin demo
+            git worktree add "$RUNNER_TEMP/demo-src" FETCH_HEAD
+            echo "DEMO built from demo branch @ $(git rev-parse --short FETCH_HEAD)"
+            cd "$RUNNER_TEMP/demo-src/app" && npm ci
+          else
+            echo "DEMO built from main"
+            cd app
+          fi
+          npx tsc -b
+          VITE_SITE=demo npx vite build --outDir "$GITHUB_WORKSPACE/app/dist-demo" --emptyOutDir
       - name: Assemble site
         run: |
           mkdir _site
