@@ -20,6 +20,9 @@ import { replyToReview, sell } from '../../services/api'
 import { FEATURES, REAL } from '../../config'
 import { ModBanner } from '../../components/ModStatus'
 import { catLabel } from '../../data/searchData'
+import { openFromCard } from '../../components/ProductCard'
+import { useDetailGestures } from '../../hooks/useDetailGestures'
+import { setSlideIn, swipeContext } from '../../services/motion'
 import s from './Product.module.css'
 
 type Sec = 'over' | 'get' | 'how' | 'rev' | 'sim'
@@ -57,6 +60,17 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
   useEffect(() => { if (real) void loadReviews(p.id).catch(() => {}) }, [real, p.id])
   const cr = real ? (db.cloudReviews?.[p.id] ?? []).filter((r) => !(owned?.review && r.authorId === ME)) : []
   const all = real ? (db.cloudReviews?.[p.id] ?? []) : []
+  // Pinterest motion: zoom from the card, swipe down back into it, swipe sideways through the list it came from
+  const heroRef = useRef<HTMLDivElement>(null)
+  const ctxIds = swipeContext()?.ids ?? []
+  const at = ctxIds.indexOf(`p:${p.id}`)
+  const neighbour = (d: 1 | -1) => (at >= 0 ? ctxIds[at + d]?.slice(2) : undefined)
+  useDetailGestures(heroRef, {
+    zoomKey: `p:${p.id}`, disabled: preview, target: () => heroRef.current,
+    onClose: () => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/', { replace: true })),
+    hasNeighbour: (d) => !!neighbour(d),
+    onSwipe: (d) => { const n = neighbour(d); if (!n) return false; setSlideIn(d); nav(`/product/${n}`, { replace: true }); return true },
+  })
   const crAvg = all.length ? Math.round((all.reduce((a, r) => a + r.stars, 0) / all.length) * 10) / 10 : 0
   const crBars = [5, 4, 3, 2, 1].map((n) => [n, all.length ? Math.round((all.filter((r) => r.stars === n).length / all.length) * 100) : 0])
   const [myRev, setMyRev] = useState(false)
@@ -155,7 +169,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
       </header>
 
       {/* gallery */}
-      <div className={s.hero}>
+      <div className={s.hero} ref={heroRef}>
         <div className={`hscroll ${s.slides}`} onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
           {gallery.map((g, i) => <div key={g + i} className={s.slideW}><Img src={g} className={s.slide} sizes="100vw" eager={i === 0} />{marked && <span className={s.wm} data-wm aria-hidden>{Array.from({ length: 6 }, (_, k) => <i key={k}>LUMI · ตัวอย่าง</i>)}</span>}</div>)}
         </div>
@@ -285,7 +299,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
           <div className={s.st}>ผลงานคล้ายกัน</div>
           <div className={s.sim}>
             {similar.map((x) => (
-              <Link key={x.id} to={`/product/${x.id}`} className={`${s.simc} press`} onClick={(e) => preview && e.preventDefault()}>
+              <Link key={x.id} to={`/product/${x.id}`} className={`${s.simc} press`} onClick={(e) => (preview ? e.preventDefault() : openFromCard(e.currentTarget, x.id))}>
                 <Img src={galleryOf(x)[0]} className={s.simi} />
                 <b className="ell2">{x.title}</b><small>{creatorById(x.creatorId).name} · {x.price ? baht(x.price) : 'ฟรี'}</small>
               </Link>

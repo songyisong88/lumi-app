@@ -1,3 +1,4 @@
+import { openFromCard } from '../../components/ProductCard'
 import { useEffect, useRef, useState } from 'react'
 import { FollowButton } from '../../components/FollowButton'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -161,7 +162,7 @@ export function Profile() {
                 <div className="sec-h">ผลงานของฉัน ({mine.length})</div>
                 <div className={s.grid}>
                   {mine.map((p) => (
-                    <Link key={p.id} to={`/product/${p.id}`} className={`${s.gi} press`}>
+                    <Link key={p.id} to={`/product/${p.id}`} className={`${s.gi} press`} data-zoom={`p:${p.id}`} onClick={(e) => openFromCard(e.currentTarget, p.id)}>
                       <Img src={heroOf(p)} />
                       <span className={s.gl}>{p.price === 0 ? 'ฟรี' : `♥ ${statsOf(p).likes}`}</span>
                       {p.rev ? <span className={s.gn} data-mod={`rev-${p.rev.status}`} style={{ background: p.rev.status === 'pending' ? '#B45309' : '#DC2626' }}>{p.rev.status === 'pending' ? 'แก้ไขรอตรวจ' : 'แก้ไขไม่ผ่าน'}</span> : p.mod?.status === 'pending' ? <span className={s.gn} data-mod="pending" style={{ background: '#B45309' }}>รอตรวจ</span> : p.mod?.status === 'rejected' ? <span className={s.gn} data-mod="rejected" style={{ background: '#DC2626' }}>ไม่ผ่าน</span> : p.mine && <span className={s.gn}>ใหม่</span>}

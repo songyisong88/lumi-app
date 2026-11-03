@@ -1,33 +1,34 @@
-import { Link, useLocation } from 'react-router-dom'
-import { FbHomeRings } from '../fbmock/FbMock'
-import { creatorById, imgUrl } from '../data/sampleData'
+import { Link } from 'react-router-dom'
+import { ME, creatorById, imgUrl } from '../data/sampleData'
 import { useDb } from '../services/db'
 import { storyGroups } from '../services/storyGroups'
 import { getSeenStories } from '../services/seenStories'
 import { Icon } from './Icon'
-import s from './StoriesRow.module.css'
+import { rememberOrigin } from '../services/motion'
+import s from '../social/Social.module.css'
 
-/** Creator stories. No section title by design (approved home page). */
+/** Instagram-style story rings. “สตอรี่ของคุณ” first: ring → my story, + → make one. Unseen first. */
 export function StoriesRow() {
-  const { pathname } = useLocation()
-  if (pathname === '/fbmock/s_home') return <FbHomeRings /> // MOCKUP ONLY
+  const db = useDb()
   const seen = getSeenStories()
-  const STORIES = storyGroups(useDb())
-  // unseen first, like Instagram
-  const list = [...STORIES].sort((a, b) => Number(seen.includes(a.creatorId)) - Number(seen.includes(b.creatorId)))
+  const all = storyGroups(db)
+  const mine = all.find((g) => g.creatorId === ME)
+  const list = all.filter((g) => g.creatorId !== ME).sort((a, b) => Number(seen.includes(a.creatorId)) - Number(seen.includes(b.creatorId)))
+  const me = creatorById(ME)
   return (
-    <div className={`hscroll ${s.row}`}>
-      <Link to="/sell" className={s.st}>
-        <span className={`${s.ring} ${s.seen}`}><span className={s.add}><Icon name="plus" size={24} color="#6C2BD9" stroke={2.4} /></span></span>
-        <span className={s.name}>ลงขาย</span>
-      </Link>
-      {list.map((st) => {
-        const c = creatorById(st.creatorId)
-        const isSeen = seen.includes(st.creatorId)
+    <div className={`hscroll ${s.ringRow}`} role="list" aria-label="สตอรี่">
+      <span className={`${s.rg} ${mine ? '' : s.me}`} role="listitem">
+        <Link to={mine ? `/story/${ME}` : '/story/new'} aria-label={mine ? 'ดูสตอรี่ของคุณ' : 'สร้างสตอรี่'} style={{ display: 'block' }} onClick={(e) => mine && rememberOrigin(`s:${ME}`, e.currentTarget.querySelector('[data-zoom]'))}>
+          <span><span className={s.pic} data-zoom={`s:${ME}`} style={{ backgroundImage: `url(${imgUrl(me.avatar)})` }} /></span>
+        </Link>
+        <Link to="/story/new" className={s.add} aria-label="เพิ่มสตอรี่" style={{ position: 'absolute', right: 0, top: 46 }}><Icon name="plus" size={13} color="#fff" stroke={3} /></Link>
+        <b>สตอรี่ของคุณ</b>
+      </span>
+      {list.map((g) => {
+        const c = creatorById(g.creatorId)
         return (
-          <Link key={st.creatorId} to={`/story/${st.creatorId}`} className={s.st}>
-            <span className={`${s.ring} ${isSeen ? s.seen : ''}`}><span className={s.pic} style={{ backgroundImage: `url(${imgUrl(c.avatar)})` }} /></span>
-            <span className={s.name}>{c.name}</span>
+          <Link key={g.creatorId} to={`/story/${g.creatorId}`} className={`${s.rg} ${seen.includes(g.creatorId) ? s.seen : ''}`} role="listitem" onClick={(e) => rememberOrigin(`s:${g.creatorId}`, e.currentTarget.querySelector('[data-zoom]'))}>
+            <span><span className={s.pic} data-zoom={`s:${g.creatorId}`} style={{ backgroundImage: `url(${imgUrl(c.avatar)})` }} /></span><b>{c.name}</b>
           </Link>
         )
       })}

@@ -88,6 +88,14 @@ export interface StorySlide {
   media?: string
   kind?: 'image' | 'video'
   caption?: string
+  /** Server / local story id (sample slides have none). */
+  storyId?: string
+  /** Optional link button (only with productId). */
+  linkLabel?: import('./appTypes').StoryLinkLabel
+  overlays?: import('./appTypes').StoryOverlay[]
+  durationMs?: number
+  at?: number
+  expires?: number
 }
 
 export interface Story {

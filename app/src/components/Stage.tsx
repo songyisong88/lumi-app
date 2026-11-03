@@ -10,8 +10,9 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useNavigationType, type Location } from 'react-router-dom'
+import { motionCommitted, pendingZoom, takeSkip } from '../services/motion'
 
-type Kind = 'push' | 'pop' | 'fade' | 'up' | 'down' | 'none'
+type Kind = 'push' | 'pop' | 'fade' | 'up' | 'down' | 'zoom' | 'none'
 export const TAB_ROOTS = ['/', '/search', '/community', '/profile']
 const MODAL = [/^\/community\/new/, /^\/sell(\/|$)/]
 const FADE = [/^\/story\//]
@@ -21,7 +22,10 @@ const reduced = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-
 
 function kindFor(from: string, to: string, nav: string): Kind {
   if (reduced()) return 'none'
-  if (TAB_ROOTS.includes(from) && TAB_ROOTS.includes(to)) return 'fade'
+  // grid card / story ring → detail: the new page zooms out of the thumbnail (it runs the animation itself)
+  if (nav === 'PUSH' && pendingZoom()) return 'zoom'
+  // tab bar switches are instant (no cross-fade flash); each tab keeps its own scroll position (scrollMem)
+  if (TAB_ROOTS.includes(from) && TAB_ROOTS.includes(to)) return 'none'
   if (isFade(from) || isFade(to)) return 'fade'
   if (nav === 'POP') {
     if (isModal(from) && !isModal(to)) return 'down'
@@ -63,6 +67,7 @@ export function Stage({ render }: { render: (l: Location) => ReactNode }) {
   const [cur, setCur] = useState<Location>(location)
   const [exit, setExit] = useState<{ loc: Location; kind: Kind } | null>(null)
   const [under, setUnder] = useState<Location | null>(null)
+  const [peek, setPeek] = useState(false)
   const skip = useRef(false)
   const stack = useRef<Location[]>([])
   const root = useRef<HTMLDivElement>(null)
@@ -72,10 +77,11 @@ export function Stage({ render }: { render: (l: Location) => ReactNode }) {
     if (location.pathname === cur.pathname) {
       setCur(location)
     } else {
-      const k = skip.current ? 'none' : kindFor(cur.pathname, location.pathname, navType)
+      const sk = skip.current || takeSkip()
+      const k = sk ? 'none' : kindFor(cur.pathname, location.pathname, navType)
       setExit(k === 'none' ? null : { loc: cur, kind: k })
       setCur(location)
-      if (skip.current) setUnder(null)
+      if (sk) { setUnder(null); setPeek(false) }
       skip.current = false
     }
   }
@@ -90,16 +96,29 @@ export function Stage({ render }: { render: (l: Location) => ReactNode }) {
   // end of transition: drop the old layer
   useEffect(() => {
     if (!exit) return
-    const h = window.setTimeout(() => setExit(null), exit.kind === 'fade' ? 260 : 480)
+    const h = window.setTimeout(() => setExit(null), exit.kind === 'fade' ? 260 : exit.kind === 'zoom' ? 420 : 480)
     return () => clearTimeout(h)
   }, [exit])
 
   // clear inline gesture styles once the new page is current
   useLayoutEffect(() => {
+    motionCommitted()
     root.current?.querySelectorAll<HTMLElement>('.layer').forEach((el) => { el.style.transform = ''; el.style.transition = '' })
     const sh = root.current?.querySelector<HTMLElement>('.shade-g')
     if (sh) { sh.style.opacity = ''; sh.style.transition = '' }
   }, [cur])
+
+  // swipe-down dismiss (detail page / story viewer): show the previous page, untransformed, underneath
+  useEffect(() => {
+    const on = (e: Event) => {
+      const want = (e as CustomEvent<boolean>).detail
+      const idx = (window.history.state?.idx as number | undefined) ?? 0
+      const prev = idx > 0 ? stack.current[idx - 1] : undefined
+      if (want && prev && !exit) { setUnder(prev); setPeek(true) } else if (!want) { setUnder(null); setPeek(false) }
+    }
+    window.addEventListener('stage:peek', on)
+    return () => window.removeEventListener('stage:peek', on)
+  }, [exit])
 
   // interactive edge swipe back (touch only)
   useEffect(() => {
@@ -166,8 +185,9 @@ export function Stage({ render }: { render: (l: Location) => ReactNode }) {
 
   const k = exit?.kind
   const back = k === 'pop' || k === 'down'
+  // zoom: the old page stays still underneath while the new one grows from the thumbnail
   const layers: { loc: Location; cls: string; z: number; active: boolean; under?: boolean }[] = []
-  if (under && under.pathname !== cur.pathname) layers.push({ loc: under, cls: 'l-under', z: 1, active: false, under: true })
+  if (under && under.pathname !== cur.pathname) layers.push({ loc: under, cls: peek ? 'l-peek' : 'l-under', z: 1, active: false, under: true })
   if (exit) layers.push({ loc: exit.loc, cls: `l-${k}-out`, z: back ? 3 : 1, active: false })
   layers.push({ loc: cur, cls: exit ? `l-${k}-in` : '', z: back ? 1 : 3, active: true })
 
@@ -176,7 +196,7 @@ export function Stage({ render }: { render: (l: Location) => ReactNode }) {
       {layers.map((l) => <Layer key={l.loc.pathname} render={render} {...l} />)}
       {exit && (k === 'push' || k === 'pop') && <div className={`shade ${k === 'push' ? 'shade-in' : 'shade-out'}`} style={{ zIndex: 2 }} />}
       {exit && (k === 'up' || k === 'down') && <div className={`shade ${k === 'up' ? 'shade-in' : 'shade-out'}`} style={{ zIndex: 2 }} />}
-      {under && <div className="shade shade-g" style={{ zIndex: 2 }} />}
+      {under && !peek && <div className="shade shade-g" style={{ zIndex: 2 }} />}
     </div>
   )
 }

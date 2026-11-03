@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { rememberOrigin, setSwipeContext } from '../services/motion'
 import { creatorById, imgSrcSet, imgUrl } from '../data/sampleData'
 import { typeOf } from '../data/listingSpec'
 import { statsOf } from '../data/productExtras'
@@ -31,22 +32,23 @@ function Creator({ id, free }: { id: string; free?: boolean }) {
 /** The visual area. Each kind shows the product its own way, at its real aspect ratio. */
 function Media({ p }: { p: Product }) {
   const style = { aspectRatio: ratioOf(p) }
+  const z = `p:${p.id}`
   switch (p.kind) {
     case 'tool':
       return (
-        <div className={s.pm} style={{ ...style, background: p.gradient }}>
+        <div className={s.pm} data-zoom={z} style={{ ...style, background: p.gradient }}>
           <div className={s.center}><span className={s.appi}><Icon name={p.icon ?? 'bolt'} size={26} color="#fff" /></span></div>
         </div>
       )
     case 'bot':
       return (
-        <div className={s.pm} style={style}>
+        <div className={s.pm} data-zoom={z} style={style}>
           <div className={s.bot}><div className={s.q}>{p.chat?.q}</div><div className={s.a}>{p.chat?.a}</div></div>
         </div>
       )
     case 'template':
       return (
-        <div className={s.pm} style={{ ...style, background: '#EAF1FF' }}>
+        <div className={s.pm} data-zoom={z} style={{ ...style, background: '#EAF1FF' }}>
           <div className={s.paper} style={{ backgroundImage: `url(${imgUrl(p.image!.src, true)})` }} />
           <div className={s.files}>{p.files?.map((f) => <span key={f}>{f}</span>)}</div>
           <span className={s.preview}><Icon name="eye" size={13} color="#2563EB" stroke={2.2} />ดูตัวอย่าง</span>
@@ -54,7 +56,7 @@ function Media({ p }: { p: Product }) {
       )
     default:
       return (
-        <div className={`${s.pm} sk`} style={style}>
+        <div className={`${s.pm} sk`} data-zoom={z} style={style}>
           <img src={imgUrl(p.image!.src, true)} srcSet={imgSrcSet(p.image!.src)} sizes="(min-width: 600px) 300px, 50vw" alt="" loading="lazy" decoding="async" width={p.image!.w} height={p.image!.h} className="img-fade"
             ref={(i) => { if (i?.complete && i.naturalWidth) { i.classList.add('is-in'); i.parentElement?.classList.remove('sk') } }}
             onLoad={(e) => { e.currentTarget.classList.add('is-in'); e.currentTarget.parentElement?.classList.remove('sk') }} />
@@ -98,11 +100,19 @@ function Footer({ p }: { p: Product }) {
   return <Creator id={p.creatorId} free={p.price === 0} />
 }
 
+/** Shared-element zoom: remember where the picture is + the grid order (for swiping through it on the detail page). */
+export function openFromCard(el: HTMLElement, id: string) {
+  const card = el.closest('article')
+  rememberOrigin(`p:${id}`, card?.querySelector('[data-zoom]') ?? el.querySelector('.img-box') ?? el)
+  const scope = el.closest('.lsc') ?? document
+  setSwipeContext(`p:${id}`, [...new Set([...scope.querySelectorAll<HTMLElement>('[data-zoom^="p:"]')].map((x) => x.dataset.zoom!))])
+}
+
 /** Feed card. NO price by design: price shows on the product/story view. Free items get a green "ฟรี" pill. */
 export function ProductCard({ p, badge }: { p: Product; badge?: ReactNode }) {
   return (
     <article className={`${s.card} card-press`} data-kind={p.kind}>
-      <Link to={`/product/${p.id}`} className={s.link} aria-label={p.title} />
+      <Link to={`/product/${p.id}`} className={s.link} aria-label={p.title} onClick={(e) => openFromCard(e.currentTarget, p.id)} />
       <div className={s.mw}>
         <Media p={p} />
         <TypeTag p={p} />
