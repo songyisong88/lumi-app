@@ -31,6 +31,10 @@ const MenuSettings = UI_V2 ? lz(() => import('./pages/v2/MenuSettings'), 'MenuSe
 const SavedPosts = UI_V2 ? lz(() => import('./pages/v2/MenuSettings'), 'SavedPosts') : NotFound
 const Admin = UI_V2 ? lz(() => import('./pages/admin/Admin'), 'Admin') : NotFound
 const AdminLog = UI_V2 ? lz(() => import('./pages/admin/Admin'), 'AdminLog') : NotFound
+// DEMO DRAFT: takedown / counter-notice screens (UI_V2 = demo site only)
+const AdminTakedown = UI_V2 ? lz(() => import('./pages/legal/Takedown'), 'AdminTakedown') : NotFound
+const TakedownForm = UI_V2 ? lz(() => import('./pages/legal/Takedown'), 'TakedownForm') : NotFound
+const TakedownCase = UI_V2 ? lz(() => import('./pages/legal/Takedown'), 'TakedownCase') : NotFound
 const CreatorPage = lz(() => import('./pages/profile/Profile'), 'CreatorPage')
 const Community = lz(() => import('./pages/community/Community'), 'Community')
 const Activities = lz(() => import('./pages/community/More'), 'Activities')
@@ -97,6 +101,9 @@ export default function App() {
               <Route path="/saved" element={<SavedPosts />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/log" element={<AdminLog />} />
+              <Route path="/admin/takedown" element={<AdminTakedown />} />
+              <Route path="/takedown/new" element={<TakedownForm />} />
+              <Route path="/takedown/:ref" element={<TakedownCase />} />
             </>}
             <Route path="/sell" element={<Sell />} />
             <Route path="/sell/drafts" element={<Drafts />} />

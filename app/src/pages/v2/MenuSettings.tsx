@@ -46,6 +46,7 @@ export function MenuSettings() {
 
       {admin && <G label="สำหรับแอดมิน" tag="คนอื่นไม่เห็นส่วนนี้">
         <Row icon="shield" t="ตรวจผลงาน" sub={`AI ไม่แน่ใจ ${ai} · ถูกรายงาน ${rep}`} to="/admin" end={q.length > 0 && <span className="v2-badge">{q.length}</span>} />
+        <Row icon="flag" t="คำร้องแจ้งลบ" sub="ลิขสิทธิ์และเนื้อหาผิดกฎหมาย · ร่าง" to="/admin/takedown" />
       </G>}
 
       <G label="บัญชี">
@@ -74,6 +75,7 @@ export function MenuSettings() {
       <Sheet open={help} onClose={() => setHelp(false)} title={`ช่วยเหลือและติดต่อ ${BRAND}`}>
         <Row icon="flag" t="มีปัญหากับของที่ซื้อ" sub="คลังของที่ซื้อ › ⋯ › แจ้งปัญหา (ภายใน 7 วัน)" to="/library" />
         <Row icon="chat" t="คุยกับครีเอเตอร์" sub="ถามเรื่องไฟล์หรือวิธีใช้ในแชต" to="/chat" />
+        <Row icon="shield" t="แจ้งลบเนื้อหา" sub="ละเมิดลิขสิทธิ์ หรือผิดกฎหมาย" to="/takedown/new" />
         <p className="v2-sm" style={{ padding: '8px 0' }}>ช่องทางติดต่อทีม {BRAND} โดยตรงจะเปิดพร้อมระบบช่วยเหลือ</p>
       </Sheet>
     </div>
