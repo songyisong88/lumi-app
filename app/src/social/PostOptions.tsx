@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { Av, Sheet } from '../components/ui'
 import type { Audience, Post } from '../data/appTypes'
-import { ME, creatorById } from '../data/sampleData'
+import { ME, creatorById, imgUrl } from '../data/sampleData'
 import { community, follows } from '../services/api'
 import { useDb } from '../services/db'
 import { AUDIENCE, blockOf, likers, setBlock, setPostOptions, type Liker } from '../services/social'
@@ -73,7 +73,7 @@ export function PostMenu({ p, open, onClose, full, onEdit, onReport, onShare }: 
         <AudiencePick value={p.audience ?? 'public'} onChange={async (v) => { setAud(false); try { await setPostOptions(p.id, { audience: v }); toast(`ตั้งเป็น “${AUDIENCE[v].l}” แล้ว`) } catch (e) { err(e) } }} />
       </Sheet>
       <Sheet open={blk} onClose={() => setBlk(false)} title={`บล็อก ${a.name}?`} sub="เขาจะไม่เห็นโพสต์ สตอรี่ และโปรไฟล์ของคุณ แท็ก คอมเมนต์ ถูกใจ หรือทักแชตคุณไม่ได้ เขาจะไม่ได้รับแจ้ง"
-        footer={<button type="button" className="btn btn-block" style={{ background: '#DC2626', color: '#fff' }} onClick={async () => { setBlk(false); await settle(); try { await setBlock(p.authorId, 'block'); toast(`บล็อก ${a.name} แล้ว`); if (full) nav(-1) } catch (e) { err(e) } }}>บล็อก</button>}>
+        footer={<button type="button" className="btn btn-block" style={{ background: '#DC2626', color: '#fff' }} onClick={async () => { setBlk(false); await settle(); try { await setBlock(p.authorId, 'block'); toast(`บล็อก ${a.name} แล้ว`); if (full) { if ((window.history.state?.idx ?? 0) > 0) nav(-1); else nav('/community', { replace: true }) } } catch (e) { err(e) } }}>บล็อก</button>}>
         <p style={{ color: 'var(--mut)', fontSize: 13 }}>เลิกบล็อกได้ที่ เมนู › ความเป็นส่วนตัว › บัญชีที่บล็อก</p>
       </Sheet>
     </>
@@ -136,7 +136,7 @@ export function EditPostSheet({ p, open, onClose }: { p: Post; open: boolean; on
         <label style={{ display: 'block', marginTop: 12, marginBottom: 6, fontSize: 13, fontWeight: 600 }}>คำอธิบายรูป (alt text) สำหรับผู้ใช้โปรแกรมอ่านหน้าจอ</label>
         {p.images.map((src, i) => (
           <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
-            <img src={src} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} />
+            <img src={imgUrl(src)} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} />
             <input className="inp" style={{ flex: 1 }} value={alt[i] ?? ''} onChange={(e) => setAlt((a) => { const n = [...a]; n[i] = e.target.value; return n })} maxLength={300} placeholder={`รูปที่ ${i + 1}`} aria-label={`คำอธิบายรูปที่ ${i + 1}`} />
           </div>
         ))}

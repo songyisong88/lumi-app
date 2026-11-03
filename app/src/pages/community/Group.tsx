@@ -41,7 +41,7 @@ export function Group() {
     <div className={`page ${s.pg}`} style={{ background: '#F0EEF5' }}>
       <div className={s.gcov}>
         <Img src={r.cover} eager />
-        <button type="button" aria-label="ย้อนกลับ" onClick={() => (history.length > 1 ? nav(-1) : nav('/community?tab=groups'))}><Icon name="back" size={20} color="#fff" /></button>
+        <button type="button" aria-label="ย้อนกลับ" onClick={() => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/community?tab=groups'))}><Icon name="back" size={20} color="#fff" /></button>
       </div>
       <div className={s.gbody}>
         <h1>{r.name}</h1>

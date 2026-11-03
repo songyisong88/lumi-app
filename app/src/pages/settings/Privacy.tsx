@@ -52,8 +52,8 @@ export function PrivacySettingsPage() {
       <TopBar title="ความเป็นส่วนตัว" back />
       {!cloudOn() && <p style={{ margin: '10px 16px 0', fontSize: 12.5, color: 'var(--mut)' }}>บัญชีตัวอย่าง: ตั้งค่าเก็บในเครื่องนี้ · บัญชีจริงบันทึกที่เซิร์ฟเวอร์และบังคับใช้กับทุกคน</p>}
       <G label="การมองเห็นบัญชี">
-        <Row icon="lock" id="private" t="บัญชีส่วนตัว" sub={ps.isPrivate ? 'เฉพาะผู้ติดตามที่คุณอนุมัติเห็นโพสต์และสตอรี่' : 'ทุกคนเห็นโพสต์สาธารณะของคุณ'} end={<Toggle label="บัญชีส่วนตัว" on={ps.isPrivate} onChange={(v) => void save({ ...ps, isPrivate: v }, v ? 'เปลี่ยนเป็นบัญชีส่วนตัวแล้ว' : 'เปลี่ยนเป็นบัญชีสาธารณะแล้ว')} />} />
-        <Row icon="bolt" id="activity" t="สถานะกิจกรรม" sub="ให้คนที่คุณติดตามกันเห็นว่าคุณใช้งานอยู่ ปิดแล้วคุณจะไม่เห็นของคนอื่นด้วย" end={<Toggle label="สถานะกิจกรรม" on={ps.activity} onChange={(v) => void save({ ...ps, activity: v })} />} />
+        <Row icon="lock" id="private" onClick={() => ((v: boolean) => void save({ ...ps, isPrivate: v }, v ? 'เปลี่ยนเป็นบัญชีส่วนตัวแล้ว' : 'เปลี่ยนเป็นบัญชีสาธารณะแล้ว'))(!ps.isPrivate)} t="บัญชีส่วนตัว" sub={ps.isPrivate ? 'เฉพาะผู้ติดตามที่คุณอนุมัติเห็นโพสต์และสตอรี่' : 'ทุกคนเห็นโพสต์สาธารณะของคุณ'} end={<Toggle label="บัญชีส่วนตัว" on={ps.isPrivate} onChange={(v) => void save({ ...ps, isPrivate: v }, v ? 'เปลี่ยนเป็นบัญชีส่วนตัวแล้ว' : 'เปลี่ยนเป็นบัญชีสาธารณะแล้ว')} />} />
+        <Row icon="bolt" id="activity" onClick={() => ((v: boolean) => void save({ ...ps, activity: v }))(!ps.activity)} t="สถานะกิจกรรม" sub="ให้คนที่คุณติดตามกันเห็นว่าคุณใช้งานอยู่ ปิดแล้วคุณจะไม่เห็นของคนอื่นด้วย" end={<Toggle label="สถานะกิจกรรม" on={ps.activity} onChange={(v) => void save({ ...ps, activity: v })} />} />
       </G>
       {reqs.length > 0 && <G label={`คำขอติดตาม · ${reqs.length}`}>
         {reqs.map((id) => { const c = creatorById(id); return (
