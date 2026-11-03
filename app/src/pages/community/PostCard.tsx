@@ -14,6 +14,7 @@ import { toast } from '../../services/toast'
 import { ago } from '../../utils/time'
 import { ReactButton, coachSeen } from '../../social/ReactButton'
 import { MentionText } from '../../social/Mention'
+import { PostMedia } from '../../social/PostMedia'
 import { REACTIONS, fmtN, topRx } from '../../social/reactions'
 import c from './Community.module.css'
 import s from '../../social/Social.module.css'
@@ -80,16 +81,7 @@ export function PostCard({ p, full, i = 0, inGroup }: { p: Post; full?: boolean;
       <div className={s.tx} onClick={open}>
         <MentionText text={p.text} mentions={p.mentions} max={full ? 0 : 140} />
       </div>
-      {imgs.length > 0 && (
-        <div className={`${s.imgs} ${s['g' + Math.min(imgs.length, 3)]}`} onClick={open}>
-          {imgs.slice(0, 3).map((x, k) => (
-            <span key={x + k}>
-              {isVideo(x) ? <video src={x} controls={full} muted playsInline preload="metadata" /> : <Img src={x} sizes={imgs.length > 1 ? '50vw' : '100vw'} />}
-              {k === 2 && imgs.length > 3 && <b className={s.plusN}>+{imgs.length - 3}</b>}
-            </span>
-          ))}
-        </div>
-      )}
+      {imgs.length > 0 && <PostMedia srcs={imgs} onDoubleLike={() => { if (!mine) void community.react(p.id, 'like') }} />}
       {p.code && (
         <div className={c.code} style={{ margin: '8px 14px 0' }}>{p.code.map((x, k) => <div key={x}><i>{k + 1}</i><code>{x}</code><button onClick={() => { copyText(x); toast('คัดลอกสูตรแล้ว') }} aria-label="คัดลอก"><Icon name="copy" size={14} /></button></div>)}</div>
       )}

@@ -19,6 +19,9 @@ export function ReactButton({ mine, onPick, small, onDock }: { mine?: ReactKind;
   const dockRef = useRef<HTMLDivElement>(null)
   const r = rxOf(mine)
   useEffect(() => () => clearTimeout(t.current), [])
+  // pop whenever my reaction is set or changed (tap, dock, or double-tap on the picture)
+  const prev = useRef(mine)
+  useEffect(() => { if (mine && mine !== prev.current) setBurst((n) => n + 1); prev.current = mine }, [mine])
   useEffect(() => {
     onDock?.(dock)
     if (!dock) return
@@ -31,7 +34,6 @@ export function ReactButton({ mine, onPick, small, onDock }: { mine?: ReactKind;
   }, [dock]) // eslint-disable-line react-hooks/exhaustive-deps
   const pick = (k: ReactKind | null) => {
     setDock(false); setHov(undefined)
-    if (k) setBurst((n) => n + 1)
     if (k && dock) markCoach() // learned the long-press: stop showing the tip
     onPick(k)
   }
@@ -76,6 +78,9 @@ export function ReactButton({ mine, onPick, small, onDock }: { mine?: ReactKind;
           <span key={'b' + burst} className={s.burst} aria-hidden>
             {([[-30, -26, r.e], [8, -40, '✨'], [30, -22, r.e], [-8, -54, '✨']] as const).map(([x, y, e2], i) => <i key={i} style={{ transform: `translate(${x}px,${y}px)` }}>{e2}</i>)}
           </span>
+        )}
+        {burst > 0 && r && !small && (
+          <span key={'r' + burst} aria-hidden style={{ position: 'absolute', left: 'calc(50% - 22px)', top: '50%', color: r.c }}><span className={s.ring} /></span>
         )}
       </button>
     </>

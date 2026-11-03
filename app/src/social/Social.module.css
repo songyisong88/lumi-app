@@ -606,3 +606,35 @@
 :global(html.ui2) .udot{background:#E5484D}
 :global(html.ui2) .prompt b{color:var(--ink2)}
 :global(html.ui2) .aud span{color:var(--ink2);background:#F3F2F7}
+
+/* ---------- v3: post pictures (IG carousel), full-screen viewer, double-tap heart, like pop ---------- */
+.pmWrap{position:relative;margin-top:10px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.pm2{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;background:#F3F2F7;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
+.pm2::-webkit-scrollbar{display:none}
+.pmItem{flex:0 0 100%;scroll-snap-align:center;scroll-snap-stop:always;position:relative;overflow:hidden}
+.pmItem :global(.img-box),.pmItem video{width:100%;height:100%;display:block}
+.pmItem video,.pmItem img{object-fit:cover}
+.pmCount{position:absolute;top:10px;right:10px;padding:3px 9px;border-radius:99px;background:rgba(22,19,43,.7);color:#fff;font-size:12px;font-weight:700;transition:opacity .4s;pointer-events:none}
+.pmDots{display:flex;justify-content:center;gap:4px;padding:8px 0 0;height:20px;align-items:center}
+.pmDots button{width:6px;height:6px;border-radius:50%;background:#C9C6D6;padding:0;transition:transform .25s,background .25s;min-width:0;min-height:0}
+.pmDots button.on{background:var(--p);transform:scale(1.15)}
+.pmDots button.far{transform:scale(.6)}
+.bigHeart{position:absolute;font-size:96px;line-height:1;color:#fff;pointer-events:none;translate:-50% -50%;text-shadow:0 4px 24px rgba(0,0,0,.35);animation:bigHeart .95s cubic-bezier(.2,1,.3,1) forwards;z-index:3}
+@keyframes bigHeart{0%{scale:0;opacity:0;rotate:-14deg}15%{scale:1.25;opacity:1;rotate:-8deg}30%{scale:.95;rotate:-8deg}45%{scale:1.05}80%{scale:1;opacity:1;translate:-50% -50%}100%{scale:.8;opacity:0;translate:-50% -140%}}
+.pv{position:fixed;inset:0;z-index:2000;touch-action:none;overflow:hidden;user-select:none;-webkit-user-select:none}
+.pvBg{position:absolute;inset:0;background:#000}
+.pvTrack{position:absolute;inset:0;will-change:transform}
+.pvSlide{position:absolute;top:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.pvSlide :global(.pv-m){max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;transform-origin:50% 50%;will-change:transform;-webkit-user-drag:none}
+.pvTop{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 6px) 8px 8px;color:#fff;transition:opacity .2s;background:linear-gradient(rgba(0,0,0,.45),transparent)}
+.pvTop button{width:44px;height:44px;border-radius:50%;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
+.pvTop span{font-size:14px;font-weight:700;padding-right:14px}
+.pvDots{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 18px);left:0;right:0;display:flex;justify-content:center;gap:6px;transition:opacity .2s;pointer-events:none}
+.pvDots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.45)}
+.pvDots i.on{background:#fff}
+.pop{animation:rxPop2 .45s cubic-bezier(.17,.89,.32,1.28)}
+@keyframes rxPop2{0%{scale:.2}40%{scale:1.32}65%{scale:.9}82%{scale:1.06}100%{scale:1}}
+.ring{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:2px solid currentColor;pointer-events:none;animation:rxRing .5s ease-out forwards}
+@keyframes rxRing{from{scale:.3;opacity:.9}to{scale:1.9;opacity:0}}
+.rxBtn :global(svg){transition:transform .12s}
+.rxBtn:active :global(svg){transform:scale(.82)}
