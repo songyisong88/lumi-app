@@ -45,10 +45,16 @@ if [ "$ONLY" != real ]; then
   DEMO_REF="${DEMO_REF:-}"
   if [ -z "$DEMO_REF" ] && git ls-remote --exit-code --heads origin demo >/dev/null 2>&1; then DEMO_REF=origin/demo; fi
   if [ -n "$DEMO_REF" ] && [ "$DEMO_REF" != "." ]; then
-    git fetch -q origin demo 2>/dev/null || true
+    git fetch -q origin main demo 2>/dev/null || true
     SRC="$(mktemp -d)/demo-src"; git worktree add -q --detach "$SRC" "$DEMO_REF"
     trap 'git -C "$APP" worktree remove --force "$SRC" >/dev/null 2>&1 || true' EXIT
     echo "DEMO built from $DEMO_REF @ $(git -C "$SRC" rev-parse --short HEAD)"
+    # keep the demo up to date with main (merged only in this temp worktree, nothing is pushed)
+    if [ "$DEMO_REF" = origin/demo ] && ! git -C "$SRC" merge-base --is-ancestor origin/main HEAD; then
+      git -C "$SRC" -c user.name=deploy -c user.email=deploy@localhost merge -q --no-edit origin/main \
+        && echo "  + merged main @ $(git rev-parse --short origin/main)" \
+        || { git -C "$SRC" merge --abort; echo "WARNING: demo conflicts with main - built from demo only; merge main into demo"; }
+    fi
     if cmp -s "$SRC/app/package-lock.json" "$APP/package-lock.json" && [ -d "$APP/node_modules" ]; then ln -s "$APP/node_modules" "$SRC/app/node_modules"; else (cd "$SRC/app" && npm ci); fi
     (cd "$SRC/app" && npx tsc -b && VITE_BASE=/ VITE_SITE=demo npx vite build --outDir "$APP/dist-cf-demo" --emptyOutDir)
   else
