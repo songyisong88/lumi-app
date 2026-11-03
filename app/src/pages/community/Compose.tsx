@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { settle } from '../../services/backClose'
 import { Icon } from '../../components/Icon'
 import { Av, Img, SampleNote, Sheet, TopBar, blockTap } from '../../components/ui'
 import { ROOMS } from '../../data/appSeed'
@@ -231,8 +232,8 @@ export function Compose() {
         </>}
       </Sheet>
       <Sheet open={sheet === 'leave'} onClose={() => setSheet(null)} title="บันทึกเป็นฉบับร่างไหม?" sub="ฉบับร่างเก็บไว้ในเครื่องนี้ เปิดหน้าสร้างโพสต์ครั้งหน้าจะถามให้ทำต่อ">
-        <button type="button" className="btn btn-p btn-block" onClick={() => { saveDraft(); setSheet(null); leave() }}>บันทึกฉบับร่าง</button>
-        <button type="button" className="btn btn-block" style={{ marginTop: 8, color: '#DC2626' }} onClick={() => { setSheet(null); leave() }}>ทิ้ง</button>
+        <button type="button" className="btn btn-p btn-block" onClick={async () => { saveDraft(); setSheet(null); await settle(); leave() }}>บันทึกฉบับร่าง</button>
+        <button type="button" className="btn btn-block" style={{ marginTop: 8, color: '#DC2626' }} onClick={async () => { setSheet(null); await settle(); leave() }}>ทิ้ง</button>
       </Sheet>
       <Sheet open={sheet === 'feel'} onClose={() => setSheet(null)} title="ความรู้สึก/กิจกรรม">
         <div className={s.feelGrid}>{FEELINGS.map((f) => <button key={f} type="button" className={feeling === f ? s.on : ''} onClick={() => { setFeeling(feeling === f ? undefined : f); setSheet(null) }}>{f}</button>)}</div>

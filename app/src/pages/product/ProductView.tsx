@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { HeartButton } from '../../components/HeartButton'
 import { Icon } from '../../components/Icon'
 import { Av, copyText, Img, Sheet, Stars, blockTap } from '../../components/ui'
-import { licRows, layoutOf, sellTypeOf, specOf, SPECS, str, arr, on, filesOf } from '../../data/listingSpec'
+import { licRows, layoutOf, sellTypeOf, specOf, SPECS, str, arr, on, filesOf, previewsOf, previewSrc } from '../../data/listingSpec'
 import { galleryOf, highlightsOf, optionsOf, pageContent, REVIEWS, reviewer, similarOf, statsOf, creatorStats } from '../../data/productExtras'
 import { baht, creatorById, isRemoteId, ME } from '../../data/sampleData'
 import { loadReviews } from '../../services/cloud'
@@ -40,8 +40,10 @@ const cheapest = <T extends { price: number; suffix?: string }>(os: T[]): T | un
 export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
   const nav = useNavigate()
   const db = useDb()
-  const L = layoutOf(p)
   const t = sellTypeOf(p)
+  // A free work keeps its own type's showcase (prompt, tester, previews, lessons…); only price/bar/download change.
+  const free = layoutOf(p) === 'free'
+  const L = free ? SPECS[t].layout : layoutOf(p)
   const spec = specOf(p)
   const pc = pageContent(p)
   const opts = optionsOf(p)
@@ -128,20 +130,20 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
     setSheet('free')
   }
 
-  const price = L === 'free' ? 0 : opt?.price ?? p.price
+  const price = free ? 0 : opt?.price ?? p.price
   const freeHire = L === 'hire' && p.price === 0
   const ebook = t === 'course' && str(spec.sub) === 'อีบุ๊ก'
   const freeLessons = t === 'course' && str(spec.freeLessons) !== 'ไม่มี'
   // previews of visual / audio work carry a LUMI watermark until bought (files themselves are clean)
-  const marked = !mine && !owned && !preview && L !== 'free' && ['img', 'font', 'media', 'tpl'].includes(t)
+  const marked = !mine && !owned && !preview && !free && ['img', 'font', 'media', 'tpl'].includes(t)
   const similar = useMemo(() => similarOf(p), [p])
 
   // bottom bar per layout (approved product-b “bar”)
   const bar = (() => {
     if (mine && !preview) return { sub: 'ผลงานของคุณ', main: <button className="btn btn-d" onClick={() => setSheet('manage')}>จัดการผลงาน</button>, sec: <button className="btn btn-o btn-sm" onClick={() => setSheet('share')}><Icon name="share" size={16} />แชร์</button> }
     if (owned && L !== 'hire') return { sub: `${owned.price ? 'ซื้อแล้ว' : 'รับฟรีแล้ว'}${owned.optionLabel && owned.optionLabel !== 'ของฟรี' ? ` · ${owned.optionLabel}` : ''}`, main: <button className="btn btn-p" onClick={() => nav(`/library/${owned.id}`)}><Icon name="download" size={18} color="#fff" />เปิดในคลังของที่ซื้อ</button>, sec: null }
+    if (free) return { sub: 'ของฟรี', main: <button className="btn btn-p" disabled={busy} onClick={getFree}>{busy ? 'กำลังเตรียมไฟล์…' : 'ดาวน์โหลดฟรี'}</button>, sec: FEATURES.tips ? <button className="btn btn-o btn-sm" onClick={() => (guard() ? null : setSheet('tip'))}><Icon name="gift" size={16} color="#B45309" />ให้ทิป</button> : null }
     switch (L) {
-      case 'free': return { sub: 'ของฟรี', main: <button className="btn btn-p" disabled={busy} onClick={getFree}>{busy ? 'กำลังเตรียมไฟล์…' : 'ดาวน์โหลดฟรี'}</button>, sec: FEATURES.tips ? <button className="btn btn-o btn-sm" onClick={() => (guard() ? null : setSheet('tip'))}><Icon name="gift" size={16} color="#B45309" />ให้ทิป</button> : null }
       case 'hire': return { sub: freeHire ? 'รับงานฟรี' : `แพ็กเกจ${opt?.label ?? ''}`, main: <button className="btn btn-p" onClick={() => (guard() ? null : setSheet('brief'))}>{freeHire ? 'ส่งบรีฟขอรับงานฟรี' : 'ส่งบรีฟขอใบเสนอราคา'}</button>, sec: <button className="btn btn-o btn-sm" onClick={openChat} aria-label="แชตถามก่อน" title="แชตถามก่อน"><Icon name="chat" size={18} color="var(--p)" /></button> }
       default: {
         const second = L === 'sw' && on(spec.trial) ? <button className="btn btn-o btn-sm" onClick={async () => {
@@ -174,7 +176,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
         <div className={`hscroll ${s.slides}`} onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}>
           {gallery.map((g, i) => <div key={g + i} className={s.slideW}><Img src={g} className={s.slide} sizes="100vw" eager={i === 0} />{marked && <span className={s.wm} data-wm aria-hidden>{Array.from({ length: 6 }, (_, k) => <i key={k}>{BRAND} · ตัวอย่าง</i>)}</span>}</div>)}
         </div>
-        <div className={s.tyb}><span><Icon name={SPECS[t].icon} size={13} color="#fff" stroke={2.2} />{catLabel(p)}{L === 'free' || freeHire ? ' · ฟรี' : ''}</span>{marked && <span>ภาพตัวอย่างมีลายน้ำ</span>}{p.mine && <span>ผลงานของคุณ</span>}</div>
+        <div className={s.tyb}><span><Icon name={SPECS[t].icon} size={13} color="#fff" stroke={2.2} />{catLabel(p)}{free || freeHire ? ' · ฟรี' : ''}</span>{marked && <span>ภาพตัวอย่างมีลายน้ำ</span>}{p.mine && <span>ผลงานของคุณ</span>}</div>
         {!preview && <HeartButton productId={p.id} className={s.fav} />}
         {gallery.length > 1 && <div className={s.dots}>{gallery.map((_, i) => <i key={i} className={i === slide ? s.don : ''} />)}</div>}
       </div>
@@ -184,7 +186,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
         <h1 className={s.ttl}>{p.title}</h1>
         <div className={s.rt}><Icon name="star" size={13} stroke={0} fill="#F5A524" /><b>{st.reviews ? st.rating : 'ใหม่'}</b>{st.reviews > 0 && <span>({st.reviews} รีวิว)</span>}<span>·</span><span>{st.soldLabel}</span></div>
         <div className={s.pr}>
-          {L === 'free' || freeHire ? <span className={s.free}>{freeHire ? 'รับงานฟรี' : 'ฟรี'}</span> : <>{L === 'hire' && <small>ราคาเริ่มต้น</small>}{L !== 'hire' && !owned && opts.length > 1 && <small>เริ่ม</small>}<b data-head-price>{baht(L === 'hire' ? Math.min(...opts.map((o) => o.price)) : owned ? owned.price : cheapest(opts)?.price ?? price)}{L === 'hire' ? '' : owned ? '' : cheapest(opts)?.suffix ?? ''}</b>{owned && L !== 'hire' && <small>{owned.price ? 'ซื้อแล้ว' : 'รับแล้ว'}</small>}{L === 'hire' && <small data-quote-note>· ราคาจริงตามใบเสนอราคา</small>}</>}
+          {free || freeHire ? <span className={s.free}>{freeHire ? 'รับงานฟรี' : 'ฟรี'}</span> : <>{L === 'hire' && <small>ราคาเริ่มต้น</small>}{L !== 'hire' && !owned && opts.length > 1 && <small>เริ่ม</small>}<b data-head-price>{baht(L === 'hire' ? Math.min(...opts.map((o) => o.price)) : owned ? owned.price : cheapest(opts)?.price ?? price)}{L === 'hire' ? '' : owned ? '' : cheapest(opts)?.suffix ?? ''}</b>{owned && L !== 'hire' && <small>{owned.price ? 'ซื้อแล้ว' : 'รับแล้ว'}</small>}{L === 'hire' && <small data-quote-note>· ราคาจริงตามใบเสนอราคา</small>}</>}
         </div>
         <p className={s.use}><Icon name="target" size={14} color="var(--mut)" />{p.use}</p>
         <div className={s.hl}>
@@ -198,7 +200,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
 
       <div className={s.pd}>
         <section data-sec="over">
-          {opts.length > 0 && L !== 'free' && L !== 'hire' && (
+          {opts.length > 0 && !free && L !== 'hire' && (
             <>
               <div className={s.st}>{L === 'sw' ? 'เลือกสิทธิ์ใช้งาน' : 'เลือกแบบที่ต้องการ'}</div>
               {opts.map((o) => (
@@ -211,7 +213,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
               ))}
             </>
           )}
-          <Modules unlocked={(mine && !preview) || !!owned} p={p} L={L} spec={spec} opts={opts} optId={opt?.id} setOptId={setOptId} onTip={(a) => { if (guard()) return; setTipAmt(a ?? 50); setSheet('tip') }} onTrial={() => setSheet('trial')} onLesson={() => setSheet('lesson')} />
+          <Modules free={free} unlocked={(mine && !preview) || !!owned} p={p} L={L} spec={spec} opts={opts} optId={opt?.id} setOptId={setOptId} onTip={(a) => { if (guard()) return; setTipAmt(a ?? 50); setSheet('tip') }} onTrial={() => setSheet('trial')} onLesson={() => setSheet('lesson')} />
           {p.desc && <><div className={s.st}>รายละเอียด</div><p className={s.desc}>{p.desc}</p></>}
           {pc.facts.length > 0 && <div className={s.spec} style={{ marginTop: 14 }}>{pc.facts.map(([k, v]) => <div key={k}>{k}<b>{v}</b></div>)}</div>}
         </section>
@@ -222,7 +224,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
           {filesOf(spec.files).length > 0 && (
             <div className={s.scan}><Icon name="shield" size={22} color="#16A34A" /><div><b>สแกนไวรัสเบื้องต้นแล้ว ไม่พบภัยที่รู้จัก</b>{filesOf(spec.files).length} ไฟล์ · ผ่านการตรวจโดยทีม {BRAND} ก่อนขึ้นขาย · ถ้าพบว่าผิดกฎภายหลัง {BRAND} ลบได้</div></div>
           )}
-          {L !== 'free' && !freeHire && <div className={s.scan} style={{ background: '#EEF2FF', color: '#3730A3' }}><Icon name="lock" size={22} color="#4F46E5" /><div><b>ชำระผ่านผู้ให้บริการชำระเงินที่มีใบอนุญาต</b>{L === 'hire' || t === 'hire' ? 'เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงานถ้าไม่ได้ขอแก้หรือแจ้งปัญหา' : 'ไฟล์มีปัญหาหรือไม่ตรงคำอธิบาย กดแจ้งปัญหา / ขอคืนเงินได้ภายใน 7 วัน ก่อนเงินโอนให้ครีเอเตอร์'}</div></div>}
+          {!free && !freeHire && <div className={s.scan} style={{ background: '#EEF2FF', color: '#3730A3' }}><Icon name="lock" size={22} color="#4F46E5" /><div><b>ชำระผ่านผู้ให้บริการชำระเงินที่มีใบอนุญาต</b>{L === 'hire' || t === 'hire' ? 'เงินโอนให้ครีเอเตอร์เมื่อคุณกดรับงาน หรือครบ 3 วันหลังส่งงานถ้าไม่ได้ขอแก้หรือแจ้งปัญหา' : 'ไฟล์มีปัญหาหรือไม่ตรงคำอธิบาย กดแจ้งปัญหา / ขอคืนเงินได้ภายใน 7 วัน ก่อนเงินโอนให้ครีเอเตอร์'}</div></div>}
         </section>
 
         <section data-sec="how">
@@ -311,7 +313,7 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
 
       {!preview && (
         <div className={`bottom-bar ${s.bar}`}>
-          <div className={s.pp}><small>{bar.sub}</small><b style={L === 'free' || freeHire ? { color: '#16A34A' } : undefined}>{owned && L !== 'hire' ? (owned.price ? baht(owned.price) : 'ฟรี') : L === 'free' || freeHire ? 'ฟรี' : `${baht(price)}${opt?.suffix ?? ''}`}</b></div>
+          <div className={s.pp}><small>{bar.sub}</small><b style={free || freeHire ? { color: '#16A34A' } : undefined}>{owned && L !== 'hire' ? (owned.price ? baht(owned.price) : 'ฟรี') : free || freeHire ? 'ฟรี' : `${baht(price)}${opt?.suffix ?? ''}`}</b></div>
           {bar.sec}
           {bar.main}
         </div>
@@ -339,9 +341,10 @@ export function ProductView({ p, preview }: { p: Product; preview?: boolean }) {
           <p className="muted" style={{ fontSize: 12.5 }}>ลิงก์ตัวอย่าง ยังไม่ได้เชื่อมบอทจริง</p></div>
       </Sheet>
       <Sheet open={sheet === 'lesson'} onClose={() => setSheet(null)} title={arr(spec.lessons)[0]?.split(' · ').slice(0, 2).join(' · ') ?? 'ตอนแรกฟรี'} sub={ebook ? 'อ่านฟรี ไม่ต้องซื้อ' : 'ดูฟรี ไม่ต้องซื้อ'}>
-        {ebook ? <div className={s.box}>{arr(spec.lessons).slice(0, 3).map((l, i) => <div key={i} className={s.ok}><span className="ok-ic"><Icon name="book" size={13} /></span>{l}</div>)}</div>
+        {ebook && previewsOf(spec.samplePages).length > 0 ? <div data-sample-reader>{previewsOf(spec.samplePages).map((x, i) => <img key={i} src={previewSrc(x.url)} alt={`หน้าตัวอย่าง ${i + 1}`} className={s.pgFull} loading="lazy" />)}</div>
+          : ebook ? <div className={s.box}>{arr(spec.lessons).slice(0, 3).map((l, i) => <div key={i} className={s.ok}><span className="ok-ic"><Icon name="book" size={13} /></span>{l}</div>)}</div>
           : <div className={s.video} role="button" tabIndex={0} aria-label="เล่นวิดีโอตอนแรก" onClick={() => toast('วิดีโอจริงจะเล่นได้เมื่อเชื่อมระบบเก็บไฟล์ (ข้อมูลตัวอย่าง)')}><Img src={gallery[0]} className={s.videoImg} sizes="100vw" /><span className={s.playBig}><Icon name="play" size={30} color="#fff" fill="#fff" /></span><div className={s.vbar}><i /></div></div>}
-        <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>{ebook ? 'ตัวอ่านตัวอย่าง · หน้าจริงจะเปิดหลังเชื่อมระบบเก็บไฟล์' : 'ตัวเล่นวิดีโอตัวอย่าง · วิดีโอจริงจะเปิดหลังเชื่อมระบบเก็บไฟล์'}</p>
+        <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>{ebook ? (previewsOf(spec.samplePages).length ? `หน้าตัวอย่าง ${previewsOf(spec.samplePages).length} หน้าจากผู้เขียน · ฉบับเต็มอยู่ในไฟล์หลังซื้อ` : 'ผู้เขียนยังไม่ได้ใส่หน้าตัวอย่าง · ด้านบนคือสารบัญบทแรก ๆ') : 'ตัวเล่นวิดีโอตัวอย่าง · วิดีโอจริงจะเปิดหลังเชื่อมระบบเก็บไฟล์'}</p>
       </Sheet>
       <ReportSheet open={sheet === 'report'} onClose={() => setSheet(null)} target="product" id={p.id} />
       <Sheet open={sheet === 'manage'} onClose={() => setSheet(null)} title="จัดการผลงาน" sub={`${p.title} · ${p.price === 0 ? 'แจกฟรี' : `ขาย ${baht(p.price)}`}`}>

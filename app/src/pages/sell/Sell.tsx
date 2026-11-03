@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Empty, Img, SampleNote, Sheet, Toggle, TopBar, blockTap } from '../../components/ui'
-import { newSpec, licRows, presetRows, MAX_FILES, SPECS, uploadRule, fmtMB, arr, checkListing, completion, filesOf, on, str, visible, sellTypeOf, specOf, SELL_TYPE_ORDER } from '../../data/listingSpec'
+import { newSpec, licRows, presetRows, MAX_FILES, SPECS, uploadRule, fmtMB, arr, checkListing, completion, filesOf, on, str, visible, sellTypeOf, specOf, SELL_TYPE_ORDER, previewsOf, promptOnly, PROMPT_ONLY } from '../../data/listingSpec'
 import type { Field, ListingDraft, SellType, Spec, SpecValue, Step, UploadedFile } from '../../data/listingSpec'
 import { CATEGORIES, childrenOf } from '../../data/searchData'
 import { baht, ME, productById } from '../../data/sampleData'
@@ -17,7 +17,8 @@ import { ProductView } from '../product/ProductView'
 import { PRICE_OPTS } from '../../data/sellDefaults'
 import { FEATURES, REAL, BRAND } from '../../config'
 import { useModStatus } from '../../components/ModStatus'
-import { cloudOn, removeDeliverable, uploadDeliverable } from '../../services/cloud'
+import { cloudOn, removeDeliverable, uploadDeliverable, uploadPreview } from '../../services/cloud'
+import { publicUrl } from '../../services/supabase'
 import s from './Sell.module.css'
 
 const STEPS = ['ประเภท', 'ไฟล์', 'รายละเอียด', 'ราคา', 'สิทธิ์', 'ตัวอย่าง']
@@ -116,6 +117,15 @@ export function Sell() {
   const patch = useCallback((p: Partial<ListingDraft>) => setD((x) => ({ ...x, ...p })), [])
   const setSpec = useCallback((id: string, v: SpecValue | ((old: SpecValue | undefined) => SpecValue)) =>
     setD((x) => ({ ...x, spec: { ...x.spec, [id]: typeof v === 'function' ? v(x.spec[id]) : v } })), [])
+  // images: switching to “prompt only” sells the prompt (sellPrompt on) with only the prompt price option on
+  const setFilesSpec: SetSpec = (id, v) => {
+    setSpec(id, v)
+    if (d.type !== 'img' || id !== 'imgKind' || typeof v !== 'string') return
+    const po = v === PROMPT_ONLY
+    if (po) setSpec('sellPrompt', true)
+    const base = d.options.some((x) => x.id === 'prompt') ? d.options : [...d.options, { ...(PRICE_OPTS.img.find((x) => x.id === 'prompt') ?? { id: 'prompt', label: PROMPT_ONLY, sub: '', price: 79, on: false }) }]
+    patch({ options: base.map((x) => ({ ...x, on: po ? x.id === 'prompt' : x.id === 'prompt' ? false : x.id === 'img' || x.id === 'both' ? true : x.on })) })
+  }
   const go = (n: number) => {
     setDir(n > d.step ? 1 : -1)
     patch({ step: n })
@@ -173,7 +183,7 @@ export function Sell() {
         {d.step === 1 && t && <>
           <H t={d.type === 'hire' ? 'ผลงานตัวอย่างและสิ่งที่ส่ง' : 'อัปโหลดผลงาน'} s="รูปหน้าปก ไฟล์ที่ผู้ซื้อได้รับ และข้อมูลไฟล์" />
           <Covers d={d} patch={patch} />
-          <Fields fs={t.fields} step="files" spec={d.spec} set={setSpec} type={d.type} draftId={d.id} />
+          <Fields fs={t.fields} step="files" spec={d.spec} set={setFilesSpec} type={d.type} draftId={d.id} />
         </>}
         {d.step === 2 && t && <>
           <H t="บอกผู้ซื้อให้ชัด" s="ชื่อ ประโยคบอกว่าเหมาะกับใคร และรายละเอียด" />
@@ -301,19 +311,20 @@ const isPromptOpt = (x?: { id: string; label: string }) => !!x && (x.id === 'bot
 
 function StepPrice({ d, patch, set }: { d: ListingDraft; patch: (p: Partial<ListingDraft>) => void; set: SetSpec }) {
   const t = SPECS[d.type!]
-  const opts = d.options
+  const po = d.type === 'img' && promptOnly(d.spec)
+  const opts = po ? d.options.filter((x) => x.id === 'prompt') : d.options
   const live = opts.filter((x) => x.on && x.price > 0)
   const top = live.length ? Math.max(...live.map((x) => x.price)) : 0
   const upd = (id: string, p: Partial<Opt>) => {
-    patch({ options: opts.map((x) => (x.id === id ? { ...x, ...p } : x)) })
-    // images: the “ภาพ + พรอมต์” option and “ขายพรอมต์ด้วย” are the same choice
-    if (d.type === 'img' && isPromptOpt(opts.find((x) => x.id === id)) && p.on !== undefined) set('sellPrompt', p.on)
+    patch({ options: d.options.map((x) => (x.id === id ? { ...x, ...p } : x)) })
+    // images: the “ภาพ + พรอมต์” option and “ขายพรอมต์ด้วย” are the same choice (prompt-only always sells the prompt)
+    if (d.type === 'img' && !po && isPromptOpt(opts.find((x) => x.id === id)) && p.on !== undefined) set('sellPrompt', p.on)
   }
   // launch: free items only for now (server: PAID_SALES_LATER)
   useEffect(() => { if (FEATURES.launch && d.type !== 'hire' && !d.free) patch({ free: true }) }, [d.type, d.free]) // eslint-disable-line react-hooks/exhaustive-deps
   const setP: SetSpec = (id, v) => {
     set(id, v)
-    if (d.type === 'img' && id === 'sellPrompt' && typeof v === 'boolean' && !d.free) patch({ options: opts.map((x) => (isPromptOpt(x) ? { ...x, on: v } : x)) })
+    if (d.type === 'img' && id === 'sellPrompt' && typeof v === 'boolean' && !d.free) patch({ options: d.options.map((x) => (isPromptOpt(x) ? { ...x, on: v } : x)) })
   }
   return <>
     <H t="ตั้งราคาและแบบที่ขาย" s="เปิดเฉพาะแบบที่อยากขาย ผู้ซื้อเลือกเองบนหน้าผลงาน" />
@@ -359,8 +370,9 @@ function FieldView({ f, v, spec, set, type, draftId }: { f: Field; v: SpecValue 
       {f.kind === 'multi' && <div className="chips" style={{ flexWrap: 'wrap' }}>{f.options!.map((x) => { const sel = arr(v).includes(x); return <button key={x} className={`chip ${sel ? 'on' : ''}`} onClick={() => set(f.id, (old) => (sel ? arr(old).filter((y) => y !== x) : [...arr(old), x]))}>{sel && '✓ '}{x}</button> })}</div>}
       {f.kind === 'list' && <ListEdit f={f} v={v} set={set} />}
       {f.kind === 'files' && <FilesEdit f={f} v={v} set={set} type={type} spec={spec} draftId={draftId} />}
+      {f.kind === 'previews' && <PreviewsEdit f={f} v={v} set={set} />}
       {f.pattern && str(v) && !f.pattern.test(str(v)) && <span className="hint" style={{ color: '#DC2626' }}>{f.patternNote}</span>}
-      {f.hint && f.kind !== 'files' && <span className="hint">{f.hint}</span>}
+      {f.hint && f.kind !== 'files' && f.kind !== 'previews' && <span className="hint">{f.hint}</span>}
     </div>
   )
 }
@@ -434,6 +446,54 @@ function FilesEdit({ f, v, set, type, spec, draftId }: { f: Field; v: SpecValue 
       <input ref={ref} type="file" multiple hidden accept={rule.exts.map((x) => '.' + x).join(',') || undefined} onChange={(e) => { add(e.target.files); e.target.value = '' }} />
       <span className="hint">รองรับ {rule.exts.map((x) => '.' + x).join(' ')} · ไม่เกิน {fmtMB(rule.maxMB)} ต่อไฟล์ · สูงสุด {MAX_FILES} ไฟล์</span>
       <span className="hint"><Icon name="shield" size={12} /> {REAL ? `ไฟล์อัปโหลดขึ้นระบบ ${BRAND} และสแกนไวรัสอัตโนมัติก่อนขาย ผู้ซื้อดาวน์โหลดได้หลังรับของเท่านั้น` : 'ทดลอง: ไฟล์ไม่ถูกส่งขึ้นเซิร์ฟเวอร์ ระบบจำลองการสแกน (ชื่อไฟล์มีคำว่า virus จะไม่ผ่าน)'}</span>
+    </div>
+  )
+}
+
+/** Public samples the buyer sees before paying (clip, audio, font for the tester, sample pages).
+ *  Real accounts upload to the public previews bucket; the demo keeps a small copy in this browser. */
+const LOCAL_PREVIEW_MB = 1
+const MIME_BY_EXT: Record<string, string> = { otf: 'font/otf', ttf: 'font/ttf', woff: 'font/woff', woff2: 'font/woff2', mp3: 'audio/mpeg', mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' }
+const readDataUrl = (b: Blob) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error('อ่านไฟล์ไม่ได้')); r.readAsDataURL(b) })
+function PreviewsEdit({ f, v, set }: { f: Field; v: SpecValue | undefined; set: SetSpec }) {
+  const ref = useRef<HTMLInputElement>(null)
+  const items = previewsOf(v)
+  const [busy, setBusy] = useState(false)
+  const max = f.maxItems ?? 3
+  const cap = cloudOn() ? f.maxMB ?? 10 : Math.min(f.maxMB ?? 10, LOCAL_PREVIEW_MB)
+  const accept = (f.accept ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean)
+  const ok = (mime: string, ext: string) => !accept.length || accept.some((a) => (a.startsWith('.') ? a === '.' + ext : a.endsWith('/*') ? mime.startsWith(a.slice(0, -1)) : a === mime))
+  const add = async (fl: FileList | null) => {
+    if (!fl) return
+    let room = max - items.length
+    setBusy(true)
+    for (const file of Array.from(fl)) {
+      const ext = (file.name.split('.').pop() ?? '').toLowerCase()
+      const mime = MIME_BY_EXT[ext] ?? file.type ?? ''
+      if (!ok(mime, ext)) { toast(`“${file.name}” ไม่ใช่ไฟล์ตัวอย่างที่รองรับ`); continue }
+      if (file.size > cap * 1048576) { toast(cloudOn() ? `“${file.name}” ใหญ่เกิน ${cap} MB` : `โหมดทดลองเก็บตัวอย่างในเครื่องได้ไม่เกิน ${cap} MB ต่อไฟล์`); continue }
+      if (room-- <= 0) { toast(`ใส่ตัวอย่างได้สูงสุด ${max} ไฟล์`); break }
+      try {
+        const blob = new Blob([file], { type: mime })
+        const url = cloudOn() ? publicUrl(await uploadPreview(blob, 'samples', file.name))! : mime.startsWith('image/') ? await fileToDataUrl(file, 1400) : await readDataUrl(blob)
+        set(f.id, (old) => [...arr(old), JSON.stringify({ name: file.name.slice(-80), url, mime })])
+      } catch (e) { toast((e as Error).message || 'อัปโหลดตัวอย่างไม่สำเร็จ') }
+    }
+    setBusy(false)
+  }
+  return (
+    <div className={s.files} data-previews={f.id}>
+      {items.map((x, i) => (
+        <div key={x.url + i} className={`${s.fi} rise`}>
+          {x.mime.startsWith('image/') ? <img src={x.url} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flex: 'none' }} />
+            : <span className={s.fic}><Icon name={x.mime.startsWith('video/') ? 'play' : x.mime.startsWith('audio/') ? 'mic' : 'font'} size={18} /></span>}
+          <span className="grow"><b className="ell">{x.name}</b><small>{x.mime.startsWith('video/') ? 'คลิปตัวอย่าง' : x.mime.startsWith('audio/') ? 'เสียงตัวอย่าง' : x.mime.startsWith('image/') ? 'หน้าตัวอย่าง' : 'ฟอนต์สำหรับช่องลองพิมพ์'} · ทุกคนเปิดดูได้</small></span>
+          <button onClick={() => set(f.id, (old) => arr(old).filter((_, k) => k !== i))} aria-label={`ลบ ${x.name}`}><Icon name="trash" size={16} /></button>
+        </div>
+      ))}
+      {items.length < max && <button className={`${s.drop} press`} disabled={busy} onClick={() => ref.current?.click()}><Icon name="upload" size={22} color="var(--p)" /><b>{busy ? 'กำลังอัปโหลด…' : 'เลือกไฟล์ตัวอย่าง'}</b><small>{f.hint}</small></button>}
+      <input ref={ref} type="file" multiple={max > 1} hidden accept={f.accept} onChange={(e) => { void add(e.target.files); e.target.value = '' }} />
+      <span className="hint">ไม่เกิน {cap} MB ต่อไฟล์ · สูงสุด {max} ไฟล์{cloudOn() ? '' : ' · โหมดทดลอง: เก็บไว้ในเครื่องนี้เท่านั้น'}</span>
     </div>
   )
 }

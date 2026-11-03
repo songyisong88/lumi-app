@@ -11,7 +11,7 @@ export type SellType = 'img' | 'tpl' | 'sw' | 'game' | 'bot' | 'course' | 'font'
 export type SpecValue = string | string[] | boolean
 export type Spec = Record<string, SpecValue | undefined>
 export type Step = 'files' | 'details' | 'price' | 'license'
-export type FieldKind = 'text' | 'textarea' | 'chips' | 'multi' | 'toggle' | 'list' | 'files'
+export type FieldKind = 'text' | 'textarea' | 'chips' | 'multi' | 'toggle' | 'list' | 'files' | 'previews'
 
 export interface UploadedFile { name: string; size: string; scan: 'scan' | 'ok' | 'fail'; pct?: number; /** Supabase product_files id (real accounts). */ fileId?: string; reason?: string }
 
@@ -34,6 +34,10 @@ export interface Field {
   /** Text must match (e.g. a real Canva / LINE link). */
   pattern?: RegExp
   patternNote?: string
+  /** kind 'previews': what the public sample may be (accept list for the picker) and its size cap. */
+  accept?: string
+  maxMB?: number
+  maxItems?: number
 }
 
 export interface TypeSpec {
@@ -52,6 +56,20 @@ export interface TypeSpec {
 export const str = (v: SpecValue | undefined) => (typeof v === 'string' ? v.trim() : '')
 export const arr = (v: SpecValue | undefined): string[] => (Array.isArray(v) ? v.filter((x) => String(x).trim()) : [])
 export const on = (v: SpecValue | undefined) => v === true
+/** A public preview the buyer can open before paying (clip, audio, font, sample page). Stored as JSON strings in the spec. */
+export interface PreviewItem { name: string; url: string; mime: string }
+/** Only our own previews bucket, bundled samples, or in-browser data URLs (a listing can't point the page at any other site). */
+const PREVIEW_BASE = `${import.meta.env.VITE_SUPABASE_URL ?? ''}/storage/v1/object/public/previews/`
+const safePreviewUrl = (u: string) => /^data:(image|audio|video|font)\//.test(u) || /^samples\/[\w.-]+$/.test(u) || (!!import.meta.env.VITE_SUPABASE_URL && u.startsWith(PREVIEW_BASE) && !u.includes('..'))
+export const previewsOf = (v: SpecValue | undefined): PreviewItem[] =>
+  arr(v).map((x) => { try { return JSON.parse(x) as PreviewItem } catch { return null } })
+    .filter((x): x is PreviewItem => !!x && typeof x.url === 'string' && typeof x.name === 'string' && typeof x.mime === 'string' && safePreviewUrl(x.url))
+/** Image listing that sells only the prompt (no image files). */
+export const PROMPT_ONLY = 'พรอมต์อย่างเดียว'
+export const promptOnly = (s: Spec) => str(s.imgKind) === PROMPT_ONLY
+/** Bundled sample previews are stored as 'samples/…' (relative to the app base); uploads are full URLs. */
+export const previewSrc = (u: string) => (/^(data:|blob:|https?:)/.test(u) ? u : `${import.meta.env.BASE_URL}${u.replace(/^\//, '')}`)
+const pv = (name: string, url: string, mime: string) => JSON.stringify({ name, url, mime } satisfies PreviewItem)
 export const filesOf = (v: SpecValue | undefined): UploadedFile[] =>
   arr(v).map((x) => { try { return JSON.parse(x) as UploadedFile } catch { return { name: x, size: '', scan: 'ok' as const } } })
 const list = (xs: string[]) => xs.join(' · ')
@@ -84,37 +102,45 @@ const licDefaults = (t: SellType, preset = 'ใช้ในธุรกิจ (�
 
 /** Every listing confirms it doesn't use other people's IP (legal review §3). */
 const IP_OK: Field = { id: 'ipOk', label: 'ยืนยัน: ไม่มีตัวละคร โลโก้ แบรนด์ หรือหน้า/เสียงของคนจริงที่ไม่ได้รับอนุญาต และไม่มีเนื้อหาทางเพศ', kind: 'toggle', step: 'license', required: true, mustBeOn: true, hint: `ถ้าถูกแจ้งละเมิด ${BRAND} ซ่อนผลงานระหว่างตรวจสอบ` }
+/** Banned goods (owner 2026-11-03): resold AI accounts/keys, cracks or pirated keys, stock/crypto trading bots. */
+export const BAN_OK: Field = { id: 'banOk', label: 'ยืนยัน: ไม่ได้ขายของต้องห้าม เช่น บัญชีหรือคีย์ AI ขายต่อ โปรแกรมแคร็กหรือคีย์เถื่อน บอทเทรดหุ้นหรือคริปโต', kind: 'toggle', step: 'license', required: true, mustBeOn: true, hint: `ของต้องห้ามถูกถอดทันที และอาจถูกระงับบัญชี` }
 // Fields every type shares on the license step.
 const LICENSE = (t: SellType): Field[] => [
   { id: 'licPreset', label: 'แบบสิทธิ์การใช้งาน', kind: 'chips', step: 'license', options: LIC_PRESET_NAMES, required: true },
   { id: 'licAllowed', label: 'ผู้ซื้อทำอะไรได้บ้าง', kind: 'multi', step: 'license', options: licRows(t), required: true, hint: t === 'img' ? 'ตารางนี้โชว์บนหน้าผลงาน · “โลโก้ ป้ายร้าน” ไม่แนะนำ เพราะงานขายหลายคนจดเครื่องหมายการค้าไม่ได้' : 'ตารางนี้โชว์บนหน้าผลงาน' },
-  IP_OK,
+  IP_OK, BAN_OK,
 ]
 /** Standard refund choices (B8). Every order can still be reported within 7 days under LUMI's own policy. */
-export const REFUND_STD = ['คืนเงินได้ภายใน 7 วัน ถ้าไฟล์เปิดไม่ได้หรือไม่ตรงคำอธิบาย', 'คืนเงินได้ภายใน 7 วัน ไม่ต้องให้เหตุผล', 'ไม่รับคืนถ้าเปลี่ยนใจ (ไฟล์เสียหรือไม่ตรงคำอธิบายยังคืนได้)']
+export const REFUND_STD = ['คืนเงินได้ภายใน 7 วัน ถ้าไฟล์เปิดไม่ได้หรือไม่ตรงคำอธิบาย', 'ไม่รับคืนถ้าเปลี่ยนใจ (ไฟล์เสียหรือไม่ตรงคำอธิบายยังคืนได้)']
 const REFUND_HIRE = ['คืนเต็มจำนวนถ้ายังไม่เริ่มงาน หรือส่งงานไม่ตรงบรีฟ', 'คืนเต็มจำนวนถ้าส่งงานช้าเกินกำหนด', 'คืนบางส่วนตามงานที่ทำไปแล้ว ถ้ายกเลิกกลางทาง']
 const refundField = (options: string[]): Field => ({ id: 'refund', label: 'เงื่อนไขคืนเงิน', kind: 'chips', step: 'license', required: true, options, hint: `เลือกแบบที่ตรงกับงาน · ทุกออเดอร์แจ้งปัญหาได้ภายใน 7 วันตามนโยบาย ${BRAND} อยู่แล้ว` })
 const REFUND = refundField(REFUND_STD)
 const REFUND_SW = refundField(['คืนเงินเต็มจำนวนภายใน 7 วัน ถ้าติดตั้งหรือใช้งานไม่ได้', ...REFUND_STD])
 const SUPPORT: Field = { id: 'support', label: 'ซัพพอร์ตและอัปเดต', kind: 'text', step: 'license', required: true, placeholder: 'เช่น อัปเดตฟรี 1 ปี · ตอบแชตภายใน 24 ชม.' }
+const withPrompt = (s: Spec) => on(s.sellPrompt) || promptOnly(s)
+/** Public samples (previews bucket): anyone can open them, so creators upload a short cut, never the paid file. */
+const PREVIEW = (label: string, hint: string, accept: string, maxMB: number, maxItems: number, extra: Partial<Field> = {}): Field =>
+  ({ id: 'previews', label, kind: 'previews', step: 'files', hint, accept, maxMB, maxItems, ...extra })
+const SAMPLE_PAGES = (when?: (s: Spec) => boolean) => PREVIEW('หน้าตัวอย่าง (ไม่บังคับ)', 'ภาพแคปหน้าจริง 1–6 หน้า JPG PNG · ผู้ซื้อเปิดดูได้ก่อนซื้อ · อย่าใส่หน้าที่เป็นเนื้อหาหลักทั้งหมด', 'image/jpeg,image/png,image/webp', 10, 6, { id: 'samplePages', when })
 const FILES = (label: string, hint: string, req: boolean | ((s: Spec) => boolean) = true): Field => ({ id: 'files', label, kind: 'files', step: 'files', hint, required: req })
 
 export const SPECS: Record<SellType, TypeSpec> = {
   img: {
     key: 'img', name: 'ภาพ + พรอมต์', sub: 'ภาพ ชุดภาพ หรือพรอมต์', icon: 'image', color: '#6C2BD9', bg: '#F3ECFF', layout: 'img',
     fields: [
-      FILES('ไฟล์ภาพที่ผู้ซื้อได้รับ', `ไฟล์ต้นฉบับ ไม่มีลายน้ำ ${BRAND} · ห้ามลบลายน้ำที่ข้อตกลงของเครื่องมือ AI บังคับไว้`),
-      { id: 'count', label: 'จำนวนภาพในชุด', kind: 'text', step: 'files', required: true, placeholder: 'เช่น 1 ภาพ หรือ 8 ภาพ 8 มุม' },
-      { id: 'resolution', label: 'ความละเอียด', kind: 'chips', step: 'files', options: ['4K (3840 px ขึ้นไป)', '2K (2048 px)', 'Full HD (1920 px)', 'A4 300 dpi'], required: true },
-      { id: 'formats', label: 'นามสกุลไฟล์', kind: 'multi', step: 'files', options: ['PNG', 'JPG', 'WEBP', 'PSD', 'SVG'], required: true },
+      { id: 'imgKind', label: 'ขายอะไร', kind: 'chips', step: 'files', options: ['ภาพ (มีไฟล์ภาพ)', PROMPT_ONLY], hint: 'พรอมต์อย่างเดียว = ผู้ซื้อได้พรอมต์ฉบับเต็มและค่าตั้ง ไม่มีไฟล์ภาพ · ภาพปกคือตัวอย่างที่สร้างจากพรอมต์นี้' },
+      { ...FILES('ไฟล์ภาพที่ผู้ซื้อได้รับ', `ไฟล์ต้นฉบับ ไม่มีลายน้ำ ${BRAND} · ห้ามลบลายน้ำที่ข้อตกลงของเครื่องมือ AI บังคับไว้`, (s) => !promptOnly(s)), when: (s) => !promptOnly(s) },
+      { id: 'count', label: 'จำนวนภาพในชุด', kind: 'text', step: 'files', required: (s) => !promptOnly(s), when: (s) => !promptOnly(s), placeholder: 'เช่น 1 ภาพ หรือ 8 ภาพ 8 มุม' },
+      { id: 'resolution', label: 'ความละเอียด', kind: 'chips', step: 'files', options: ['4K (3840 px ขึ้นไป)', '2K (2048 px)', 'Full HD (1920 px)', 'A4 300 dpi'], required: (s) => !promptOnly(s), when: (s) => !promptOnly(s) },
+      { id: 'formats', label: 'นามสกุลไฟล์', kind: 'multi', step: 'files', options: ['PNG', 'JPG', 'WEBP', 'PSD', 'SVG'], required: (s) => !promptOnly(s), when: (s) => !promptOnly(s) },
       { id: 'aspect', label: 'สัดส่วนภาพ', kind: 'chips', step: 'details', options: ['1:1', '3:4', '4:5', '9:16', '16:9'], required: true },
-      { id: 'sellPrompt', label: 'ขายพรอมต์ด้วย', kind: 'toggle', step: 'price', hint: 'ผู้ซื้อเห็นพรอมต์ฉบับเต็มหลังจ่าย' },
-      { id: 'prompt', label: 'พรอมต์ฉบับเต็ม', kind: 'textarea', step: 'price', when: (s) => on(s.sellPrompt), required: (s) => on(s.sellPrompt), placeholder: '/imagine prompt: …' },
-      { id: 'model', label: 'โมเดลที่ใช้', kind: 'chips', step: 'price', options: ['Midjourney v7', 'DALL·E 3', 'Stable Diffusion XL', 'Flux', 'Adobe Firefly', 'อื่น ๆ'], when: (s) => on(s.sellPrompt), required: (s) => on(s.sellPrompt) },
-      { id: 'settings', label: 'ค่าตั้งที่ใช้ (seed / stylize / ar)', kind: 'text', step: 'price', when: (s) => on(s.sellPrompt), required: (s) => on(s.sellPrompt), placeholder: 'เช่น --ar 3:4 --stylize 650 --seed 1234' },
+      { id: 'sellPrompt', label: 'ขายพรอมต์ด้วย', kind: 'toggle', step: 'price', hint: 'ผู้ซื้อเห็นพรอมต์ฉบับเต็มหลังจ่าย', when: (s) => !promptOnly(s) },
+      { id: 'prompt', label: 'พรอมต์ฉบับเต็ม', kind: 'textarea', step: 'price', when: withPrompt, required: withPrompt, placeholder: '/imagine prompt: …' },
+      { id: 'model', label: 'โมเดลที่ใช้', kind: 'chips', step: 'price', options: ['Midjourney v7', 'DALL·E 3', 'Stable Diffusion XL', 'Flux', 'Adobe Firefly', 'อื่น ๆ'], when: withPrompt, required: withPrompt },
+      { id: 'settings', label: 'ค่าตั้งที่ใช้ (seed / stylize / ar)', kind: 'text', step: 'price', when: withPrompt, required: withPrompt, placeholder: 'เช่น --ar 3:4 --stylize 650 --seed 1234' },
       ...LICENSE('img'),
     ],
-    defaults: { resolution: '4K (3840 px ขึ้นไป)', formats: ['PNG'], aspect: '3:4', count: '1 ภาพ', sellPrompt: true, ...licDefaults('img') },
+    defaults: { imgKind: 'ภาพ (มีไฟล์ภาพ)', resolution: '4K (3840 px ขึ้นไป)', formats: ['PNG'], aspect: '3:4', count: '1 ภาพ', sellPrompt: true, ...licDefaults('img') },
   },
   tpl: {
     key: 'tpl', name: 'เทมเพลต', sub: 'Canva PSD สไลด์ โพสต์', icon: 'megaphone', color: '#2563EB', bg: '#EAF1FF', layout: 'tpl',
@@ -127,6 +153,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
       { id: 'formats', label: 'ไฟล์ที่ผู้ซื้อได้รับ', kind: 'multi', step: 'files', options: ['ลิงก์ Canva', 'PSD', 'AI', 'FIG', 'PPTX', 'KEY', 'XLSX', 'HTML', 'PDF'], required: true },
       { id: 'count', label: 'จำนวนแบบ / หน้า', kind: 'text', step: 'files', required: true, placeholder: 'เช่น 30 แบบ' },
       { id: 'size', label: 'ขนาดชิ้นงาน', kind: 'text', step: 'files', required: true, placeholder: 'เช่น 1080×1350 px (IG 4:5)' },
+      SAMPLE_PAGES(),
       { id: 'fonts', label: 'ฟอนต์ที่ใช้ + ลิงก์โหลดฟรี', kind: 'list', step: 'details', required: (s) => arr(s.apps).some((a) => ['Photoshop', 'Illustrator', 'Figma', 'PowerPoint', 'Keynote', 'เว็บ (HTML)'].includes(a)), placeholder: 'เช่น Prompt — fonts.google.com/specimen/Prompt', hint: 'ถ้าไม่ใส่ ผู้ซื้อเปิดแล้วฟอนต์เพี้ยน' },
       { id: 'editable', label: 'แก้อะไรได้บ้าง', kind: 'multi', step: 'details', options: ['ข้อความ', 'สี', 'รูปภาพ', 'โลโก้', 'ฟอนต์', 'ขนาด / เลย์เอาต์'], required: true },
       { id: 'howOpen', label: 'วิธีเปิดและแก้ไข (ทีละขั้น)', kind: 'list', step: 'details', required: true },
@@ -149,7 +176,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
       { id: 'install', label: 'วิธีติดตั้ง (ทีละขั้น)', kind: 'list', step: 'details', required: true },
       { id: 'trial', label: 'เปิดให้ทดลองใช้ก่อนซื้อ', kind: 'toggle', step: 'price' },
       { id: 'trialDays', label: 'ทดลองได้กี่วัน', kind: 'chips', step: 'price', options: ['7 วัน', '14 วัน', '30 วัน'], when: (s) => on(s.trial), required: (s) => on(s.trial) },
-      { id: 'keyType', label: 'แบบคีย์ใช้งาน', kind: 'chips', step: 'license', options: ['คีย์ต่อเครื่อง', 'คีย์ต่อบัญชี', 'สมาชิกรายเดือน', 'ไม่ต้องใช้คีย์'], required: true },
+      { id: 'keyType', label: 'แบบคีย์ใช้งาน', kind: 'chips', step: 'license', options: ['คีย์ต่อเครื่อง', 'คีย์ต่อบัญชี', 'ไม่ต้องใช้คีย์'], required: true },
       { id: 'activation', label: 'วิธีใส่คีย์ / เปิดใช้งาน', kind: 'list', step: 'license', when: (s) => str(s.keyType) !== 'ไม่ต้องใช้คีย์', required: (s) => str(s.keyType) !== 'ไม่ต้องใช้คีย์' },
       SUPPORT, REFUND_SW, ...LICENSE('sw'),
     ],
@@ -173,9 +200,9 @@ export const SPECS: Record<SellType, TypeSpec> = {
       { id: 'trial', label: 'เปิดทดลองฟรี', kind: 'toggle', step: 'price' },
       { id: 'trialDays', label: 'ทดลองได้กี่วัน', kind: 'chips', step: 'price', options: ['3 วัน', '7 วัน', '14 วัน'], when: (s) => on(s.trial), required: (s) => on(s.trial) },
       { id: 'trialLink', label: 'ลิงก์ทดลองคุย', kind: 'text', step: 'price', when: (s) => on(s.trial), required: (s) => on(s.trial), placeholder: 'line.me/R/ti/p/@…', pattern: /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i, patternNote: 'ต้องเป็นลิงก์ เช่น line.me/R/ti/p/@ร้าน' },
-      SUPPORT, refundField(['ยกเลิกรายเดือนได้ทุกเมื่อ ใช้ได้ถึงสิ้นรอบที่จ่ายแล้ว · ค่าติดตั้งคืนได้ถ้ายังไม่ได้ติดตั้ง', ...REFUND_STD]), ...LICENSE('bot'),
+      SUPPORT, refundField(['คืนเงินเต็มจำนวนภายใน 7 วัน ถ้าบอทใช้งานไม่ได้ตามที่บอกไว้', ...REFUND_STD]), ...LICENSE('bot'),
     ],
-    defaults: { sub: 'บอทแชต', platform: ['LINE OA'], buyerNeeds: ['บัญชี LINE OA (สมัครฟรี)'], setupMode: 'ติดตั้งให้ฟรี 1 ครั้ง', setup: ['ส่งบรีฟร้านและเมนูในแชต', 'ครีเอเตอร์นัดเวลาติดตั้ง (ประมาณ 30 นาที)', 'ทดสอบคุยกับบอทแล้วเปิดใช้งานจริง'], trial: true, trialDays: '7 วัน', support: 'ดูแลฟรี 30 วัน · แก้คำตอบได้ไม่จำกัด', refund: 'ยกเลิกรายเดือนได้ทุกเมื่อ ใช้ได้ถึงสิ้นรอบที่จ่ายแล้ว · ค่าติดตั้งคืนได้ถ้ายังไม่ได้ติดตั้ง', ...licDefaults('bot') },
+    defaults: { sub: 'บอทแชต', platform: ['LINE OA'], buyerNeeds: ['บัญชี LINE OA (สมัครฟรี)'], setupMode: 'ติดตั้งให้ฟรี 1 ครั้ง', setup: ['ส่งบรีฟร้านและเมนูในแชต', 'ครีเอเตอร์นัดเวลาติดตั้ง (ประมาณ 30 นาที)', 'ทดสอบคุยกับบอทแล้วเปิดใช้งานจริง'], trial: true, trialDays: '7 วัน', support: 'ดูแลฟรี 30 วัน · แก้คำตอบได้ไม่จำกัด', refund: 'คืนเงินเต็มจำนวนภายใน 7 วัน ถ้าบอทใช้งานไม่ได้ตามที่บอกไว้', ...licDefaults('bot') },
   },
   course: {
     key: 'course', name: 'คอร์สและอีบุ๊ก', sub: 'บทเรียนวิดีโอ ไฟล์ประกอบ', icon: 'cap', color: '#C2410C', bg: '#FFF0E3', layout: 'course',
@@ -183,6 +210,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
       { id: 'sub', label: 'รูปแบบ', kind: 'chips', step: 'files', options: FEATURES.launch ? ['อีบุ๊ก'] : ['คอร์สวิดีโอ', 'อีบุ๊ก'], required: true },
       { id: 'lessons', label: 'สารบัญ (ชื่อตอนหรือบท · ความยาว)', kind: 'list', step: 'files', required: true, min: 2, placeholder: 'เช่น ตอนที่ 1 · ปูพื้น AI ทำภาพสินค้า · 09:30' },
       { ...FILES('ไฟล์เนื้อหา', 'คอร์สวิดีโอ: อัปวิดีโอทุกตอน (หรือรวมเป็น ZIP) · อีบุ๊ก: ไฟล์ PDF หรือ EPUB · แนบไฟล์ประกอบ PDF ZIP ได้'), label: 'ไฟล์เนื้อหา (วิดีโอ / อีบุ๊ก)' },
+      SAMPLE_PAGES((s) => str(s.sub) === 'อีบุ๊ก'),
       { id: 'freeLessons', label: 'เปิดให้ดูหรืออ่านฟรีกี่ตอน', kind: 'chips', step: 'files', options: ['ไม่มี', '1 ตอน', '2 ตอน', '3 ตอน'], required: true },
       { id: 'materials', label: 'ไฟล์ประกอบที่ได้', kind: 'multi', step: 'files', options: ['สรุป PDF', 'ไฟล์งานตัวอย่าง', 'พรอมต์สำเร็จรูป', 'เทมเพลต', 'กลุ่มถาม-ตอบ'], required: true },
       { id: 'level', label: 'ระดับ', kind: 'chips', step: 'details', options: ['มือใหม่', 'กลาง', 'ขั้นสูง'], required: true },
@@ -200,6 +228,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
     fields: [
       { id: 'sub', label: 'เป็นแบบไหน', kind: 'chips', step: 'files', options: ['ฟอนต์', 'สติกเกอร์ PNG', 'ไอคอน', 'พรีเซ็ต / LUT', 'แปรง'], required: true, hint: 'ใช้จัดหมวดย่อยบนหน้าค้นหา: สติกเกอร์ · ฟอนต์ พรีเซ็ต ไอคอน' },
       FILES('ไฟล์ที่ผู้ซื้อได้รับ', 'OTF TTF PNG SVG CUBE XMP ABR'),
+      PREVIEW('ไฟล์ฟอนต์สำหรับช่องลองพิมพ์', 'OTF TTF WOFF WOFF2 ไม่เกิน 5 MB · ไฟล์นี้ทุกคนโหลดได้ ใช้ฉบับตัวอย่างหรือตัดเหลือเฉพาะตัวอักษรที่ใช้โชว์ได้', '.otf,.ttf,.woff,.woff2', 5, 1, { when: (s) => str(s.sub) === 'ฟอนต์', required: (s) => str(s.sub) === 'ฟอนต์' }),
       { id: 'formats', label: 'นามสกุลไฟล์', kind: 'multi', step: 'files', options: ['OTF', 'TTF', 'WOFF2', 'PNG', 'SVG', 'LUT (.cube)', 'XMP', 'ABR'], required: true },
       { id: 'count', label: 'จำนวนในชุด', kind: 'text', step: 'files', required: true, placeholder: 'เช่น 3 น้ำหนัก · 24 ตัว · 12 พรีเซ็ต' },
       { id: 'languages', label: 'รองรับภาษา / ตัวอักษร', kind: 'multi', step: 'details', options: ['ไทย', 'อังกฤษ', 'ตัวเลข', 'สัญลักษณ์', 'วรรณยุกต์ครบ'], when: (s) => str(s.sub) === 'ฟอนต์', required: (s) => str(s.sub) === 'ฟอนต์' },
@@ -220,7 +249,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
       { id: 'rights', label: 'สิทธิ์ในงานที่ส่ง', kind: 'chips', step: 'license', options: ['ใช้เชิงพาณิชย์ได้ + ไฟล์ต้นฉบับ', 'ใช้เชิงพาณิชย์ได้', 'ใช้ส่วนตัวเท่านั้น'], required: true },
       { id: 'copyright', label: 'ลิขสิทธิ์งานที่ส่งเป็นของใคร', kind: 'chips', step: 'license', options: ['โอนสิทธิ์ทั้งหมดที่ครีเอเตอร์มีให้ผู้ซื้อเมื่อชำระครบ', 'ครีเอเตอร์ถือไว้ ผู้ซื้อได้สิทธิ์ใช้'], required: true },
       { id: 'portfolio', label: 'ขอนำไปโชว์ในพอร์ต', kind: 'toggle', step: 'license' },
-      IP_OK, refundField(REFUND_HIRE),
+      IP_OK, BAN_OK, refundField(REFUND_HIRE),
     ],
     defaults: { formats: ['PNG', 'AI'], timeline: '3–7 วัน', revisions: '3 ครั้ง', rights: 'ใช้เชิงพาณิชย์ได้', copyright: 'โอนสิทธิ์ทั้งหมดที่ครีเอเตอร์มีให้ผู้ซื้อเมื่อชำระครบ', portfolio: true, briefNeeds: ['ชื่อร้านหรือแบรนด์', 'สีหรือสไตล์ที่ชอบ', 'ภาพอ้างอิง 1–3 ภาพ', 'จะเอาไปใช้ทำอะไร'], refund: 'คืนเต็มจำนวนถ้ายังไม่เริ่มงาน หรือส่งงานไม่ตรงบรีฟ' },
   },
@@ -242,6 +271,7 @@ SPECS.media = {
   fields: [
     { id: 'sub', label: 'เป็นแบบไหน', kind: 'chips', step: 'files', options: ['วิดีโอ AI', 'เสียงพากย์ AI', 'เพลงต้นฉบับ', 'เอฟเฟกต์เสียง', 'เทมเพลตตัดต่อวิดีโอ'], required: true },
     FILES('ไฟล์ที่ผู้ซื้อได้รับ', 'MP4 MOV WAV MP3 หรือไฟล์เทมเพลต · ไม่มีลายน้ำ · สแกนไวรัสเบื้องต้นทุกไฟล์'),
+    PREVIEW('คลิป / เสียงตัวอย่าง (ผู้ซื้อเล่นได้ก่อนซื้อ)', 'MP4 WEBM MOV MP3 ไม่เกิน 20 MB · ตัดสั้น 15–30 วินาที หรือใส่ลายน้ำเสียง เพราะทุกคนเปิดได้', 'video/mp4,video/webm,video/quicktime,audio/mpeg,.mp3,.mp4,.mov,.webm', 20, 3, { required: true }),
     { id: 'count', label: 'จำนวนชิ้นในชุด', kind: 'text', step: 'files', required: true, placeholder: 'เช่น 1 คลิป หรือ 10 เพลง' },
     { id: 'duration', label: 'ความยาว', kind: 'text', step: 'files', required: true, placeholder: 'เช่น 15 วินาที · หรือ รวม 32 นาที (เพลงละ 2–4 นาที)' },
     { id: 'formats', label: 'นามสกุลไฟล์', kind: 'multi', step: 'files', options: ['MP4', 'MOV', 'WAV', 'MP3', 'เทมเพลต CapCut', 'Premiere (.prproj)', 'After Effects (.aep)', 'SRT (ซับไตเติล)'], required: true },
@@ -334,6 +364,7 @@ export const visible = (f: Field, s: Spec) => !f.when || f.when(s)
 const isReq = (f: Field, s: Spec) => visible(f, s) && (typeof f.required === 'function' ? f.required(s) : !!f.required)
 function filled(f: Field, v: SpecValue | undefined) {
   if (f.kind === 'toggle') return f.mustBeOn ? v === true : true
+  if (f.kind === 'previews') return previewsOf(v).length >= (f.min ?? 1)
   if (f.kind === 'files') { const fs = filesOf(v); return fs.length >= (f.min ?? 1) && fs.every((x) => x.scan === 'ok') }
   if (f.kind === 'multi' || f.kind === 'list') return arr(v).length >= (f.min ?? 1)
   if (f.pattern && str(v) && !f.pattern.test(str(v))) return false
@@ -434,7 +465,7 @@ const engSubject = (p: Product) => `detailed illustration of ${(p.image?.src ?? 
 export function specOf(p: Product): Spec {
   if (p.spec) return p.spec
   const t = sellTypeOf(p)
-  const d: Spec = { ...SPECS[t].defaults, ipOk: true, ...(t === 'media' || t === 'img' ? {} : { aiUse: 'ใช้ AI บางส่วน แล้วแต่งต่อเอง', aiTools: 'ChatGPT, Claude' }) }
+  const d: Spec = { ...SPECS[t].defaults, ipOk: true, banOk: true, ...(t === 'media' || t === 'img' ? {} : { aiUse: 'ใช้ AI บางส่วน แล้วแต่งต่อเอง', aiTools: 'ChatGPT, Claude' }) }
   const slug = p.id
   const l = p.label ?? ''
   if (t === 'img') Object.assign(d, { count: /ชุด (\d+)/.exec(p.title)?.[1] ? `${/ชุด (\d+)/.exec(p.title)![1]} ภาพ` : '1 ภาพ', files: [JSON.stringify(/ชุด (\d+)/.exec(p.title) ? { name: `${slug}-${/ชุด (\d+)/.exec(p.title)![1]}views.zip`, size: '38 MB', scan: 'ok' } : { name: `${slug}-4k.png`, size: '8.4 MB', scan: 'ok' })], ...(/ชุด (\d+)/.exec(p.title) ? { formats: ['PNG', 'ZIP'] } : {}), sellPrompt: !!p.hasPrompt, prompt: p.hasPrompt ? `/imagine prompt: ${engSubject(p)}, soft cinematic light, rich thai details, ultra detailed --ar 3:4 --stylize 600` : undefined, model: p.hasPrompt ? 'Midjourney v7' : undefined, aiTools: p.hasPrompt ? 'Midjourney v7' : 'Midjourney, Photoshop', settings: p.hasPrompt ? '--ar 3:4 --stylize 600 --seed 2569' : undefined, aspect: p.image && p.image.w > p.image.h ? '16:9' : p.image && p.image.w === p.image.h ? '1:1' : '3:4' })
@@ -447,7 +478,7 @@ export function specOf(p: Product): Spec {
   }
   if (t === 'sw' || t === 'game') Object.assign(d, { sub: /แอป/.test(l) ? 'แอปมือถือ' : /เกม/.test(l) ? 'ซอร์สโค้ดเกม' : /ปลั๊กอิน/.test(l) ? 'ปลั๊กอิน' : /ส่วนขยาย/.test(l) ? 'ส่วนขยาย Chrome' : 'โปรแกรม', platforms: p.platforms ?? ['Windows'], version: 'v1.3', changelog: ['v1.3 · เร็วขึ้น 2 เท่า แก้บั๊กภาษาไทย', 'v1.2 · เพิ่มรายงานรายวัน', 'v1.0 · เปิดตัว'], minSpec: /iOS|Android/.test((p.platforms ?? []).join()) ? 'iOS 15 / Android 10 ขึ้นไป' : 'RAM 4 GB · พื้นที่ว่าง 200 MB', files: [JSON.stringify({ name: `${slug}-v1.3.zip`, size: '48 MB', scan: 'ok' })] })
   if (t === 'game' && /เกม/.test(l)) Object.assign(d, { platforms: ['เว็บ', 'Android'], deps: 'Godot 4.2 (ฟรี) ถ้าจะแก้ซอร์ส', install: ['แตกไฟล์ ZIP', 'เปิดโปรเจกต์ด้วย Godot 4.2', 'กด Run เพื่อเล่น หรือ Export เป็น APK'] })
-  if (t === 'sw' && p.kind === 'tool' && !/โปรแกรม|แอป/.test(l)) Object.assign(d, { sub: 'เว็บแอป', platforms: ['เว็บ'], keyType: 'สมาชิกรายเดือน', minSpec: 'เบราว์เซอร์ Chrome / Safari รุ่นล่าสุด', install: ['ไม่ต้องติดตั้ง เปิดลิงก์ในคลังของที่ซื้อ', 'ล็อกอินด้วยอีเมลที่ใช้ซื้อ'], deps: `บัญชี ${(p.platforms ?? []).join(' / ')}` })
+  if (t === 'sw' && p.kind === 'tool' && !/โปรแกรม|แอป/.test(l)) Object.assign(d, { sub: 'เว็บแอป', platforms: ['เว็บ'], keyType: 'คีย์ต่อบัญชี', minSpec: 'เบราว์เซอร์ Chrome / Safari รุ่นล่าสุด', install: ['ไม่ต้องติดตั้ง เปิดลิงก์ในคลังของที่ซื้อ', 'ล็อกอินด้วยอีเมลที่ใช้ซื้อ'], deps: `บัญชี ${(p.platforms ?? []).join(' / ')}` })
   if (t === 'bot') {
     const demo = p.id === 'p05' ? ['มีเมนูแนะนำไหมคะ', 'วันนี้แนะนำข้าวเหนียวมะม่วง ฿89 สั่งเลยไหมคะ 🥭', 'เอา 2 ที่ค่ะ', 'รับออเดอร์แล้วค่ะ ยอดรวม ฿178 ชำระผ่าน QR ได้เลย']
       : p.chat ? [p.chat.q, p.chat.a]
@@ -466,7 +497,7 @@ export function specOf(p: Product): Spec {
   if (t === 'font') {
     const sticker = /สติกเกอร์/.test(l)
     Object.assign(d, sticker ? { sub: 'สติกเกอร์ PNG', formats: ['PNG'], count: /(\d+) (ตัว|อารมณ์)/.exec(p.title)?.[0] ?? '8 ตัว', compat: 'LINE (ส่งเป็นรูป) · LINE Creators Market', install: ['ดาวน์โหลดไฟล์ PNG พื้นใสจากคลังของที่ซื้อ', 'บันทึกลงอัลบั้มมือถือ', 'ส่งในแชตเป็นรูป หรืออัปขึ้น LINE Creators Market'], files: [JSON.stringify({ name: `${slug}-stickers.zip`, size: '3.2 MB', scan: 'ok' })] }
-      : { count: '3 น้ำหนัก (ปกติ หนา บาง)', files: [JSON.stringify({ name: `${slug}-Regular.otf`, size: '420 KB', scan: 'ok' }), JSON.stringify({ name: `${slug}-Bold.otf`, size: '436 KB', scan: 'ok' })] })
+      : { count: '3 น้ำหนัก (ปกติ หนา บาง)', previews: [pv('ตัวอย่างฟอนต์.woff2', 'samples/sriracha.woff2', 'font/woff2')], files: [JSON.stringify({ name: `${slug}-Regular.otf`, size: '420 KB', scan: 'ok' }), JSON.stringify({ name: `${slug}-Bold.otf`, size: '436 KB', scan: 'ok' })] })
   }
   if (t === 'media') {
     const music = /เพลง/.test(l), tplv = /เทมเพลต/.test(l)
@@ -474,6 +505,7 @@ export function specOf(p: Product): Spec {
       : tplv ? { sub: 'เทมเพลตตัดต่อวิดีโอ', count: '5 แบบ', duration: 'แบบละ 12–20 วินาที', formats: ['เทมเพลต CapCut'], quality: '9:16 1080×1920', appVersion: 'CapCut มือถือ 12.0 ขึ้นไป (ฟรี)', aiTool: 'CapCut AI', files: [JSON.stringify({ name: 'skincare-capcut-links.pdf', size: '180 KB', scan: 'ok' })], howUse: ['เปิดลิงก์เทมเพลตในไฟล์ PDF ด้วยมือถือ', 'กด “ใช้เทมเพลต” ใน CapCut', 'เลือกคลิปสินค้าของคุณ 3–5 คลิป แล้วกดส่งออก'] }
         : { sub: 'วิดีโอ AI', count: '1 คลิป + เวอร์ชันไม่มีข้อความ', duration: '15 วินาที', formats: ['MP4', 'SRT (ซับไตเติล)'], quality: '9:16 1080×1920', aiTool: 'Kling', files: [JSON.stringify({ name: 'cafe-promo-15s.mp4', size: '38 MB', scan: 'ok' }), JSON.stringify({ name: 'cafe-promo-clean.mp4', size: '36 MB', scan: 'ok' })], howUse: ['ดาวน์โหลด MP4 จากคลังของที่ซื้อ', 'โพสต์ลง Reels / TikTok ได้ทันที หรือเปลี่ยนข้อความใน CapCut', 'ใช้ไฟล์ SRT ถ้าอยากแก้คำบรรยาย'] })
     d.noClone = true
+    d.previews = [music ? pv('ตัวอย่างเพลง 12 วินาที.mp3', 'samples/n14-preview.mp3', 'audio/mpeg') : pv('ตัวอย่างคลิป 6 วินาที.mp4', `samples/${tplv ? 'n15' : 'n13'}-preview.mp4`, 'video/mp4')]
     if (str(d.aiTool) && str(d.aiTool) !== 'ไม่ได้ใช้ AI') d.aiPlan = 'แผนเสียเงิน (ใช้เชิงพาณิชย์ได้)'
   }
   if (t === 'skill') Object.assign(d, /ภาษี/.test(p.title)
@@ -502,6 +534,13 @@ export function pageContent(p: Product): PageContent {
   const lic = arr(s.licAllowed)
   switch (t) {
     case 'img':
+      if (promptOnly(s)) {
+        deliver.push('พรอมต์ฉบับเต็ม (ปลดล็อกหลังซื้อ)', `โมเดล ${str(s.model)} + ค่าตั้ง ${str(s.settings)}`, 'ไม่มีไฟล์ภาพ · ภาพบนหน้านี้คือตัวอย่างที่สร้างจากพรอมต์นี้', 'ตารางสิทธิ์การใช้งาน (ดูได้ในคลัง)')
+        howto.push('เปิดพรอมต์ในคลังของที่ซื้อ แล้วกดคัดลอก', `วางใน ${str(s.model)} แล้วใส่ค่าตั้ง ${str(s.settings)}`, 'เปลี่ยนคำในพรอมต์ เช่น สี หรือสิ่งของ ให้ได้ภาพแบบของคุณ')
+        needs.push(`บัญชี ${str(s.model)}`)
+        facts.push(['ขาย', PROMPT_ONLY], ['สัดส่วน', str(s.aspect)], ['โมเดล', str(s.model)])
+        break
+      }
       deliver.push(`ไฟล์ภาพ ${str(s.count)} · ${str(s.resolution)} · ${list(fm)}`)
       if (files.length) deliver.push(`ไฟล์: ${files.join(', ')}`)
       if (on(s.sellPrompt)) deliver.push('พรอมต์ฉบับเต็ม (ปลดล็อกหลังซื้อ)', `โมเดล ${str(s.model)} + ค่าตั้ง ${str(s.settings)}`)
@@ -567,6 +606,7 @@ export function pageContent(p: Product): PageContent {
     case 'media':
       deliver.push(`${str(s.count)} · ${str(s.duration)}`, `ไฟล์ ${list(fm)} · ${str(s.quality)}`)
       if (files.length) deliver.push(`ไฟล์: ${files.join(', ')}`)
+      if (previewsOf(s.previews).length) deliver.push('ตัวอย่างบนหน้านี้เล่นได้ก่อนซื้อ · ไฟล์จริงไม่มีลายน้ำและยาวเต็ม')
       deliver.push(`สิทธิ์: ${str(s.musicLic)}`, `ไม่มีลายน้ำ ${BRAND} · สแกนไวรัสเบื้องต้นแล้ว`, 'หากถูกระบบแพลตฟอร์มแจ้งลิขสิทธิ์ ติดต่อครีเอเตอร์หรือขอคืนเงินได้')
       howto.push(...arr(s.howUse))
       needs.push(str(s.appVersion) || 'แอปเล่นวิดีโอ/เสียง หรือแอปตัดต่อใดก็ได้')

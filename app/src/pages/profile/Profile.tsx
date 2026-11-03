@@ -13,7 +13,7 @@ import { ReportButton } from '../../components/Report'
 import { ISSUE_DAYS, IssueSheet, WriteReviewSheet, issueOpen } from '../../components/OrderHelp'
 import { Av, Empty, Img, SampleNote, Seg, Sheet, Stars, TopBar } from '../../components/ui'
 import { completion, SPECS } from '../../data/listingSpec'
-import { creatorStats, heroOf, statsOf } from '../../data/productExtras'
+import { creatorStats, heroOf, statsOf, SHOP_SALES } from '../../data/productExtras'
 import { ALL_PRODUCTS, CREATORS, ME, baht, creatorById, imgUrl, isLive, isRemoteId, remoteCreator } from '../../data/sampleData'
 import { chat, resetAll } from '../../services/api'
 import { useDb } from '../../services/db'
@@ -24,11 +24,6 @@ import s from './Profile.module.css'
 
 type Mode = 'buyer' | 'creator'
 const productImg = (id: string) => { const p = ALL_PRODUCTS.find((x) => x.id === id); return p ? heroOf(p) : undefined }
-/** SAMPLE DATA: past sales shown in creator mode on the demo site (the real site shows only real sales). */
-const SHOP_SALES = REAL ? [] : [
-  { no: 'LM-20476', pid: 'p01', who: 'ลูกค้าร้านกาแฟ', amt: 390, st: 'ส่งไฟล์แล้ว · รอพ้น 7 วัน', tone: 'info' },
-  { no: 'LM-20451', pid: 'p01', who: 'ร้านดอกไม้ป้าแดง', amt: 159, st: 'เข้ายอดรอโอนแล้ว', tone: 'done' },
-]
 const HANDLE: Record<string, string> = { fasai: 'fasai.create', mint: 'mint.studio', nova: 'novalab', kenji: 'kenjiweb', pim: 'pimdao', toy: 'toymascot', ton: 'tondata' }
 const BIO: Record<string, string> = {
   fasai: 'วาดภาพสีน้ำด้วย AI · ภาพดอกไม้ ลายไทย โทนพาสเทล 🌸', mint: 'เทมเพลต Canva สำหรับร้านเล็ก แก้ง่ายในมือถือ', nova: 'ทีมทำโปรแกรมและภาพ 3D สำหรับ SME ไทย',

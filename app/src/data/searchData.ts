@@ -90,7 +90,7 @@ export const POPULAR: CatKey[] = ['img', 'tpl', 'sticker', 'creator', 'sw', 'app
 export const SHORT: Partial<Record<CatKey, string>> = {}
 export const CAT_TOTAL = Object.keys(CATEGORIES).length
 
-/** The one category name a work shows on its card (same 18 names as search), e.g. “บอทแชต · LINE”. */
+/** The one category name a work shows on its card (same names as the search tiles), e.g. “บอทแชต · LINE”. */
 export function catLabel(p: Product): string {
   const keys = (Object.keys(CATEGORIES) as CatKey[]).filter((k) => k !== 'free' && CATEGORIES[k].match(p))
   const k = keys[keys.length - 1]

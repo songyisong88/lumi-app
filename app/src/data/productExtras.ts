@@ -1,5 +1,5 @@
 /** Presentation helpers for the product page: options, hero image, highlights, reviews. */
-import { SPECS, layoutOf, pageContent, sellTypeOf, specOf, str, arr, on } from './listingSpec'
+import { layoutOf, pageContent, sellTypeOf, specOf, str, arr, on, promptOnly, PROMPT_ONLY } from './listingSpec'
 import { ALL_PRODUCTS, creatorById, isLive } from './sampleData'
 import type { Product, ProductOption } from './types'
 import { REAL, BRAND } from '../config'
@@ -29,9 +29,8 @@ export function optionsOf(p: Product): ProductOption[] {
     case 'tpl': return [{ id: 'full', label: 'ชุดเต็ม', sub: /พิมพ์/.test(p.label ?? '') ? 'ไฟล์ PDF พร้อมพิมพ์ · พิมพ์ใช้เองได้ไม่จำกัดจำนวน · ดูตารางสิทธิ์สำหรับงานขาย' : /เว็บ/.test(p.label ?? '') ? 'ไฟล์เว็บ (HTML) + ไฟล์ Figma' : 'ลิงก์ Canva + ไฟล์ทุกแบบ', price: x }]
     case 'sw': return [
       { id: 'one', label: p.label === 'เกม' ? 'ซอร์สโค้ด 1 โปรเจกต์' : '1 เครื่อง', sub: `ซื้อขาด${supportShort(p)}`, price: x },
-      { id: 'three', label: p.label === 'เกม' ? 'สิทธิ์ทีม (3 คน)' : '3 เครื่อง', sub: 'สำหรับหลายสาขา / หลายคน', price: r10(x * 2.3), best: 'คุ้มสุด' },
-      { id: 'month', label: 'รายเดือน', sub: 'ยกเลิกได้ทุกเมื่อ ใช้ได้ถึงสิ้นรอบที่จ่ายแล้ว', price: r10(x / 8), suffix: '/เดือน' }]
-    case 'bot': return [{ id: 'setup', label: 'ติดตั้งให้ + ใช้ 1 เดือน', sub: `ต่อเดือน ฿${r10(x / 6)}`, price: x, best: 'คุ้มสุด' }, { id: 'diy', label: 'ติดตั้งเอง (ไฟล์ + คู่มือ)', sub: 'ทำตามคลิปทีละขั้น', price: r10(x * 0.6) }]
+      { id: 'three', label: p.label === 'เกม' ? 'สิทธิ์ทีม (3 คน)' : '3 เครื่อง', sub: 'สำหรับหลายสาขา / หลายคน', price: r10(x * 2.3), best: 'คุ้มสุด' }]
+    case 'bot': return [{ id: 'setup', label: 'ติดตั้งให้ + ใช้ได้ไม่จำกัด', sub: 'ซื้อครั้งเดียว ไม่มีค่ารายเดือน', price: x, best: 'คุ้มสุด' }, { id: 'diy', label: 'ติดตั้งเอง (ไฟล์ + คู่มือ)', sub: 'ทำตามคลิปทีละขั้น', price: r10(x * 0.6) }]
     case 'media': return [{ id: 'social', label: 'ใช้โซเชียล / ส่วนตัว', sub: 'Reels TikTok YouTube ของคุณ', price: x }, { id: 'ads', label: 'โฆษณา + ลูกค้า', sub: 'ยิงแอด ทำงานให้ลูกค้าได้', price: r10(x * 2.5), best: 'คุ้มสุด' }]
     case 'skill': return [{ id: 'one', label: 'ใช้คนเดียว', sub: `1 ผู้ใช้${supportShort(p)}`, price: x }, { id: 'team', label: 'ทีม (สูงสุด 5 คน)', sub: 'ติดตั้งให้ทั้งทีมได้', price: r10(x * 3), best: 'คุ้มสุด' }]
     case 'data': return [{ id: 'std', label: 'ใช้ภายในองค์กร', sub: 'วิเคราะห์ ทำแอปของตัวเอง', price: x }, { id: 'ext', label: 'ใช้ในผลิตภัณฑ์/เทรนโมเดล', sub: 'นำไปใส่สินค้าที่ขายได้', price: r10(x * 3), best: 'คุ้มสุด' }]
@@ -49,11 +48,11 @@ export function optionsOf(p: Product): ProductOption[] {
 export function highlightsOf(p: Product): [string, string, string][] {
   const s = specOf(p)
   const t = sellTypeOf(p)
-  const L = layoutOf(p)
   const lic = arr(s.licAllowed).length > 1 ? 'เชิงพาณิชย์' : 'ใช้ส่วนตัว'
-  if (L === 'free') return [t === 'img' ? ['image', 'สัดส่วน', str(s.aspect) || '-'] : ['grid', 'ประเภท', SPECS[t].name], ['file', 'ไฟล์', arr(s.formats).slice(0, 2).join(' · ') || 'พร้อมโหลด'], ['shield', 'สิทธิ์', lic]]
+  // Free works use their own type's highlights (owner 2026-11-03: each type keeps its showcase when free).
   switch (t) {
-    case 'img': return [['image', 'ไฟล์', `${str(s.resolution).split(' ')[0]} ${arr(s.formats)[0] ?? ''}`], ['sparkle', 'โมเดล', on(s.sellPrompt) ? str(s.model) : 'ภาพสำเร็จ'], ['shield', 'สิทธิ์', lic]]
+    case 'img': if (promptOnly(s)) return [['sparkle', 'ขาย', PROMPT_ONLY], ['sparkle', 'โมเดล', str(s.model) || '-'], ['shield', 'สิทธิ์', lic]]
+      return [['image', 'ไฟล์', `${str(s.resolution).split(' ')[0]} ${arr(s.formats)[0] ?? ''}`], ['sparkle', 'โมเดล', on(s.sellPrompt) ? str(s.model) : 'ภาพสำเร็จ'], ['shield', 'สิทธิ์', lic]]
     case 'tpl': return [['grid', 'จำนวน', str(s.count).split(' ').slice(0, 2).join(' ')], ['pen', 'แก้ใน', arr(s.apps)[0] ?? '-'], ['file', 'ไฟล์', arr(s.formats).slice(0, 2).join(' · ')]]
     case 'sw': case 'game': return [['monitor', 'รองรับ', arr(s.platforms).slice(0, 2).join(' · ')], ['rocket', 'เวอร์ชัน', str(s.version)], ['shield', 'ไฟล์', 'สแกนเบื้องต้น']]
     case 'bot': return [['robot', 'แพลตฟอร์ม', arr(s.platform)[0] ?? '-'], ['cal', 'ติดตั้ง', str(s.setupMode).split(' ')[0]], ['qr', 'ทดลอง', on(s.trial) ? str(s.trialDays) : 'ไม่มี']]
@@ -109,3 +108,9 @@ export const similarOf = (p: Product) => {
 }
 
 export { pageContent }
+
+/** SAMPLE DATA: past sales shown in creator mode on the demo site (the real site shows only real sales). */
+export const SHOP_SALES = REAL ? [] : [
+  { no: 'LM-20476', pid: 'p01', who: 'ลูกค้าร้านกาแฟ', amt: 390, st: 'ส่งไฟล์แล้ว · รอพ้น 7 วัน', tone: 'info' },
+  { no: 'LM-20451', pid: 'p01', who: 'ร้านดอกไม้ป้าแดง', amt: 159, st: 'เข้ายอดรอโอนแล้ว', tone: 'done' },
+]

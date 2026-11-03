@@ -4,7 +4,7 @@ import { Icon } from '../../components/Icon'
 import { MenuIcon } from '../../components/v2/CreateSheetV2'
 import { Av, Img, SampleNote, Seg, Sheet } from '../../components/ui'
 import { HIRE_ON, brandName } from '../../config'
-import { creatorStats, heroOf } from '../../data/productExtras'
+import { SHOP_SALES, creatorStats, heroOf } from '../../data/productExtras'
 import { ALL_PRODUCTS, ME, STORIES, baht, creatorById } from '../../data/sampleData'
 import type { Product } from '../../data/types'
 import { useDb } from '../../services/db'
@@ -118,7 +118,7 @@ export function ProfileV2() {
               <Tile to="/cart" icon="cart" label="ตะกร้า" n={cartN} />
               <Tile icon="receipt" label="คำสั่งซื้อ" onClick={() => setSheet('orders')} />
             </div></Card>
-            <Card title="ซื้อล่าสุด" more={recent.length > 0 && <Link to="/library">ดูทั้งหมด ›</Link>}>
+            <Card title="ซื้อล่าสุด" more={recent.length > 0 && <Link to="/library" data-open-library>ดูทั้งหมด ›</Link>}>
               {recent.length === 0 ? <div className="v2-empty" style={{ padding: '8px 0' }}><p>ของที่ซื้อและของฟรีที่กดรับจะอยู่ที่นี่</p><Link to="/" className="btn btn-s btn-sm">เลือกดูผลงาน</Link></div> : (
                 <div className="v2-shelf">{recent.map((b) => (
                   <Link key={b.id} to={`/library/${b.id}`} className="v2-work press"><div className="img"><Img src={b.image} style={{ width: '100%', height: '100%' }} /></div><span>{b.title}</span><small className="v2-sm">{ago(b.at)}</small></Link>
@@ -160,7 +160,7 @@ export function ProfileV2() {
               <div className="v2-h"><b>ผลงานของฉัน</b>{mine.length > 4 ? <button onClick={() => setAllWorks((v) => !v)}>{allWorks ? 'ย่อ' : 'จัดการ ›'}</button> : mine.length > 0 && <Link to={`/creator/${ME}`}>จัดการ ›</Link>}</div>
               {mine.length === 0 && db.drafts.length === 0 ? <p className="v2-mut">ยังไม่มีผลงาน · กด “ลงขายผลงานใหม่” เพื่อเริ่ม</p> : <>
                 {(allWorks ? mine : mine.slice(0, 4)).map((p) => { const [t, c] = statusChip(p); return (
-                  <Link key={p.id} to={`/product/${p.id}`} className="v2-wk"><span className="img"><Img src={heroOf(p)} style={{ width: '100%', height: '100%' }} /></span><span className="tx"><b>{p.title}</b><small>{p.price ? baht(p.price) : 'ฟรี'}</small></span><span className={`v2-chip ${c}`}>{t}</span></Link>
+                  <Link key={p.id} to={`/product/${p.id}`} className="v2-wk"><span className="img"><Img src={heroOf(p)} style={{ width: '100%', height: '100%' }} /></span><span className="tx"><b>{p.title}</b><small>{p.price ? baht(p.price) : 'ฟรี'}</small></span><span className={`v2-chip ${c}`} data-mod={p.rev ? `rev-${p.rev.status}` : p.mod?.status ?? 'live'}>{t}</span></Link>
                 ) })}
                 {db.drafts.slice(0, allWorks ? 99 : 1).map((d) => (
                   <Link key={d.id} to={`/sell?draft=${d.id}`} className="v2-wk"><span className="img"><Img src={d.covers[0]} style={{ width: '100%', height: '100%' }} /></span><span className="tx"><b>{d.title || 'ยังไม่ตั้งชื่อ'}</b><small>ทำต่อได้</small></span><span className="v2-chip c-n">ร่าง</span></Link>
@@ -178,9 +178,14 @@ export function ProfileV2() {
         ))}
       </Sheet>
       <Sheet open={sheet === 'shop'} onClose={() => setSheet('')} title="ออเดอร์ของร้าน" sub="ข้อมูลตัวอย่าง">
-        {shopOrders.length === 0 ? <p className="v2-mut">ยังไม่มีออเดอร์</p> : shopOrders.map((t) => (
+        <div data-shop-orders style={{ display: 'contents' }}>
+        {shopOrders.length + SHOP_SALES.length === 0 ? <p className="v2-mut">ยังไม่มีออเดอร์</p> : shopOrders.map((t) => (
           <Link key={t.id} to={`/chat/${t.id}`} onClick={() => setSheet('')} className="v2-li" style={{ padding: '8px 0' }}><span className="tx">{t.title}<small>{creatorById(t.partnerId).name} · #{t.orderNo} · {t.status}</small></span><span className="end">{t.amount ? baht(t.amount) : 'ฟรี'}<Icon name="chev" size={16} color="var(--mut)" /></span></Link>
         ))}
+        {SHOP_SALES.map((x) => { const p = ALL_PRODUCTS.find((q) => q.id === x.pid); return p && (
+          <Link key={x.no} to={`/product/${x.pid}`} onClick={() => setSheet('')} className="v2-li" style={{ padding: '8px 0' }}><span className="tx">{p.title}<small>{x.who} · #{x.no} · {x.st}</small></span><span className="end">{baht(x.amt)}<Icon name="chev" size={16} color="var(--mut)" /></span></Link>
+        ) })}
+        </div>
       </Sheet>
       <Sheet open={sheet === 'income'} onClose={() => setSheet('')} title="รายได้" sub={isCloud() ? 'จากยอดขายจริงของคุณ' : 'ข้อมูลตัวอย่าง'}>
         <div className="v2-money">{baht(income)}</div>

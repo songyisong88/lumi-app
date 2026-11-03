@@ -1,9 +1,9 @@
 /** Type-specific blocks of the product page (approved product-b modules). */
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { copyText, Img } from '../../components/ui'
 import { toast } from '../../services/toast'
-import { arr, filesOf, licRows, on, str, type Spec } from '../../data/listingSpec'
+import { arr, filesOf, licRows, on, previewSrc, previewsOf, promptOnly, str, type PreviewItem, type Spec } from '../../data/listingSpec'
 import { galleryOf } from '../../data/productExtras'
 import { baht, imgUrl } from '../../data/sampleData'
 import type { DetailKind, Product, ProductOption } from '../../data/types'
@@ -13,22 +13,83 @@ import s from './Product.module.css'
 const PAL = ['#2B1B4F', '#5B3FA8', '#E9A86B', '#F4D9B0', '#C2416B']
 const Ok = ({ children }: { children: React.ReactNode }) => <div className={s.ok}><span className="ok-ic"><Icon name="check" size={13} stroke={3} /></span>{children}</div>
 
-export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onLesson, unlocked = false }: {
+type ModProps = {
   unlocked?: boolean; p: Product; L: DetailKind; spec: Spec; opts: ProductOption[]; optId?: string; setOptId: (v: string) => void; onTip: (amount?: number) => void; onTrial: () => void; onLesson: () => void
-}) {
+  /** Free work: show its own type's showcase, then the free-download block (owner 2026-11-03). */
+  free?: boolean
+}
+export function Modules(props: ModProps) {
+  return <>{props.L !== 'free' && <TypeModules {...props} />}{(props.free || props.L === 'free') && <FreeBlock onTip={props.onTip} />}</>
+}
+
+function FreeBlock({ onTip }: { onTip: (amount?: number) => void }) {
+  return (
+    <>
+      <div className={s.scan} style={{ marginTop: 14 }}><Icon name="gift" size={24} color="#16A34A" /><div><b>ดาวน์โหลดฟรี ไม่ต้องจ่าย</b>ครีเอเตอร์แจกให้ใช้ · สแกนไวรัสเบื้องต้นแล้ว</div></div>
+      {FEATURES.tips && <>
+        <div className={s.st}>ชอบไหม? ให้ทิปเป็นกำลังใจ</div>
+        <div className={s.tipr}>{[20, 50, 100].map((a) => <button key={a} className="press" onClick={() => onTip(a)}>฿{a}</button>)}<button className="press" onClick={() => onTip(0)}>อื่น ๆ</button></div>
+        <p className="hint">ไม่บังคับ · ครีเอเตอร์ได้รับทิปหลังหักค่าธรรมเนียมการชำระเงิน</p>
+      </>}
+    </>
+  )
+}
+
+/** Loads the creator's uploaded preview font; returns the CSS family once ready. */
+function usePreviewFont(item: PreviewItem | undefined, key: string) {
+  const [st, setSt] = useState<{ fam?: string; err?: boolean }>({})
+  useEffect(() => {
+    if (!item || typeof FontFace === 'undefined') return
+    let live = true
+    const fam = `lumi-pv-${key.replace(/[^\w-]/g, '')}`
+    new FontFace(fam, `url("${previewSrc(item.url)}")`).load()
+      .then((f) => { document.fonts.add(f); if (live) setSt({ fam }) })
+      .catch(() => { if (live) setSt({ err: true }) })
+    return () => { live = false }
+  }, [item?.url, key]) // eslint-disable-line react-hooks/exhaustive-deps
+  return st
+}
+
+/** Real audio preview in the approved waveform row: play/pause, progress on the bars, time left. */
+function WavePlayer({ src }: { src: string }) {
+  const a = useRef<HTMLAudioElement>(null)
+  const [play, setPlay] = useState(false)
+  const [t, setT] = useState(0)
+  const [d, setD] = useState(0)
+  const N = 42
+  const mmss = (x: number) => `${Math.floor(x / 60)}:${String(Math.floor(x % 60)).padStart(2, '0')}`
+  return (
+    <div className={s.wave}>
+      <audio ref={a} src={src} preload="metadata" onLoadedMetadata={(e) => setD(e.currentTarget.duration || 0)} onTimeUpdate={(e) => setT(e.currentTarget.currentTime)} onPlay={() => setPlay(true)} onPause={() => setPlay(false)} onEnded={() => { setPlay(false); setT(0) }} data-preview-audio />
+      <button className={s.wplay} aria-label={play ? 'หยุดตัวอย่าง' : 'เล่นตัวอย่าง'} onClick={() => { const el = a.current; if (!el) return; if (el.paused) void el.play().catch(() => toast('เล่นไฟล์ตัวอย่างไม่ได้')); else el.pause() }}>
+        <Icon name={play ? 'pause' : 'play'} size={18} color="#fff" fill="#fff" />
+      </button>
+      <div className={s.wbars} role="slider" aria-label="ตำแหน่งที่เล่น" aria-valuemin={0} aria-valuemax={Math.round(d)} aria-valuenow={Math.round(t)} tabIndex={0}
+        onClick={(e) => { const el = a.current; if (!el || !d) return; const r = e.currentTarget.getBoundingClientRect(); el.currentTime = ((e.clientX - r.left) / r.width) * d }}>
+        {Array.from({ length: N }, (_, i) => <i key={i} className={d && i / N > t / d ? s.dim : ''} style={{ transform: `scaleY(${0.25 + Math.abs(Math.sin(i * 0.55)) * 0.75})` }} />)}
+      </div>
+      <small>{mmss(d ? d - t : 0)}</small>
+    </div>
+  )
+}
+
+function TypeModules({ p, L, spec, opts, optId, setOptId, onTrial, onLesson, unlocked = false, free = false }: ModProps) {
   const [fontText, setFontText] = useState('')
   const g = galleryOf(p)
+  const pv = previewsOf(spec.previews)
+  const pages = previewsOf(spec.samplePages)
+  const font = usePreviewFont(L === 'font' ? pv.find((x) => /font|woff|otf|ttf/i.test(x.mime + x.name)) : undefined, p.id)
   switch (L) {
     case 'img':
       return (
         <>
           <div className={s.st}>โทนสีของภาพนี้</div>
           <div className={s.sw}>{PAL.map((c) => <div key={c} style={{ background: c }} />)}</div>
-          {on(spec.sellPrompt) && <>
-            <div className={s.st}>สูตรพรอมต์</div>
+          {(on(spec.sellPrompt) || promptOnly(spec)) && <>
+            <div className={s.st}>สูตรพรอมต์{promptOnly(spec) ? ' · ขายพรอมต์อย่างเดียว' : ''}</div>
             {unlocked
               ? <div className={s.blur}><button className={s.lk} onClick={() => { copyText(str(spec.prompt)); toast('คัดลอกพรอมต์แล้ว') }}><Icon name="copy" size={11} color="#fff" stroke={2.4} />คัดลอก</button>{str(spec.prompt)}</div>
-              : <div className={s.blur}><span className={s.lk}><Icon name="lock" size={11} color="#fff" stroke={2.4} />ปลดล็อกหลังซื้อ</span>
+              : <div className={s.blur}><span className={s.lk}><Icon name="lock" size={11} color="#fff" stroke={2.4} />{free ? 'ปลดล็อกหลังกดรับฟรี' : 'ปลดล็อกหลังซื้อ'}</span>
                 {str(spec.prompt).slice(0, 48)}<em aria-hidden>{str(spec.prompt).slice(48).replace(/[^\s]/g, '•')}</em></div>}
           </>}
         </>
@@ -36,8 +97,13 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
     case 'tpl':
       return (
         <>
-          <div className={s.st}>ตัวอย่างในชุด</div>
-          <div className={`hscroll ${s.canva}`}>{[...g, ...g].slice(0, 4).map((x, i) => <Img key={i} src={x} className={s.canvaI} />)}</div>
+          {pages.length > 0 ? <>
+            <div className={s.st}>หน้าตัวอย่าง {pages.length} หน้า</div>
+            <div className={`hscroll ${s.canva}`} data-sample-pages>{pages.map((x, i) => <img key={i} src={previewSrc(x.url)} alt={`หน้าตัวอย่าง ${i + 1}`} className={s.pageI} loading="lazy" />)}</div>
+          </> : <>
+            <div className={s.st}>ตัวอย่างในชุด</div>
+            <div className={`hscroll ${s.canva}`}>{[...g, ...g].slice(0, 4).map((x, i) => <Img key={i} src={x} className={s.canvaI} />)}</div>
+          </>}
           {arr(spec.editable).length > 0 && <><div className={s.st}>{arr(spec.formats).includes('PDF') && arr(spec.formats).length === 1 ? 'ใช้งานยังไง' : 'แก้อะไรได้บ้าง'}</div>
           {arr(spec.editable).map((t) => <Ok key={t}>{t}</Ok>)}</>}
           {arr(spec.apps).includes('Canva') && <div className={s.scan} style={{ background: '#EAF1FF', color: '#1E40AF' }}><Icon name="link" size={20} color="#2563EB" /><div><b>ได้ลิงก์ Canva ทันทีหลังซื้อ</b>{on(spec.noPro) ? 'ผู้ขายรับรองว่าไม่มีองค์ประกอบ Pro ใช้ Canva ฟรีได้' : 'บางองค์ประกอบอาจต้องใช้ Canva Pro'}</div></div>}
@@ -80,6 +146,10 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
             const fr = i < free
             return <button key={l} className={fr ? s.fr : ''} onClick={() => fr && onLesson()}><i>{fr ? (ebook ? <Icon name="book" size={12} color="#E0620B" /> : <Icon name="play" size={12} color="#E0620B" fill="#E0620B" />) : <Icon name="lock" size={13} color="#8A86A0" />}</i><span className="ell">{b ? `${a} · ${b}` : a}</span><small>{fr ? (ebook ? 'อ่านฟรี' : 'ดูฟรี') : c}</small></button>
           })}</div>
+          {ebook && pages.length > 0 && <>
+            <div className={s.st}>หน้าตัวอย่าง</div>
+            <div className={`hscroll ${s.canva}`} data-sample-pages>{pages.map((x, i) => <button key={i} onClick={onLesson} aria-label={`เปิดหน้าตัวอย่าง ${i + 1}`} style={{ flex: 'none' }}><img src={previewSrc(x.url)} alt="" className={s.pageI} loading="lazy" /></button>)}</div>
+          </>}
           <div className={s.st}>{ebook ? 'อ่านจบแล้วทำอะไรได้' : 'เรียนจบแล้วทำอะไรได้'}</div>
           {arr(spec.outcomes).map((o) => <Ok key={o}>{o}</Ok>)}
         </>
@@ -90,8 +160,9 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
         <>
           {!/สติกเกอร์|ไอคอน/.test(str(spec.sub)) ? <>
             <div className={s.st}>ลองพิมพ์ดู</div>
-            <div className={s.spc}><div className={s.spcBig}>{fontText || 'ร้านขนมบ้านพิมพ์ อร่อยทุกคำ ✿'}</div>
+            <div className={s.spc}><div className={s.spcBig} data-font-preview={font.fam ? 'loaded' : 'app'} style={font.fam ? { fontFamily: `"${font.fam}", Prompt, sans-serif` } : undefined}>{fontText || 'ร้านขนมบ้านพิมพ์ อร่อยทุกคำ ✿'}</div>
               <input className={s.spcIn} value={fontText} onChange={(e) => setFontText(e.target.value)} placeholder="พิมพ์ชื่อร้านคุณเพื่อลองฟอนต์…" /></div>
+            <p className={s.pvNote}>{font.fam ? 'ตัวอย่างนี้ใช้ไฟล์ฟอนต์ที่ครีเอเตอร์อัปไว้' : font.err ? 'โหลดไฟล์ฟอนต์ตัวอย่างไม่ได้ · ตอนนี้แสดงด้วยฟอนต์ของแอป' : pv.length ? 'กำลังโหลดฟอนต์ตัวอย่าง…' : 'ครีเอเตอร์ยังไม่ได้อัปไฟล์ตัวอย่าง · ตอนนี้แสดงด้วยฟอนต์ของแอป'}</p>
           </> : <>
             <div className={s.st}>ในชุดนี้มี {str(spec.count)}</div>
             <div className={s.port}>{['0 0', '50% 0', '100% 0', '0 100%'].map((x) => <div key={x} style={{ backgroundImage: `url(${imgUrl(g[0])})`, backgroundSize: '300%', backgroundPosition: x }} />)}</div>
@@ -126,28 +197,17 @@ export function Modules({ p, L, spec, opts, optId, setOptId, onTip, onTrial, onL
         </>
       )
     }
-    case 'free':
-      return (
-        <>
-          <div className={s.scan} style={{ marginTop: 14 }}><Icon name="gift" size={24} color="#16A34A" /><div><b>ดาวน์โหลดฟรี ไม่ต้องจ่าย</b>ครีเอเตอร์แจกให้ใช้ · สแกนไวรัสเบื้องต้นแล้ว</div></div>
-          {FEATURES.tips && <>
-            <div className={s.st}>ชอบไหม? ให้ทิปเป็นกำลังใจ</div>
-            <div className={s.tipr}>{[20, 50, 100].map((a) => <button key={a} className="press" onClick={() => onTip(a)}>฿{a}</button>)}<button className="press" onClick={() => onTip(0)}>อื่น ๆ</button></div>
-            <p className="hint">ไม่บังคับ · ครีเอเตอร์ได้รับทิปหลังหักค่าธรรมเนียมการชำระเงิน</p>
-          </>}
-        </>
-      )
     case 'media': {
-      const audio = /เพลง|เสียง/.test(str(spec.sub))
+      const isAudio = (x: PreviewItem) => /^audio\//.test(x.mime) || /\.(mp3|wav|m4a|aac|ogg)$/i.test(x.name)
+      const audio = pv.length ? isAudio(pv[0]) : /เพลง|เสียง/.test(str(spec.sub))
       return (
         <>
           <div className={s.st}>ตัวอย่าง{audio ? 'เสียง' : 'คลิป'}</div>
-          {audio ? (
-            <div className={s.wave}><button className={s.wplay} aria-label="เล่นตัวอย่าง" onClick={() => toast('ตัวอย่างเสียงจะเล่นได้เมื่อเชื่อมระบบเก็บไฟล์ (ข้อมูลตัวอย่าง)')}><Icon name="play" size={18} color="#fff" fill="#fff" /></button>
-              <div className={s.wbars}>{Array.from({ length: 42 }, (_, i) => <i key={i} style={{ transform: `scaleY(${0.25 + Math.abs(Math.sin(i * 0.55)) * 0.75})` }} />)}</div><small>0:30</small></div>
-          ) : (
-            <div className={s.video} role="button" tabIndex={0} aria-label="เล่นตัวอย่างคลิป" onClick={() => toast('ตัวอย่างคลิปจะเล่นได้เมื่อเชื่อมระบบเก็บไฟล์ (ข้อมูลตัวอย่าง)')}><Img src={g[0]} className={s.videoImg} sizes="100vw" /><span className={s.playBig}><Icon name="play" size={30} color="#fff" fill="#fff" /></span><span className={s.wm}>ตัวอย่างมีลายน้ำ · ไฟล์จริงไม่มี</span></div>
-          )}
+          {pv.length === 0 ? (
+            <div className={s.video}><Img src={g[0]} className={s.videoImg} sizes="100vw" /><span className={s.wm}>ครีเอเตอร์ยังไม่ได้ใส่ตัวอย่างที่เล่นได้</span></div>
+          ) : pv.map((x, i) => isAudio(x)
+            ? <div key={i} style={{ marginTop: i ? 8 : 0 }}><WavePlayer src={previewSrc(x.url)} /></div>
+            : <div key={i} className={s.video} style={{ marginTop: i ? 8 : 0 }}><video className={s.videoEl} src={previewSrc(x.url)} poster={imgUrl(g[0])} controls playsInline preload="metadata" controlsList="nodownload" data-preview-video /><span className={s.vtag}>ตัวอย่าง · ไฟล์จริงยาวเต็มและไม่มีลายน้ำ</span></div>)}
           <div className={s.scan} style={{ background: '#F5EBFF', color: '#6B21A8' }}><Icon name="shield" size={22} color="#9333EA" /><div><b>ผู้ขายรับรองว่าไม่ได้โคลนเสียงหรือหน้าคนจริง</b>สร้างด้วย {str(spec.aiTool)} · พบการละเมิด กดรายงานได้</div></div>
           <div className={s.st}>สิทธิ์เพลง / เสียง</div>
           <div className={s.box}><div className={s.ok}><Icon name="megaphone" size={15} color="var(--p)" />{str(spec.musicLic)}</div></div>

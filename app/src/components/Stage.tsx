@@ -88,7 +88,10 @@ export function Stage({ render }: { render: (l: Location) => ReactNode }) {
 
   // keep our own copy of the history stack so the swipe-back gesture can show the page underneath
   useEffect(() => {
-    const idx = (window.history.state?.idx as number | undefined) ?? 0
+    // idx can be missing or NaN (page reached by a typed / plain-link hash change, then a sheet's history entry):
+    // never let it reach Array.length, that throws and blanks the app
+    const raw = window.history.state?.idx as unknown
+    const idx = typeof raw === 'number' && Number.isInteger(raw) && raw >= 0 ? raw : 0
     stack.current[idx] = location
     if (navType === 'PUSH') stack.current.length = idx + 1
   }, [location, navType])
@@ -112,7 +115,10 @@ export function Stage({ render }: { render: (l: Location) => ReactNode }) {
   useEffect(() => {
     const on = (e: Event) => {
       const want = (e as CustomEvent<boolean>).detail
-      const idx = (window.history.state?.idx as number | undefined) ?? 0
+      // idx can be missing or NaN (page reached by a typed / plain-link hash change, then a sheet's history entry):
+    // never let it reach Array.length, that throws and blanks the app
+    const raw = window.history.state?.idx as unknown
+    const idx = typeof raw === 'number' && Number.isInteger(raw) && raw >= 0 ? raw : 0
       const prev = idx > 0 ? stack.current[idx - 1] : undefined
       if (want && prev && !exit) { setUnder(prev); setPeek(true) } else if (!want) { setUnder(null); setPeek(false) }
     }
@@ -131,7 +137,10 @@ export function Stage({ render }: { render: (l: Location) => ReactNode }) {
       sh: el.querySelector<HTMLElement>('.shade-g'),
     })
     const prev = () => {
-      const idx = (window.history.state?.idx as number | undefined) ?? 0
+      // idx can be missing or NaN (page reached by a typed / plain-link hash change, then a sheet's history entry):
+    // never let it reach Array.length, that throws and blanks the app
+    const raw = window.history.state?.idx as unknown
+    const idx = typeof raw === 'number' && Number.isInteger(raw) && raw >= 0 ? raw : 0
       return idx > 0 ? stack.current[idx - 1] : undefined
     }
     const start = (e: TouchEvent) => {
