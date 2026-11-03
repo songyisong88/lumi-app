@@ -85,7 +85,7 @@ function Creator() {
     setPicked((p) => (p.includes(f) ? p.filter((x) => x !== f) : p.length >= MAX_SLIDES ? p : [...p, f]))
   }
 
-  const share = async () => {
+  const share = async (aud: 'public' | 'close_friends' = 'public') => {
     const fr = document.querySelector<HTMLElement>('[data-story-frame]')
     const W = fr?.clientWidth || window.innerWidth, H = fr?.clientHeight || window.innerHeight
     try {
@@ -96,9 +96,9 @@ function Creator() {
         const caption = sl.overlays.filter((o) => o.t === 'text').map((o) => o.text).join(' ').slice(0, 200)
         if (sl.kind === 'image') {
           const file = await bakeImage({ src: sl.bg ? undefined : sl.src, bg: sl.bgc ?? (sl.bg ? BG_PRESETS[0] : undefined), bgDeg: sl.bg ? 135 : 180, mt: sl.mt, filter: FILTERS[sl.filter][1], strokes: sl.strokes, overlays: sl.overlays, frameW: W, frameH: H })
-          await stories.post({ file, kind: 'image', caption, productId: sl.productId, linkLabel: sl.linkLabel, overlays: sl.overlays.map((o) => ({ ...o, baked: true })), mentions })
+          await stories.post({ file, kind: 'image', caption, productId: sl.productId, linkLabel: sl.linkLabel, overlays: sl.overlays.map((o) => ({ ...o, baked: true })), mentions, audience: aud, allowReplies: db.privacy?.storyReplies === 'followers' ? 'following' : db.privacy?.storyReplies as 'everyone' | 'following' | 'off' | undefined })
         } else {
-          await stories.post({ file: sl.file!, kind: 'video', caption, productId: sl.productId, linkLabel: sl.linkLabel, overlays: [{ id: '_m', t: 'media', text: '', ...(sl.mt ?? MT0), nw: sl.nat?.[0], nh: sl.nat?.[1], bg: sl.bgc }, ...sl.overlays], durationMs: sl.durationMs, mentions })
+          await stories.post({ file: sl.file!, kind: 'video', caption, productId: sl.productId, linkLabel: sl.linkLabel, overlays: [{ id: '_m', t: 'media', text: '', ...(sl.mt ?? MT0), nw: sl.nat?.[0], nh: sl.nat?.[1], bg: sl.bgc }, ...sl.overlays], durationMs: sl.durationMs, mentions, audience: aud, allowReplies: db.privacy?.storyReplies === 'followers' ? 'following' : db.privacy?.storyReplies as 'everyone' | 'following' | 'off' | undefined })
         }
       }
       setBusy('')
@@ -182,7 +182,7 @@ const SNAP = 7
 
 function Editor({ slide, index, total, panel, setPanel, onChange, onNext, onAdd, onRemove, onClose, onShare }: {
   slide: Slide; index: number; total: number; panel: Panel; setPanel: (p: Panel) => void; onChange: (s: Slide) => void
-  onNext: () => void; onAdd: () => void; onRemove: () => void; onClose: () => void; onShare: () => void
+  onNext: () => void; onAdd: () => void; onRemove: () => void; onClose: () => void; onShare: (aud?: 'public' | 'close_friends') => void
 }) {
   const frame = useRef<HTMLDivElement>(null)
   const mediaEl = useRef<HTMLElement | null>(null)
@@ -434,8 +434,9 @@ function Editor({ slide, index, total, panel, setPanel, onChange, onNext, onAdd,
       {dragging === 'ovl' && <div className={`${s.trash} ${trashHot ? s.hot2 : ''}`} style={{ bottom: 110 }} aria-hidden><Icon name="trash" size={24} color="#fff" /></div>}
       {!panel && !text && !draw && !busyUi && (
         <div className={s.ebot}>
-          <span className={s.pillD}><Av src={creatorById(ME).avatar} size={26} />สตอรี่ของคุณ</span>
-          <button type="button" className={s.share} onClick={onShare}>แชร์ไปยังสตอรี่ <Icon name="arrow" size={18} /></button>
+          <button type="button" className={s.pillD} onClick={() => onShare('public')} data-share="public"><Av src={creatorById(ME).avatar} size={26} />สตอรี่ของคุณ</button>
+          <button type="button" className={s.pillD} onClick={() => onShare('close_friends')} data-share="close_friends" aria-label="แชร์ให้เพื่อนสนิท"><span style={{ width: 26, height: 26, borderRadius: 99, background: '#16A34A', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="star" size={15} color="#fff" fill="#fff" /></span>เพื่อนสนิท</button>
+          <button type="button" className={s.share} onClick={() => onShare('public')} aria-label="แชร์ไปยังสตอรี่"><Icon name="arrow" size={18} /></button>
         </div>
       )}
 

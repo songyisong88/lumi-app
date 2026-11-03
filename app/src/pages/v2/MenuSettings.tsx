@@ -50,7 +50,8 @@ export function MenuSettings() {
 
       <G label="บัญชี">
         <Row icon="user" t="บัญชีและการเข้าสู่ระบบ" sub={isCloud() ? 'ชื่อ อีเมล รหัสผ่าน' : 'สมัคร หรือเข้าสู่ระบบด้วยอีเมล'} to={acc} />
-        <Row icon="lock" t="ความเป็นส่วนตัวและความปลอดภัย" sub="รหัสผ่าน และขอลบบัญชี" to={acc} />
+        <Row icon="lock" t="ความเป็นส่วนตัว" sub="บัญชีส่วนตัว ใครคอมเมนต์/แท็กได้ คำที่ซ่อน บล็อก เพื่อนสนิท" to="/settings/privacy" />
+        <Row icon="shield" t="ความปลอดภัย" sub="รหัสผ่าน และขอลบบัญชี" to={acc} />
         <Row icon="bell" t="การแจ้งเตือน" to="/notifications" />
       </G>
 

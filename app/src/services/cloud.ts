@@ -9,6 +9,7 @@ import type { Creator, Product } from '../data/types'
 import { ME, NO_AVATAR, isRemoteId, productById, registerCreators, remoteCreator } from '../data/sampleData'
 import { ROOMS, setRoomCounts } from '../data/appSeed'
 import { REAL, BRAND, brandName } from '../config'
+import { postOptsFrom } from './social'
 import { getDb, update } from './db'
 import { publicUrl, sb } from './supabase'
 import { getSession, registerSessionHooks, setProfile, type Profile } from './session'
@@ -102,6 +103,7 @@ export function toPost(r: Row): Post {
     productIds: r.product_ids ?? [], prompt: r.prompt ?? undefined, code: r.code ?? undefined, roomId: r.room_id ?? undefined,
     likes: (REAL ? r.real_like_count : r.like_count) ?? 0, comments: (REAL ? r.real_comment_count : r.comment_count) ?? 0, shares: r.share_count ?? 0, hireButton: !!r.hire_button, mine: r.author_id === ME,
     rx: rxOf(REAL ? r.real_reaction_counts : r.reaction_counts), feeling: r.feeling ?? undefined,
+    ...postOptsFrom(r),
   }
 }
 const RX_KEYS = ['like', 'love', 'haha', 'wow', 'fire', 'idea'] as const
@@ -116,8 +118,8 @@ const toComment = (r: Row) => ({ id: r.id, postId: r.post_id, authorId: r.author
 async function loadMentions(ids: string[]) {
   const out = new Map<string, Mention[]>()
   const list = uids(ids); if (!list.length) return out
-  const r = await S().from('mentions').select('source_id, mentioned_id, name').in('source_id', list).limit(1000)
-  for (const m of ((r.data ?? []) as Row[])) { if (!shown(m.mentioned_id)) continue; const l = out.get(m.source_id) ?? []; l.push({ id: m.mentioned_id, name: m.name }); out.set(m.source_id, l) }
+  const r = await S().from('mentions').select('source_id, source_kind, mentioned_id, name').in('source_id', list).limit(1000)
+  for (const m of ((r.data ?? []) as Row[])) { if (!shown(m.mentioned_id)) continue; const k = m.source_kind === 'post_tag' ? 'tag:' + m.source_id : m.source_id; const l = out.get(k) ?? []; l.push({ id: m.mentioned_id, name: m.name }); out.set(k, l) }
   return out
 }
 
@@ -242,7 +244,7 @@ async function doHydrate() {
     p.rev = { status: dr.submitted_at ? 'pending' : 'rejected', reason: dr.review_reason ?? undefined, at: ms(dr.submitted_at ?? dr.updated_at), next }
   }
   const purchases = await purchasesFrom(entRows)
-  const remotePosts = postRows.map((r) => ({ ...toPost(r), mentions: tags.get(r.id) }))
+  const remotePosts = postRows.map((r) => ({ ...toPost(r), mentions: tags.get(r.id), tagged: tags.get('tag:' + r.id) }))
   const remoteComments = comments.map((r) => ({ ...toComment(r), mentions: tags.get(r.id) }))
   update((d) => {
     d.published = [...myProducts, ...otherProducts]
@@ -383,6 +385,7 @@ export function toStory(s: Row): UserStory {
   return {
     id: s.id, authorId: s.author_id, media: publicUrl(s.media_path)!, kind: s.media_kind, caption: s.caption ?? '', at: ms(s.created_at), expires: ms(s.expires_at), views: s.view_count ?? 0, productId: s.product_id ?? undefined,
     linkLabel: s.product_id ? (s.link_label ?? 'ดูสินค้า') : undefined, overlays: Array.isArray(s.overlays) ? s.overlays : undefined, durationMs: s.duration_ms ?? undefined,
+    audience: s.audience ?? 'public', allowReplies: s.allow_replies ?? 'everyone',
   }
 }
 
@@ -544,7 +547,7 @@ export async function loadPublic() {
   const ok = (r: Row) => shown(r.creator_id ?? r.author_id)
   const postRows = ((posts.data ?? []) as Row[]).filter(ok)
   const tags = await loadMentions(postRows.map((r) => r.id))
-  const prods = ((live.data ?? []) as Row[]).filter(ok).map(toProduct), ps = postRows.map((r) => ({ ...toPost(r), mentions: tags.get(r.id) })), ss = ((stories.data ?? []) as Row[]).filter(ok).map(toStory)
+  const prods = ((live.data ?? []) as Row[]).filter(ok).map(toProduct), ps = postRows.map((r) => ({ ...toPost(r), mentions: tags.get(r.id), tagged: tags.get('tag:' + r.id) })), ss = ((stories.data ?? []) as Row[]).filter(ok).map(toStory)
   await loadProfiles([...[...tags.values()].flat().map((m) => m.id), ...prods.map((p) => p.creatorId), ...ps.map((p) => p.authorId), ...ss.map((s) => s.authorId)])
   update((d) => { d.published = prods; d.posts = [...ps, ...keepLocal(d.posts)].sort((a, b) => b.at - a.at); d.stories = ss })
 }

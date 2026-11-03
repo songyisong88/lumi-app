@@ -1,5 +1,6 @@
+import { canSee, refreshPresence } from '../../services/social'
 import { rememberOrigin } from '../../services/motion'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { HeaderActions } from '../../components/Header'
 import { Icon } from '../../components/Icon'
@@ -23,7 +24,7 @@ type Tab = 'foryou' | 'following' | 'groups' | 'learn'
 const TABS: [Tab, string][] = [['foryou', 'สำหรับคุณ'], ['following', 'ติดตาม'], ['groups', 'กลุ่ม'], ['learn', 'ความรู้']]
 export const fmtK = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}K` : String(n))
 export const memberCount = (r: Room, joined: boolean) => (REAL ? Math.max(r.members, joined ? 1 : 0) : r.members + (joined ? 1 : 0))
-export const visiblePosts = (db: DB) => db.posts.filter((p) => !(db.hidden ?? []).includes(p.id))
+export const visiblePosts = (db: DB) => db.posts.filter((p) => !(db.hidden ?? []).includes(p.id) && !p.archivedAt && canSee(p))
 
 /** “คุณกำลังคิดอะไรอยู่?” card (feed and group page). */
 export function Composer({ room }: { room?: string }) {
@@ -75,6 +76,8 @@ export function Community() {
   const tab: Tab = raw === 'rooms' ? 'groups' : (raw as Tab) || 'foryou'
   const setTab = (t: Tab) => setSp(t === 'foryou' ? {} : { tab: t }, { replace: true })
   const posts = visiblePosts(db)
+  const authors = [...new Set(posts.slice(0, 60).map((p) => p.authorId))].join(',')
+  useEffect(() => { if (!authors) return; const go = () => void refreshPresence(authors.split(',')); go(); const t = setInterval(go, 60_000); return () => clearInterval(t) }, [authors])
   const learn = posts.filter((p) => p.tag === 'ความรู้' || p.tag === 'เบื้องหลัง' || p.tag === 'ถาม-ตอบ')
   return (
     <div className={`page ${s.pg}`}>

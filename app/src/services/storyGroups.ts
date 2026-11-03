@@ -6,7 +6,7 @@ import { ago } from '../utils/time'
 
 const slideOf = (st: UserStory) => ({
   productId: st.productId && productById(st.productId) ? st.productId : undefined, postedAgo: ago(st.at), media: st.media, kind: st.kind, caption: st.caption,
-  storyId: st.id, linkLabel: st.linkLabel, overlays: st.overlays, durationMs: st.durationMs, at: st.at, expires: st.expires,
+  storyId: st.id, linkLabel: st.linkLabel, overlays: st.overlays, durationMs: st.durationMs, at: st.at, expires: st.expires, audience: st.audience, allowReplies: st.allowReplies,
 })
 
 /** Stories on the home row and in the viewer, one group per author, oldest slide first.
@@ -14,7 +14,8 @@ const slideOf = (st: UserStory) => ({
  *  the demo persona posted in this browser (24 h). */
 export function storyGroups(db: DB): Story[] {
   const now = Date.now()
-  const live = [...(db.stories ?? [])].filter((x) => x.expires > now).sort((a, b) => a.at - b.at)
+  const off = new Set((db.blocks ?? []).filter((b) => b.kind !== 'restrict').map((b) => b.id))
+  const live = [...(db.stories ?? [])].filter((x) => x.expires > now && !off.has(x.authorId)).sort((a, b) => a.at - b.at)
   const map = new Map<string, Story>()
   for (const st of live) {
     let g = map.get(st.authorId)
@@ -25,7 +26,7 @@ export function storyGroups(db: DB): Story[] {
   if (REAL) return real
   const mine = real.filter((g) => g.creatorId === ME)
   // the sample persona's sample story is replaced by what it really posted here
-  return [...mine, ...STORIES.filter((g) => !mine.length || g.creatorId !== ME)]
+  return [...mine, ...STORIES.filter((g) => (!mine.length || g.creatorId !== ME) && !off.has(g.creatorId))]
 }
 /** My own live stories (newest last). */
 export const myStories = (db: DB) => storyGroups(db).find((g) => g.creatorId === ME)

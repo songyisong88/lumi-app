@@ -4,7 +4,9 @@ import { Stage } from './components/Stage'
 import { Empty, Toaster } from './components/ui'
 import { FavoritesProvider } from './services/FavoritesContext'
 import { Home } from './pages/Home'
-import { lazy, Suspense, type ComponentType } from 'react'
+import { lazy, Suspense, useEffect, type ComponentType } from 'react'
+import { startPresence } from './services/social'
+import { useSession } from './services/session'
 import { FEATURES } from './config'
 
 /** Route-level code splitting: Home ships in the main bundle, every other page is its own chunk.
@@ -27,6 +29,7 @@ const Thread = lz(() => import('./pages/chat/Thread'), 'Thread')
 const UI_V2 = import.meta.env.VITE_SITE === 'demo'
 const Profile = UI_V2 ? lz(() => import('./pages/v2/ProfileV2'), 'ProfileV2') : lz(() => import('./pages/profile/Profile'), 'Profile')
 // UI v2 (demo site only): ☰ menu, saved posts, admin moderation desk
+const PrivacySettingsPage = lz(() => import('./pages/settings/Privacy'), 'PrivacySettingsPage')
 const MenuSettings = UI_V2 ? lz(() => import('./pages/v2/MenuSettings'), 'MenuSettings') : NotFound
 const SavedPosts = UI_V2 ? lz(() => import('./pages/v2/MenuSettings'), 'SavedPosts') : NotFound
 const Admin = UI_V2 ? lz(() => import('./pages/admin/Admin'), 'Admin') : NotFound
@@ -58,10 +61,16 @@ function NotFound() {
 }
 
 /** HashRouter: GitHub Pages has no SPA fallback, so deep links use #/path. */
+function Presence() {
+  const ses = useSession()
+  useEffect(() => startPresence(), [ses.mode, ses.email])
+  return null
+}
 export default function App() {
   return (
     <FavoritesProvider>
       <HashRouter>
+        <Presence />
         <Stage render={(loc) => (
           <Suspense fallback={<div className="route-wait" aria-busy="true" />}>
           <Routes location={loc}>
@@ -98,6 +107,7 @@ export default function App() {
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/log" element={<AdminLog />} />
             </>}
+            <Route path="/settings/privacy" element={<PrivacySettingsPage />} />
             <Route path="/sell" element={<Sell />} />
             <Route path="/sell/drafts" element={<Drafts />} />
             <Route path="*" element={<NotFound />} />

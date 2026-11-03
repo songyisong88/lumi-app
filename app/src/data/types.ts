@@ -90,6 +90,8 @@ export interface StorySlide {
   caption?: string
   /** Server / local story id (sample slides have none). */
   storyId?: string
+  audience?: 'public' | 'close_friends'
+  allowReplies?: 'everyone' | 'following' | 'off'
   /** Optional link button (only with productId). */
   linkLabel?: import('./appTypes').StoryLinkLabel
   overlays?: import('./appTypes').StoryOverlay[]

@@ -1,3 +1,4 @@
+import { canSee } from '../../services/social'
 import { openFromCard } from '../../components/ProductCard'
 import { useEffect, useRef, useState } from 'react'
 import { FollowButton } from '../../components/FollowButton'
@@ -222,8 +223,9 @@ export function CreatorPage() {
   useEffect(() => { if (!c && isRemoteId(id)) void loadProfiles([id]).then(() => bump((n) => n + 1), () => {}) }, [c, id]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!c) return <><TopBar title="ครีเอเตอร์" /><Empty icon="user" title="ไม่พบครีเอเตอร์" action={<Link to="/search" className="btn btn-o btn-sm">ค้นหาครีเอเตอร์</Link>} /></>
   const works = ALL_PRODUCTS.filter((p) => p.creatorId === id && isLive(p))
-  const posts = db.posts.filter((p) => p.authorId === id)
   const isMe = id === ME
+  // Instagram: pinned first (max 3), archived only for the owner (at the end), audience rules for everyone else.
+  const posts = db.posts.filter((p) => p.authorId === id && canSee(p)).sort((a, b) => Number(!!a.archivedAt) - Number(!!b.archivedAt) || (b.pinnedAt ?? 0) - (a.pinnedAt ?? 0) || b.at - a.at)
   const st = creatorStats(id, db.follows.includes(id))
   return (
     <div className="page">

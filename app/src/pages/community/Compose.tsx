@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Av, Img, SampleNote, Sheet, TopBar, blockTap } from '../../components/ui'
 import { ROOMS } from '../../data/appSeed'
-import type { Mention, PostTag } from '../../data/appTypes'
+import type { Audience, Mention, PostTag } from '../../data/appTypes'
 import { heroOf } from '../../data/productExtras'
 import { ALL_PRODUCTS, ME, baht, creatorById, productById } from '../../data/sampleData'
 import { CHALLENGE } from '../../data/searchData'
@@ -15,14 +15,19 @@ import { MentionInput, liveMentions, type MentionApi } from '../../social/Mentio
 import { TAG_COLOR, isVideo } from './PostCard'
 import c from './Community.module.css'
 import s from '../../social/Social.module.css'
-import { REAL, BRAND } from '../../config'
+import { REAL } from '../../config'
+import { getDb, update } from '../../services/db'
+import { AUDIENCE } from '../../services/social'
+import { AudiencePick } from '../../social/PostOptions'
+import { FILTERS, bakePhoto, type Aspect } from '../../social/photoEdit'
 
 const TAGS: PostTag[] = ['โชว์ผลงาน', 'ความรู้', 'เบื้องหลัง', 'ถาม-ตอบ', 'แจกฟรี']
 export const FEELINGS = ['รู้สึก 😊 มีความสุข', 'รู้สึก 🤩 ตื่นเต้น', 'รู้สึก 🙏 ขอบคุณ', 'รู้สึก 😌 ภูมิใจ', 'รู้สึก 😴 เหนื่อย', 'รู้สึก 🤔 สงสัย', 'กำลัง 🎨 สร้างผลงาน', 'กำลัง 📚 เรียนรู้', 'กำลัง 🚀 เปิดตัวผลงาน', 'กำลัง ☕ พักผ่อน']
 const MAX_MEDIA = 10
 const MAX_VIDEO = 50 * 1024 * 1024
 
-type SheetK = 'prod' | 'room' | 'tag' | 'aud' | 'feel' | null
+type SheetK = 'prod' | 'room' | 'tag' | 'aud' | 'feel' | 'people' | 'loc' | 'photo' | 'leave' | null
+interface Edit { orig: string; filter: string; aspect: Aspect }
 
 export function Compose() {
   const nav = useNavigate()
@@ -41,12 +46,42 @@ export function Compose() {
   const [q, setQ] = useState('')
   const [mineOnly, setMineOnly] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [audience, setAudience] = useState<Audience>('public')
+  const [location, setLocation] = useState('')
+  const [alt, setAlt] = useState<string[]>([])
+  const [tagged, setTagged] = useState<Mention[]>([])
+  const [edits, setEdits] = useState<(Edit | undefined)[]>([])
+  const [ph, setPh] = useState(0)
+  const [pq, setPq] = useState('')
+  const [cands, setCands] = useState<{ id: string }[]>([])
+  const fresh = !sp.toString()
+  const [draftAsk, setDraftAsk] = useState(() => fresh && !!getDb().postDraft)
   const fileRef = useRef<HTMLInputElement>(null)
   const api = useRef<MentionApi | null>(null)
   const ok = text.trim().length > 0 || media.length > 0
   const typing = ok || showPrompt || prods.length > 0 || !!feeling
   const list = useMemo(() => ALL_PRODUCTS.filter((p) => (!mineOnly || p.creatorId === ME) && (!q || p.title.toLowerCase().includes(q.toLowerCase()))).slice(0, 40), [q, mineOnly])
   useEffect(() => { if (sp.get('add') === 'media') setTimeout(() => fileRef.current?.click(), 300) }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (sheet !== 'people') return; const h = setTimeout(() => { void community.mentionCandidates(pq).then(setCands) }, 150); return () => clearTimeout(h) }, [pq, sheet])
+  // Instagram keeps drafts on the device: saved when you leave with “บันทึกฉบับร่าง”.
+  const restore = () => { const d = getDb().postDraft; if (d) { setText(d.text); setMedia(d.images); setAlt(d.alt); setAudience(d.audience); setLocation(d.location); setTagged(d.tagged) } setDraftAsk(false) }
+  const saveDraft = () => {
+    const images = media.filter((x) => x.startsWith('data:image')).reduce<string[]>((a, x) => (a.join('').length + x.length < 2_500_000 ? [...a, x] : a), [])
+    try { update((d) => { d.postDraft = { text, images, alt, audience, location, tagged, at: Date.now() } }); toast(images.length < media.length ? 'บันทึกฉบับร่างแล้ว (บางรูปใหญ่เกินเก็บในเครื่อง)' : 'บันทึกฉบับร่างแล้ว') } catch { toast('บันทึกฉบับร่างไม่ได้ (พื้นที่ในเครื่องเต็ม)') }
+  }
+  const clearDraft = () => update((d) => { delete d.postDraft })
+  const leave = () => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/community'))
+  const move = (i: number, by: number) => {
+    const j = i + by; if (j < 0 || j >= media.length) return
+    const sw = <T,>(a: T[]) => { const n = [...a]; [n[i], n[j]] = [n[j], n[i]]; return n }
+    setMedia(sw); setAlt(sw); setEdits(sw); setPh(j)
+  }
+  const removeAt = (i: number) => { const f = <T,>(a: T[]) => a.filter((_, k) => k !== i); setMedia(f); setAlt(f); setEdits(f) }
+  const applyEdit = async (i: number, e: Edit) => {
+    setEdits((a) => { const n = [...a]; n[i] = e; return n })
+    const out = await bakePhoto(e.orig, e.filter, e.aspect)
+    setMedia((a) => { const n = [...a]; n[i] = out; return n })
+  }
 
   const addFiles = async (fs: FileList | null) => {
     if (!fs) return
@@ -66,7 +101,9 @@ export function Compose() {
     if (!ok || busy) return
     setBusy(true)
     try {
-      const id = await community.create({ tag: tag ?? 'โชว์ผลงาน', text: text.trim(), images: media, productIds: prods, prompt: prompt.trim() || undefined, roomId: room, feeling, mentions: liveMentions(text, mentions) })
+      const id = await community.create({ tag: tag ?? 'โชว์ผลงาน', text: text.trim(), images: media, productIds: prods, prompt: prompt.trim() || undefined, roomId: room, feeling, mentions: liveMentions(text, mentions),
+        audience, location: location.trim() || undefined, alt: media.map((_, i) => (alt[i] ?? '').trim()), tagged: tagged.length ? tagged : undefined })
+      clearDraft()
       toast('โพสต์แล้ว 🎉')
       nav(`/community/post/${id}`, { replace: true })
     } catch (e) { toast((e as Error).message); setBusy(false) }
@@ -75,6 +112,8 @@ export function Compose() {
   const OPTS: [string, string, () => void, boolean?][] = [
     ['🖼️', 'รูปภาพ/วิดีโอ', () => fileRef.current?.click(), media.length > 0],
     ['👤', 'แท็กคน (@)', () => api.current?.insert('@'), mentions.length > 0],
+    ['🧑‍🤝‍🧑', tagged.length ? `แท็กคนในรูป · ${tagged.length} คน` : 'แท็กคนในรูป', () => setSheet('people'), tagged.length > 0],
+    ['📍', location ? `สถานที่ · ${location}` : 'เพิ่มสถานที่', () => setSheet('loc'), !!location],
     ['🏷️', 'แท็กผลงาน · คนอ่านกดดูได้เลย', () => setSheet('prod'), prods.length > 0],
     ['😊', 'ความรู้สึก/กิจกรรม', () => setSheet('feel'), !!feeling],
     ['✨', 'ใส่พรอมต์ที่ใช้', () => setShowPrompt(true), showPrompt],
@@ -84,22 +123,26 @@ export function Compose() {
   ]
   return (
     <div className={`${s.composeWrap} ${typing ? s.typing : ''}`}>
-      <TopBar title="สร้างโพสต์" center back onBack={() => ((window.history.state?.idx ?? 0) > 0 ? nav(-1) : nav('/community'))}
+      <TopBar title="สร้างโพสต์" center back onBack={() => (ok ? setSheet('leave') : leave())}
         right={<button className="btn btn-sm btn-p" style={ok ? undefined : { background: '#EEEAF5', color: '#A9A4BA', boxShadow: 'none' }} disabled={busy} {...blockTap(!ok, 'เขียนข้อความหรือเพิ่มรูปก่อนโพสต์')} onClick={post}>{busy ? 'กำลังโพสต์…' : 'โพสต์'}</button>} />
       <div className="narrow">
         <div className={s.ctop}><Av src={me.avatar} size={44} /><div style={{ minWidth: 0 }}>
           <b>{me.name}{feeling && <span className={s.feel}> — {feeling}</span>}</b>
+          {(location || tagged.length > 0) && <small style={{ display: 'block', color: 'var(--mut)' }}>{location && <>📍 {location}</>}{location && tagged.length > 0 && ' · '}{tagged.length > 0 && <>กับ {tagged.map((m) => m.name).join(', ')}</>}</small>}
           <div className={s.aud}>
-            <button type="button" onClick={() => setSheet('aud')}><Icon name="globe" size={12} />สาธารณะ ▾</button>
+            <button type="button" data-audience={audience} onClick={() => setSheet('aud')}><Icon name={AUDIENCE[audience].icon} size={12} />{AUDIENCE[audience].l} ▾</button>
             <button type="button" onClick={() => setSheet('room')}><Icon name="users" size={12} />{r ? r.name : 'ฟีดทั่วไป'} ▾</button>
             <button type="button" onClick={() => setSheet('tag')} style={tag ? { background: TAG_COLOR[tag][1], color: TAG_COLOR[tag][0] } : undefined}>🏷️ {tag ?? 'ประเภทโพสต์'} ▾</button>
           </div>
         </div></div>
+        {draftAsk && <div className={s.prod} style={{ margin: '0 16px 10px' }} data-draft><span className="grow"><b>มีฉบับร่างที่บันทึกไว้</b><small>{new Date(getDb().postDraft!.at).toLocaleString('th-TH')}</small></span><button type="button" className="btn btn-xs btn-p" onClick={restore}>ใช้ฉบับร่าง</button><button type="button" className="btn btn-xs btn-o" onClick={() => { clearDraft(); setDraftAsk(false) }}>ทิ้ง</button></div>}
         <MentionInput value={text} onChange={setText} mentions={mentions} onMentions={setMentions} apiRef={api} id="post-text" ariaLabel="ข้อความโพสต์" roomId={room} maxLength={2000}
           placeholder={tag === 'ถาม-ตอบ' ? 'อยากถามอะไรชุมชน…' : 'คุณกำลังคิดอะไรอยู่?'} />
         {media.length > 0 && (
           <div className={s.attach}>
-            {media.map((x, i) => <div key={i} className="pop-in">{isVideo(x) || x.startsWith('blob:') ? <video src={x} muted playsInline /> : <img src={x} alt="" />}<button type="button" onClick={() => setMedia(media.filter((_, k) => k !== i))} aria-label="ลบรูป"><Icon name="x" size={14} color="#fff" /></button></div>)}
+            {media.map((x, i) => <div key={i} className="pop-in" data-media={i}>{isVideo(x) || x.startsWith('blob:') ? <video src={x} muted playsInline /> : <img src={x} alt={alt[i] ?? ''} onClick={() => { setPh(i); setSheet('photo') }} />}<button type="button" onClick={() => removeAt(i)} aria-label="ลบรูป"><Icon name="x" size={14} color="#fff" /></button>
+              {!(isVideo(x) || x.startsWith('blob:')) && <span style={{ position: 'absolute', left: 4, bottom: 4, display: 'flex', gap: 4 }}><button type="button" aria-label={`แก้รูปที่ ${i + 1}`} onClick={() => { setPh(i); setSheet('photo') }} style={{ position: 'static', width: 'auto', padding: '0 7px', height: 22, borderRadius: 11, fontSize: 11, color: '#fff' }}>แก้ไข{alt[i] ? ' · ALT' : ''}</button></span>}
+            </div>)}
             {media.length < MAX_MEDIA && <button type="button" className={`${c.cAdd} press`} style={{ width: 96, height: 96 }} onClick={() => fileRef.current?.click()}><Icon name="image" size={22} />เพิ่ม {media.length}/{MAX_MEDIA}</button>}
           </div>
         )}
@@ -118,6 +161,8 @@ export function Compose() {
           <button type="button" aria-label="รูปภาพ/วิดีโอ" onClick={() => fileRef.current?.click()}>🖼️</button>
           <button type="button" aria-label="แท็กคน" onClick={() => api.current?.insert('@')}>👤</button>
           <button type="button" aria-label={`แท็กผลงาน${prods.length ? ` (${prods.length})` : ''}`} onClick={() => setSheet('prod')}>🏷️</button>
+          <button type="button" aria-label="แท็กคนในรูป" onClick={() => setSheet('people')}>🧑‍🤝‍🧑</button>
+          <button type="button" aria-label="เพิ่มสถานที่" onClick={() => setSheet('loc')}>📍</button>
           <button type="button" aria-label="ความรู้สึก/กิจกรรม" onClick={() => setSheet('feel')}>😊</button>
           <button type="button" aria-label="ใส่พรอมต์" onClick={() => setShowPrompt(true)}>✨</button>
         </span></div>
@@ -149,8 +194,35 @@ export function Compose() {
       <Sheet open={sheet === 'tag'} onClose={() => setSheet(null)} title="ประเภทโพสต์">
         {TAGS.map((t) => <button key={t} className="list-row" onClick={() => { setTag(t); setSheet(null) }}><span className="pill" style={{ background: TAG_COLOR[t][1], color: TAG_COLOR[t][0] }}>{t}</span><span className="grow" />{(tag ?? 'โชว์ผลงาน') === t && <Icon name="check" size={18} color="var(--p)" />}</button>)}
       </Sheet>
-      <Sheet open={sheet === 'aud'} onClose={() => setSheet(null)} title="ใครเห็นโพสต์นี้ได้บ้าง">
-        <div className="list-row" style={{ margin: '0 -16px' }}><Icon name="globe" size={20} /><span className="grow">สาธารณะ<small>ทุกคนบน {BRAND} · ตอนนี้ชุมชนเป็นแบบสาธารณะเท่านั้น</small></span><Icon name="check" size={18} color="var(--p)" /></div>
+      <Sheet open={sheet === 'aud'} onClose={() => setSheet(null)} title="ใครเห็นโพสต์นี้ได้บ้าง" sub="เซิร์ฟเวอร์ตรวจสิทธิ์ทุกครั้ง คนที่ไม่อยู่ในกลุ่มนี้จะเปิดโพสต์ไม่ได้แม้มีลิงก์">
+        <AudiencePick value={audience} onChange={(v) => { setAudience(v); setSheet(null) }} />
+      </Sheet>
+      <Sheet open={sheet === 'loc'} onClose={() => setSheet(null)} title="เพิ่มสถานที่" footer={<button type="button" className="btn btn-p btn-block" onClick={() => setSheet(null)}>เสร็จ</button>}>
+        <input className="inp" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={80} placeholder="เช่น กรุงเทพฯ, เชียงใหม่" aria-label="สถานที่" />
+        {location && <button type="button" className="btn btn-o btn-block" style={{ marginTop: 10 }} onClick={() => { setLocation(''); setSheet(null) }}>เอาสถานที่ออก</button>}
+      </Sheet>
+      <Sheet open={sheet === 'people'} onClose={() => setSheet(null)} title="แท็กคนในรูป" sub="คนที่ตั้งค่าไม่ให้แท็ก หรือบล็อกคุณ จะแท็กไม่ได้ (เซิร์ฟเวอร์ตรวจ)" tall>
+        {tagged.length > 0 && <div className="chips" style={{ marginBottom: 10 }}>{tagged.map((m) => <button key={m.id} type="button" className="chip on" onClick={() => setTagged(tagged.filter((x) => x.id !== m.id))}>{m.name} ✕</button>)}</div>}
+        <input className="inp" value={pq} onChange={(e) => setPq(e.target.value)} placeholder="ค้นหาชื่อ…" aria-label="ค้นหาคนที่จะแท็ก" />
+        {cands.filter((x) => x.id !== ME && !tagged.some((m) => m.id === x.id)).slice(0, 20).map((x) => { const cr = creatorById(x.id); return (
+          <button key={x.id} type="button" className="list-row" data-tag-cand={x.id} style={{ margin: '0 -16px', width: 'calc(100% + 32px)' }} onClick={() => setTagged([...tagged, { id: x.id, name: cr.name }].slice(0, 20))}><Av src={cr.avatar} size={36} /><span className="grow">{cr.name}</span><Icon name="plus" size={18} /></button>) })}
+      </Sheet>
+      <Sheet open={sheet === 'photo' && !!media[ph]} onClose={() => setSheet(null)} title={`รูปที่ ${ph + 1} จาก ${media.length}`} tall footer={<button type="button" className="btn btn-p btn-block" onClick={() => setSheet(null)}>เสร็จ</button>}>
+        {media[ph] && <>
+          <img src={media[ph]} alt="" style={{ width: '100%', maxHeight: 300, objectFit: 'contain', background: '#111', borderRadius: 12 }} />
+          <div style={{ fontSize: 13, fontWeight: 600, margin: '12px 0 6px' }}>ฟิลเตอร์</div>
+          <div className="chips">{FILTERS.map((f) => <button key={f.k} type="button" className={`chip ${(edits[ph]?.filter ?? 'none') === f.k ? 'on' : ''}`} onClick={() => void applyEdit(ph, { orig: edits[ph]?.orig ?? media[ph], filter: f.k, aspect: edits[ph]?.aspect ?? 'orig' })}>{f.l}</button>)}</div>
+          <div style={{ fontSize: 13, fontWeight: 600, margin: '12px 0 6px' }}>ครอป</div>
+          <div className="chips">{([['orig', 'ต้นฉบับ'], ['1:1', '1:1'], ['4:5', '4:5'], ['16:9', '16:9']] as [Aspect, string][]).map(([k, l]) => <button key={k} type="button" className={`chip ${(edits[ph]?.aspect ?? 'orig') === k ? 'on' : ''}`} onClick={() => void applyEdit(ph, { orig: edits[ph]?.orig ?? media[ph], filter: edits[ph]?.filter ?? 'none', aspect: k })}>{l}</button>)}</div>
+          <div style={{ fontSize: 13, fontWeight: 600, margin: '12px 0 6px' }}>ลำดับ</div>
+          <div className="chips"><button type="button" className="chip" disabled={ph === 0} onClick={() => move(ph, -1)}>◀ เลื่อนไปก่อน</button><button type="button" className="chip" disabled={ph === media.length - 1} onClick={() => move(ph, 1)}>เลื่อนไปหลัง ▶</button></div>
+          <div style={{ fontSize: 13, fontWeight: 600, margin: '12px 0 6px' }}>คำอธิบายรูป (alt text)</div>
+          <input className="inp" value={alt[ph] ?? ''} onChange={(e) => setAlt((a) => { const n = [...a]; n[ph] = e.target.value; return n })} maxLength={300} placeholder="อธิบายรูปให้ผู้ใช้โปรแกรมอ่านหน้าจอ" aria-label="คำอธิบายรูป" />
+        </>}
+      </Sheet>
+      <Sheet open={sheet === 'leave'} onClose={() => setSheet(null)} title="บันทึกเป็นฉบับร่างไหม?" sub="ฉบับร่างเก็บไว้ในเครื่องนี้ เปิดหน้าสร้างโพสต์ครั้งหน้าจะถามให้ทำต่อ">
+        <button type="button" className="btn btn-p btn-block" onClick={() => { saveDraft(); setSheet(null); leave() }}>บันทึกฉบับร่าง</button>
+        <button type="button" className="btn btn-block" style={{ marginTop: 8, color: '#DC2626' }} onClick={() => { setSheet(null); leave() }}>ทิ้ง</button>
       </Sheet>
       <Sheet open={sheet === 'feel'} onClose={() => setSheet(null)} title="ความรู้สึก/กิจกรรม">
         <div className={s.feelGrid}>{FEELINGS.map((f) => <button key={f} type="button" className={feeling === f ? s.on : ''} onClick={() => { setFeeling(feeling === f ? undefined : f); setSheet(null) }}>{f}</button>)}</div>

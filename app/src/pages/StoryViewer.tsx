@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { Av, Sheet, copyText } from '../components/ui'
+import { addToHighlight, setBlock, setStoryOptions } from '../services/social'
 import type { StoryActivity } from '../data/appTypes'
 import { heroOf } from '../data/productExtras'
 import { ME, baht, creatorById, imgUrl, productById } from '../data/sampleData'
@@ -231,6 +232,7 @@ function Face({ g, active, paused, hideUi, slide, setSlide, onNextGroup, onPrevG
   const vid = useRef<HTMLVideoElement>(null)
   const elapsed = useRef(0)
   const myRx = sl.storyId ? db.storyReactions?.[sl.storyId] : undefined
+  const opt = async (o: { audience?: 'public' | 'close_friends'; allowReplies?: 'everyone' | 'following' | 'off' }, msg: string) => { try { await setStoryOptions(sl.storyId!, o); toast(msg) } catch (e) { toast((e as Error).message) } }
   const dur = isVid ? (sl.durationMs ?? IMG_MS) : IMG_MS
   const mo = sl.overlays?.find((o) => o.t === 'media')
   const frameRef = useRef<HTMLDivElement>(null)
@@ -311,7 +313,7 @@ function Face({ g, active, paused, hideUi, slide, setSlide, onNextGroup, onPrevG
         {g.slides.map((_, k) => <i key={k}><b ref={k === i ? bar : undefined} style={{ width: k < i ? '100%' : k > i ? '0%' : undefined }} /></i>)}
       </div>
       <div className={s.vh} style={chrome}>
-        <Link to={`/creator/${g.creatorId}`} data-nogest><span style={{ backgroundImage: `url(${imgUrl(c.avatar)})` }} /><b className="ell">{mine ? 'สตอรี่ของคุณ' : c.name}</b><small>{sl.at ? ago(sl.at, Date.now(), true) : sl.postedAgo.replace('ที่แล้ว', '')}</small></Link>
+        <Link to={`/creator/${g.creatorId}`} data-nogest><span style={{ backgroundImage: `url(${imgUrl(c.avatar)})` }} /><b className="ell">{mine ? 'สตอรี่ของคุณ' : c.name}</b>{sl.audience === 'close_friends' && <em data-cf style={{ fontStyle: 'normal', background: '#16A34A', color: '#fff', borderRadius: 99, padding: '1px 7px', fontSize: 11, fontWeight: 700, marginLeft: 4, whiteSpace: "nowrap", flexShrink: 0 }}>เพื่อนสนิท</em>}<small>{sl.at ? ago(sl.at, Date.now(), true) : sl.postedAgo.replace('ที่แล้ว', '')}</small></Link>
         <button type="button" className={s.vbtn} aria-label="ตัวเลือกสตอรี่" data-nogest onClick={() => setUi('more')}><Icon name="dots" size={22} color="#fff" /></button>
         <button type="button" className={s.vbtn} aria-label="ปิด" data-nogest onClick={onClose}><Icon name="x" size={24} color="#fff" /></button>
       </div>
@@ -334,26 +336,38 @@ function Face({ g, active, paused, hideUi, slide, setSlide, onNextGroup, onPrevG
         </div>
       ) : (
         <>
-          {(ui === 'typing' || !p) && active && (
+          {(ui === 'typing' || !p) && active && sl.allowReplies !== 'off' && (
             <div className={s.qr} style={chrome}>{STORY_EMOJI.map((e) => <button key={e} type="button" data-nogest aria-label={`ส่ง ${e}`} aria-pressed={myRx === e} onPointerDown={(ev) => ev.preventDefault()} onClick={() => void react(e)}>{e}</button>)}</div>
           )}
-          <form className={s.reply} style={chrome} data-nogest onSubmit={(e) => { e.preventDefault(); void send() }}>
+          {sl.allowReplies === 'off' ? <div className={s.reply} style={{ ...chrome, justifyContent: 'center', color: 'rgba(255,255,255,.75)', fontSize: 13 }} data-replies-off>{c.name} ปิดการตอบกลับสตอรี่นี้</div> : <form className={s.reply} style={chrome} data-nogest onSubmit={(e) => { e.preventDefault(); void send() }}>
             <input value={text} onChange={(e) => setText(e.target.value)} placeholder={`ส่งข้อความถึง ${c.name}…`} aria-label={`ส่งข้อความถึง ${c.name}`} maxLength={500}
               onFocus={() => setUi('typing')} onClick={() => setUi('typing')} onBlur={() => setTimeout(() => setUi(null), 150)} tabIndex={active ? 0 : -1} />
             {text.trim()
               ? <button type="submit" aria-label="ส่งข้อความ" onPointerDown={(e) => e.preventDefault()}><Icon name="send" size={22} color="#fff" /></button>
               : <button type="button" aria-label="ส่งหัวใจ" aria-pressed={myRx === '❤️'} onClick={() => void react('❤️')}>{myRx === '❤️' ? '❤️' : '🤍'}</button>}
-          </form>
+          </form>}
         </>
       )}
 
       {active && (
         <Sheet open={ui === 'more'} onClose={() => setUi(null)} title={mine ? 'สตอรี่ของคุณ' : c.name}>
+          {mine && sl.storyId && <>
+            <button type="button" className="list-row" data-opt="story-audience" onClick={() => void opt({ audience: sl.audience === 'close_friends' ? 'public' : 'close_friends' }, sl.audience === 'close_friends' ? 'ตั้งเป็น “ทุกคน” แล้ว' : 'ตั้งเป็น “เพื่อนสนิท” แล้ว')}>
+              <Icon name="star" size={20} color={sl.audience === 'close_friends' ? '#16A34A' : 'currentColor'} /><span className="grow">ใครดูได้: {sl.audience === 'close_friends' ? 'เพื่อนสนิท' : 'ทุกคน'}<small>แตะเพื่อเปลี่ยนเป็น {sl.audience === 'close_friends' ? 'ทุกคน' : 'เพื่อนสนิทเท่านั้น'}</small></span></button>
+            <button type="button" className="list-row" data-opt="story-replies" onClick={() => { const n = REPLY_NEXT[sl.allowReplies ?? 'everyone']; void opt({ allowReplies: n }, `ตอบกลับได้: ${REPLY_L[n]}`) }}>
+              <Icon name="chat" size={20} /><span className="grow">ตอบกลับและรีแอคได้: {REPLY_L[sl.allowReplies ?? 'everyone']}<small>แตะเพื่อเปลี่ยน</small></span></button>
+            <Link to="/settings/privacy#story" className="list-row" onClick={() => setUi(null)}><Icon name="eyeoff" size={20} /><span className="grow">ซ่อนสตอรี่จาก…<small>และรายชื่อเพื่อนสนิท</small></span></Link>
+            <button type="button" className="list-row" data-opt="story-highlight" onClick={() => { const t = prompt('ชื่อไฮไลต์', 'ไฮไลต์'); if (!t?.trim()) return; void addToHighlight(sl.storyId!, t.trim().slice(0, 40), sl.media ?? '', sl.kind === 'video' ? 'video' : 'image').then(() => { toast(`เพิ่มใน “${t.trim()}” แล้ว · อยู่บนโปรไฟล์ถาวร`); setUi(null) }, (e: Error) => toast(e.message)) }}>
+              <Icon name="plus" size={20} /><span className="grow">เพิ่มในไฮไลต์<small>เก็บไว้บนโปรไฟล์หลังครบ 24 ชม.</small></span></button>
+            {sl.media && <button type="button" className="list-row" data-opt="story-save" onClick={() => { void saveMedia(sl.media!, sl.kind === 'video'); setUi(null) }}><Icon name="download" size={20} /><span className="grow">บันทึกลงเครื่อง</span></button>}
+          </>}
           {!mine && <button type="button" className="list-row" onClick={() => { void follows.toggle(g.creatorId).then((v) => toast(v ? `ติดตาม ${c.name} แล้ว` : `เลิกติดตาม ${c.name} แล้ว`), (e: Error) => toast(e.message)); setUi(null) }}>
             <Icon name="user" size={20} /><span className="grow">{following ? 'เลิกติดตาม' : '+ ติดตาม'}<small>{c.name}</small></span></button>}
           <button type="button" className="list-row" aria-label="แชร์" onClick={() => { share(); setUi(null) }}><Icon name="share" size={20} /><span className="grow">แชร์{p ? 'ผลงานในสตอรี่' : 'สตอรี่'}<small>คัดลอกลิงก์</small></span></button>
+          {!mine && <button type="button" className="list-row" data-opt="story-mute" onClick={() => { setUi(null); void setBlock(g.creatorId, 'mute').then(() => { toast(`ปิดเสียงสตอรี่ของ ${c.name} แล้ว`); onNextGroup() }, (e: Error) => toast(e.message)) }}><Icon name="bell" size={20} /><span className="grow">ปิดเสียง {c.name}<small>ไม่เห็นโพสต์และสตอรี่ เขาไม่รู้</small></span></button>}
           {mine && sl.storyId && <button type="button" className="list-row" style={{ color: '#E5484D' }} onClick={() => { if (!confirm('ลบสตอรี่นี้?')) return; void stories.remove(sl.storyId!).then(() => { toast('ลบสตอรี่แล้ว'); setUi(null); if (g.slides.length <= 1) onClose(); else setSlide(Math.max(0, i - 1)) }, (e: Error) => toast(e.message)) }}>
             <Icon name="trash" size={20} color="#E5484D" /><span className="grow">ลบสตอรี่นี้</span></button>}
+          {!mine && <button type="button" className="list-row" style={{ color: '#E5484D' }} data-opt="story-block" onClick={() => { if (!confirm(`บล็อก ${c.name}? เขาจะไม่เห็นโพสต์และสตอรี่ของคุณ และติดต่อคุณไม่ได้`)) return; setUi(null); void setBlock(g.creatorId, 'block').then(() => { toast(`บล็อก ${c.name} แล้ว`); onNextGroup() }, (e: Error) => toast(e.message)) }}><Icon name="x" size={20} color="#E5484D" /><span className="grow">บล็อก {c.name}</span></button>}
           {!mine && <button type="button" className="list-row" onClick={() => { setUi(null); toast(`ส่งรายงานให้ทีม ${BRAND} แล้ว · ขอบคุณที่ช่วยดูแลชุมชน`) }}><Icon name="flag" size={20} /><span className="grow">รายงานสตอรี่</span></button>}
         </Sheet>
       )}
@@ -385,3 +399,14 @@ function LoadedNow({ onReady }: { onReady: () => void }) {
   return null
 }
 
+
+const REPLY_L = { everyone: 'ทุกคน', following: 'คนที่คุณติดตาม', off: 'ปิด' } as const
+const REPLY_NEXT = { everyone: 'following', following: 'off', off: 'everyone' } as const
+async function saveMedia(src: string, video: boolean) {
+  try {
+    const b = await (await fetch(src)).blob()
+    const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `story-${Date.now()}.${video ? 'mp4' : 'jpg'}`
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000)
+    toast('บันทึกลงเครื่องแล้ว')
+  } catch { toast('บันทึกไม่สำเร็จ') }
+}

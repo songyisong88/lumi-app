@@ -7,7 +7,7 @@ const isVid = (u: string) => /^data:video|\.(mp4|webm|mov)(\?|#|$)/i.test(u)
 
 /** Pictures of a post, Instagram style: one picture at its own shape (4:5 … 1.91:1), several = a swipe carousel
  *  with dots and a 1/3 counter. Tap = full-screen viewer at that picture, double-tap = like (big heart). */
-export function PostMedia({ srcs, onDoubleLike, label }: { srcs: string[]; onDoubleLike?: () => void; label?: string }) {
+export function PostMedia({ srcs, alts, onDoubleLike, label }: { srcs: string[]; alts?: string[]; onDoubleLike?: () => void; label?: string }) {
   const sc = useRef<HTMLDivElement>(null)
   const [i, setI] = useState(0)
   const [open, setOpen] = useState<number | null>(null)
@@ -53,7 +53,7 @@ export function PostMedia({ srcs, onDoubleLike, label }: { srcs: string[]; onDou
             {isVid(u)
               ? <video src={u} muted playsInline preload="metadata" loop autoPlay={k === i} onLoadedMetadata={(e) => k === 0 && firstRatio(e.currentTarget.videoWidth, e.currentTarget.videoHeight)} />
               : <span ref={(el) => { const im = el?.querySelector('img'); if (k === 0 && im) { if (im.complete) firstRatio(im.naturalWidth, im.naturalHeight); else im.onload = () => firstRatio(im.naturalWidth, im.naturalHeight) } }} style={{ display: 'contents' }}>
-                  <Img src={u} sizes="100vw" eager={k === 0} alt={`รูปที่ ${k + 1}`} />
+                  <Img src={u} sizes="100vw" eager={k === 0} alt={alts?.[k] || `รูปที่ ${k + 1}`} />
                 </span>}
           </div>
         ))}

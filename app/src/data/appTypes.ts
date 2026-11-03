@@ -128,7 +128,26 @@ export interface Post {
   feeling?: string
   /** People tagged with @ (ids + the name written in the text). */
   mentions?: Mention[]
+  /** IG/FB options (server columns of the same meaning; RLS enforces them). */
+  audience?: Audience
+  commentsOff?: boolean
+  /** Owner hid the like count (others see no number and no likers list). */
+  hideLikes?: boolean
+  pinnedAt?: number
+  archivedAt?: number
+  alt?: string[]
+  location?: string
+  /** People tagged in the photos (not in the text). */
+  tagged?: Mention[]
 }
+export type Audience = 'public' | 'followers' | 'close_friends' | 'only_me'
+export type Who = 'everyone' | 'followers' | 'following' | 'off'
+export interface PrivacySettings {
+  isPrivate: boolean; activity: boolean
+  comments: Who; tags: Who; mentions: Who; storyReplies: Who
+  hiddenWords: string[]
+}
+export type BlockKind = 'block' | 'mute' | 'restrict'
 
 /** The 6 reactions (long-press “ถูกใจ”). Stored in post_likes.kind / comment_likes.kind. */
 export type ReactKind = 'like' | 'love' | 'haha' | 'wow' | 'fire' | 'idea'
@@ -194,6 +213,13 @@ export interface DB {
   hidden?: string[]
   /** My emoji on other people's stories, by story id. */
   storyReactions?: Record<string, string>
+  privacy?: PrivacySettings
+  blocks?: { id: string; kind: BlockKind }[]
+  closeFriends?: string[]
+  storyHide?: string[]
+  highlights?: { id: string; title: string; items: { storyId: string; media: string; kind: 'image' | 'video' }[] }[]
+  /** Composer draft (Instagram keeps drafts on the device). */
+  postDraft?: { text: string; images: string[]; alt: string[]; audience: Audience; location: string; tagged: Mention[]; at: number }
 }
 
 export interface Sale {
@@ -211,6 +237,8 @@ export interface UserStory {
   /** Text / sticker / mention layers. Pictures have them baked in (only tap targets are used); videos draw them live. */
   overlays?: StoryOverlay[]
   durationMs?: number
+  audience?: 'public' | 'close_friends'
+  allowReplies?: 'everyone' | 'following' | 'off'
 }
 export type StoryLinkLabel = 'ดูสินค้า' | 'ดูผลงาน' | 'รับฟรี' | 'จ้างเลย'
 /** One layer on a story. x/y = centre as a fraction of the 9:16 frame, s = scale, r = rotation (deg). */

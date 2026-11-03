@@ -82,12 +82,12 @@ export function PostDetail() {
       </div>
       <div className="bottom-bar" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 0, paddingTop: 8 }}>
         {reply && <small className={s.rbar}><span>กำลังตอบกลับ <b>{creatorById(reply.to).name}</b></span><button type="button" onClick={() => setReply(undefined)}>ยกเลิก</button></small>}
-        <div className={s.cin}>
+        {p.commentsOff ? <p className={s.off} data-comments-off>ปิดการแสดงความคิดเห็นสำหรับโพสต์นี้</p> : <div className={s.cin}>
           <Av src={creatorById(ME).avatar} size={32} />
           <MentionInput variant="line" up value={text} onChange={setText} mentions={ments} onMentions={setMents} apiRef={api} id="cmt-in" postId={id} roomId={p.roomId}
             placeholder="เขียนความคิดเห็น… พิมพ์ @ เพื่อแท็ก" ariaLabel="เขียนความคิดเห็น" onEnter={() => void send()} maxLength={1000} />
           <button type="button" className={s.sendB} aria-label="ส่ง" {...blockTap(!text.trim(), 'พิมพ์คอมเมนต์ก่อนส่ง')} onClick={() => void send()}><Icon name="send" size={22} color="var(--p)" /></button>
-        </div>
+        </div>}
       </div>
     </div>
   )

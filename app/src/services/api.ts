@@ -697,7 +697,7 @@ export const sell: SellService = {
   review: (id, pass, reason) => (live(id) ? Promise.resolve() : L.sell.review(id, pass, reason)),
 }
 /** Stories (24 h). Posting screens are behind FEATURES.accounts until approved. */
-export interface StoryInput { file: Blob; kind: 'image' | 'video'; caption: string; productId?: string; linkLabel?: StoryLinkLabel; overlays?: StoryOverlay[]; durationMs?: number; mentions?: Mention[] }
+export interface StoryInput { file: Blob; kind: 'image' | 'video'; caption: string; productId?: string; linkLabel?: StoryLinkLabel; overlays?: StoryOverlay[]; durationMs?: number; mentions?: Mention[]; audience?: 'public' | 'close_friends'; allowReplies?: 'everyone' | 'following' | 'off' }
 const blobToDataUrl = (b: Blob) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(b) })
 export const stories = {
   post: async (x: StoryInput) => {
@@ -705,7 +705,7 @@ export const stories = {
     if (cloudOn()) return K.postStory(x)
     // demo persona: kept in this browser only (24 h), nothing is uploaded
     const media = x.kind === 'image' || x.file.size <= 4 * 1024 * 1024 ? await blobToDataUrl(x.file) : URL.createObjectURL(x.file)
-    const s: UserStory = { id: uid('st'), authorId: ME, media, kind: x.kind, caption: x.caption, at: now(), expires: now() + 24 * 3600e3, views: 0, productId: x.productId, linkLabel: x.productId ? (x.linkLabel ?? 'ดูสินค้า') : undefined, overlays: x.overlays, durationMs: x.durationMs }
+    const s: UserStory = { id: uid('st'), authorId: ME, media, kind: x.kind, caption: x.caption, at: now(), expires: now() + 24 * 3600e3, views: 0, productId: x.productId, linkLabel: x.productId ? (x.linkLabel ?? 'ดูสินค้า') : undefined, overlays: x.overlays, durationMs: x.durationMs, audience: x.audience ?? 'public', allowReplies: x.allowReplies ?? 'everyone' }
     update((d) => { d.stories = [s, ...(d.stories ?? [])] })
   },
   react: (id: string, emoji: string | null) => { gate(); return live(id) ? K.reactStory(id, emoji) : Promise.resolve(update((d) => { d.storyReactions = { ...(d.storyReactions ?? {}) }; if (emoji) d.storyReactions[id] = emoji; else delete d.storyReactions[id] })) },

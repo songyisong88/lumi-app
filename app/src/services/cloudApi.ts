@@ -18,8 +18,21 @@ const soft = (p: PromiseLike<{ error: { message: string } | null }>) => Promise.
 export async function toggleFollow(id: string) {
   const on = !getDb().follows.includes(id)
   update((d) => { d.follows = on ? [id, ...d.follows] : d.follows.filter((x) => x !== id) })
-  if (on) must(await S().from('follows').insert({ creator_id: id }), 'follow')
-  else must(await S().from('follows').delete().eq('follower_id', ME).eq('creator_id', id), 'unfollow')
+  if (on) {
+    const r = await S().from('follows').insert({ creator_id: id })
+    if (r.error) {
+      // Private account: the server refuses a direct follow; send a request instead (like Instagram).
+      const p = await S().from('profiles').select('is_private').eq('id', id).maybeSingle()
+      update((d) => { d.follows = d.follows.filter((x) => x !== id) })
+      if ((p.data as Row | null)?.is_private) {
+        const q = await S().from('follow_requests').insert({ target_id: id })
+        if (q.error && q.error.code !== '23505') must(q, 'follow request')
+        toast('ส่งคำขอติดตามแล้ว · รอเขาอนุมัติ')
+        return false
+      }
+      must(r, 'follow')
+    }
+  } else must(await S().from('follows').delete().eq('follower_id', ME).eq('creator_id', id), 'unfollow')
   return on
 }
 async function toggleRow(table: string, col: string, id: string, list: 'liked' | 'saved' | 'likedComments') {
@@ -100,8 +113,18 @@ export async function createPost(p: Omit<Post, 'id' | 'at' | 'likes' | 'comments
   const row = must(await S().from('posts').insert({
     tag: p.tag, body: p.text, images, product_ids: (p.productIds ?? []).filter(R), prompt: p.prompt ?? null, code: p.code ?? null,
     room_id: p.roomId ?? null, hire_button: !!p.hireButton, feeling: p.feeling ?? null,
+    ...(p.audience && p.audience !== 'public' ? { audience: p.audience } : {}),
+    ...(p.location ? { location: p.location.slice(0, 80) } : {}),
+    ...(p.alt?.some(Boolean) ? { alt_texts: p.alt.map((a) => (a ?? '').slice(0, 300)) } : {}),
+    ...(p.commentsOff ? { comments_off: true } : {}), ...(p.hideLikes ? { hide_likes: true } : {}),
   }).select('id').single(), 'post') as Row
   await saveMentions('post', row.id, p.text, p.mentions)
+  const tags = (p.tagged ?? []).filter((m) => R(m.id) && m.id !== ME).slice(0, 20)
+  // Photo tags: the server checks the tagged person's “who can tag me” setting and blocks (mentions_privacy trigger).
+  for (const m of tags) {
+    const r = await S().from('mentions').insert({ source_kind: 'post_tag', source_id: row.id, mentioned_id: m.id, name: m.name.slice(0, 60) })
+    if (r.error) toast(`แท็ก ${m.name} ไม่ได้ (เขาตั้งค่าไม่ให้แท็ก)`)
+  }
   await hydrate()
   return row.id as string
 }
@@ -250,13 +273,14 @@ export async function replyReview(reviewId: string, text: string) {
 export const downloadUrl = (assetValue: string) => signedFileUrl(assetValue.replace(/^cloud:/, ''))
 
 // ---------- stories (24 h)
-export interface StoryInput { file: Blob; kind: 'image' | 'video'; caption: string; productId?: string; linkLabel?: StoryLinkLabel; overlays?: StoryOverlay[]; durationMs?: number; mentions?: Mention[] }
+export interface StoryInput { file: Blob; kind: 'image' | 'video'; caption: string; productId?: string; linkLabel?: StoryLinkLabel; overlays?: StoryOverlay[]; durationMs?: number; mentions?: Mention[]; audience?: 'public' | 'close_friends'; allowReplies?: 'everyone' | 'following' | 'off' }
 export async function postStory(x: StoryInput) {
   const path = await uploadPreview(x.file, 'stories', x.kind === 'video' ? (x.file.type.includes('webm') ? 'story.webm' : x.file.type.includes('quicktime') ? 'story.mov' : 'story.mp4') : 'story.jpg')
   const product = x.productId && R(x.productId) ? x.productId : null
   const row = must(await S().from('stories').insert({
     media_path: path, media_kind: x.kind, caption: x.caption.slice(0, 200), product_id: product,
     link_label: product ? (x.linkLabel ?? 'ดูสินค้า') : null, overlays: (x.overlays ?? []).slice(0, 30), duration_ms: x.durationMs ? Math.min(60000, Math.max(500, Math.round(x.durationMs))) : null,
+    ...(x.audience === 'close_friends' ? { audience: 'close_friends' } : {}), ...(x.allowReplies && x.allowReplies !== 'everyone' ? { allow_replies: x.allowReplies } : {}),
   }).select('*').single(), 'story') as Row
   const names = (x.mentions ?? []).map((m) => '@' + m.name).join(' ')
   await saveMentions('story', row.id, names, x.mentions)

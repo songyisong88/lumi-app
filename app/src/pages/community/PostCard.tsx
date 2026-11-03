@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { ReportSheet } from '../../components/Report'
-import { Av, Img, Sheet, copyText } from '../../components/ui'
-import { FEATURES } from '../../config'
+import { Av, Img, copyText } from '../../components/ui'
 import { ROOMS } from '../../data/appSeed'
 import type { Post } from '../../data/appTypes'
 import { heroOf } from '../../data/productExtras'
@@ -15,6 +14,8 @@ import { ago } from '../../utils/time'
 import { ReactButton, coachSeen } from '../../social/ReactButton'
 import { MentionText } from '../../social/Mention'
 import { PostMedia } from '../../social/PostMedia'
+import { EditPostSheet, LikersSheet, PostMenu } from '../../social/PostOptions'
+import { AUDIENCE, useOnline } from '../../services/social'
 import { REACTIONS, fmtN, topRx } from '../../social/reactions'
 import c from './Community.module.css'
 import s from '../../social/Social.module.css'
@@ -42,12 +43,10 @@ export function PostCard({ p, full, i = 0, inGroup }: { p: Post; full?: boolean;
   const nav = useNavigate()
   const a = creatorById(p.authorId)
   const mine = myReaction(db, p.id)
-  const saved = db.saved.includes(p.id)
   const [menu, setMenu] = useState(false)
   const [report, setReport] = useState(false)
   const [who, setWho] = useState(false)
   const [own, setOwn] = useState<null | 'edit'>(null)
-  const [draft, setDraft] = useState('')
   const [coach, setCoach] = useState(false)
   const [tc, tb] = TAG_COLOR[p.tag] ?? ['#6C2BD9', '#F3ECFF']
   const g = p.roomId && !inGroup ? ROOMS.find((r) => r.id === p.roomId) : undefined
@@ -60,20 +59,22 @@ export function PostCard({ p, full, i = 0, inGroup }: { p: Post; full?: boolean;
   const rx = topRx(p.rx, mine)
   const isMine = p.authorId === ME || !!p.mine
   const imgs = p.images
+  const online = useOnline(isMine ? undefined : p.authorId)
+  const likesHidden = !!p.hideLikes && !isMine
   const doFollow = () => follows.toggle(p.authorId).then((v) => toast(v ? `ติดตาม ${a.name} แล้ว` : `เลิกติดตาม ${a.name} แล้ว`))
   return (
     <article className={`${s.card} rise`} style={{ '--i': Math.min(i, 6), marginTop: full ? 0 : undefined } as React.CSSProperties}>
       <div className={s.ph}>
         {g ? (
           <Link to={`/community/group/${g.id}`} className={s.gav} aria-label={g.name}><span style={{ background: g.bg }}><Icon name={g.icon} size={22} color={g.color} /></span><Av src={a.avatar} size={22} /></Link>
-        ) : <Link to={`/creator/${a.id}`} aria-label={a.name}><Av src={a.avatar} size={42} /></Link>}
+        ) : <Link to={`/creator/${a.id}`} aria-label={a.name}><Av src={a.avatar} size={42} online={online} /></Link>}
         <div className={s.pm}>
           <b>
             {g ? <Link to={`/community/group/${g.id}`}>{g.name}</Link> : <Link to={`/creator/${a.id}`} style={{ color: 'inherit', fontWeight: 700 }}>{a.name}</Link>}
             {!g && p.feeling && <span className={s.feel}>— {p.feeling}</span>}
             {!g && follow && <> · <button type="button" style={{ color: 'var(--p)', fontWeight: 700 }} onClick={doFollow}>ติดตาม</button></>}
           </b>
-          <small>{g && <><Link to={`/creator/${a.id}`} style={{ color: 'inherit' }}>{a.name}</Link> · </>}{shortAgo(p.at)} · <Icon name="globe" size={12} /> · <span className={s.tag} style={{ color: tc, background: tb }}>{p.tag}</span></small>
+          <small>{g && <><Link to={`/creator/${a.id}`} style={{ color: 'inherit' }}>{a.name}</Link> · </>}{p.pinnedAt && <span className={s.badge} data-pinned><Icon name="pin" size={11} />ปักหมุด · </span>}{shortAgo(p.at)} · <span title={AUDIENCE[p.audience ?? 'public'].l} aria-label={`ผู้ชม: ${AUDIENCE[p.audience ?? 'public'].l}`} data-audience={p.audience ?? 'public'}><Icon name={AUDIENCE[p.audience ?? 'public'].icon} size={12} /></span>{p.archivedAt && <> · <span className={s.badge}>เก็บถาวร</span></>} · <span className={s.tag} style={{ color: tc, background: tb }}>{p.tag}</span>{p.location && <span className={s.loc} data-location>{p.location}</span>}</small>
         </div>
         <button type="button" className={s.ib} aria-label="ตัวเลือกโพสต์" onClick={() => setMenu(true)}><Icon name="dots" size={20} /></button>
         {!full && <button type="button" className={s.ib} aria-label="ซ่อนโพสต์นี้" onClick={() => { void community.hide(p.id); toast('ซ่อนโพสต์แล้ว · จะเห็นโพสต์แบบนี้น้อยลง') }}><Icon name="x" size={20} /></button>}
@@ -81,7 +82,8 @@ export function PostCard({ p, full, i = 0, inGroup }: { p: Post; full?: boolean;
       <div className={s.tx} onClick={open}>
         <MentionText text={p.text} mentions={p.mentions} max={full ? 0 : 140} />
       </div>
-      {imgs.length > 0 && <PostMedia srcs={imgs} onDoubleLike={() => { if (!mine) void community.react(p.id, 'like') }} />}
+      {imgs.length > 0 && <PostMedia srcs={imgs} alts={p.alt} onDoubleLike={() => { if (!mine) void community.react(p.id, 'like') }} />}
+      {p.tagged && p.tagged.length > 0 && <div className={s.tagged} data-tagged><Icon name="user" size={14} />{p.tagged.map((m) => <Link key={m.id} to={`/creator/${m.id}`}>{m.name}</Link>)}</div>}
       {p.code && (
         <div className={c.code} style={{ margin: '8px 14px 0' }}>{p.code.map((x, k) => <div key={x}><i>{k + 1}</i><code>{x}</code><button onClick={() => { copyText(x); toast('คัดลอกสูตรแล้ว') }} aria-label="คัดลอก"><Icon name="copy" size={14} /></button></div>)}</div>
       )}
@@ -109,17 +111,21 @@ export function PostCard({ p, full, i = 0, inGroup }: { p: Post; full?: boolean;
         <div className={c.best} style={{ margin: '8px 14px 0' }}><Av src={creatorById(best.authorId).avatar} size={26} /><div><b>{creatorById(best.authorId).name} <span className="pill pill-g">คำตอบที่ดีที่สุด</span></b><p>{best.text}</p></div></div>
       )}
       <div className={s.cnt}>
-        {p.likes > 0 ? (
+        {likesHidden ? (
+          <button type="button" className={s.rx} onClick={() => setWho(true)} data-likes-hidden aria-label="ดูคนที่ถูกใจ">
+            {mine ? <><i>{REACTIONS.find((r) => r.k === mine)?.e ?? '❤️'}</i><span>คุณและคนอื่น ๆ</span></> : <span>ถูกใจโดยคนอื่น ๆ</span>}
+          </button>
+        ) : p.likes > 0 ? (
           <button type="button" className={s.rx} onClick={() => setWho(true)} aria-label={`ความรู้สึกทั้งหมด ${p.likes}`}>
             {(rx.length ? rx : [REACTIONS[0]]).map((r) => <i key={r.k}>{r.e}</i>)}
             <span>{mine ? (p.likes > 1 ? `คุณและคนอื่นอีก ${fmtN(p.likes - 1)} คน` : 'คุณ') : fmtN(p.likes)}</span>
           </button>
         ) : <span />}
-        <button type="button" onClick={() => focusComment(p.id, full, nav)}>{nComments} ความคิดเห็น · {p.shares} แชร์</button>
+        <button type="button" onClick={() => focusComment(p.id, full, nav)}>{p.commentsOff ? 'ปิดความคิดเห็น' : `${nComments} ความคิดเห็น`} · {p.shares} แชร์</button>
       </div>
       <div className={s.acts} style={{ position: 'relative' }}>
         <ReactButton mine={mine} onDock={(o) => { if (o && !coachSeen()) setCoach(true); if (!o) setCoach(false) }} onPick={(k) => { void community.react(p.id, k) }} />
-        <button type="button" onClick={() => focusComment(p.id, full, nav)}><Icon name="comment" size={20} />แสดงความคิดเห็น</button>
+        {!p.commentsOff && <button type="button" onClick={() => focusComment(p.id, full, nav)}><Icon name="comment" size={20} />แสดงความคิดเห็น</button>}
         <button type="button" onClick={() => sharePost(p.id)}><Icon name="share" size={20} />แชร์</button>
       </div>
       {coach && <div className={s.coach}><span className={s.emo}>👆</span>กดค้างที่ “ถูกใจ” เพื่อเลือกอีโมจิ · แตะครั้งเดียว = ❤️ ถูกใจ</div>}
@@ -132,37 +138,15 @@ export function PostCard({ p, full, i = 0, inGroup }: { p: Post; full?: boolean;
               <div className={s.cmb}><span className={s.bub}><b>{creatorById(top.authorId).name}</b><MentionText text={top.text} mentions={top.mentions} max={90} /></span></div>
             </div>
           )}
-          <div className={s.cinMini}><Av src={creatorById(ME).avatar} size={28} /><button type="button" onClick={() => nav(`/community/post/${p.id}#c`)}>เขียนความคิดเห็น… พิมพ์ @ เพื่อแท็กเพื่อน</button></div>
+          {!p.commentsOff && <div className={s.cinMini}><Av src={creatorById(ME).avatar} size={28} /><button type="button" onClick={() => nav(`/community/post/${p.id}#c`)}>เขียนความคิดเห็น… พิมพ์ @ เพื่อแท็กเพื่อน</button></div>}
         </div>
       )}
       {full && <div style={{ height: 4 }} />}
 
-      <Sheet open={menu} onClose={() => setMenu(false)} title="ตัวเลือกโพสต์">
-        <div style={{ margin: '0 -16px' }}>
-          <button className="list-row" style={{ width: '100%' }} onClick={() => { community.save(p.id); setMenu(false); toast(saved ? 'เอาออกจากที่บันทึกแล้ว' : 'บันทึกโพสต์แล้ว') }}><Icon name="bookmark" size={20} fill={saved ? 'currentColor' : 'none'} /><span className="grow">{saved ? 'เอาออกจากที่บันทึก' : 'บันทึกโพสต์'}<small>ดูได้ที่โปรไฟล์ › โพสต์ที่บันทึก</small></span></button>
-          <button className="list-row" style={{ width: '100%' }} onClick={() => { setMenu(false); sharePost(p.id) }}><Icon name="link" size={20} /><span className="grow">คัดลอกลิงก์โพสต์</span></button>
-          {!isMine && <button className="list-row" style={{ width: '100%' }} onClick={() => { setMenu(false); void doFollow() }}><Icon name="user" size={20} /><span className="grow">{db.follows.includes(p.authorId) ? `เลิกติดตาม ${a.name}` : `ติดตาม ${a.name}`}</span></button>}
-          {!full && <button className="list-row" style={{ width: '100%' }} onClick={() => { setMenu(false); void community.hide(p.id); toast('ซ่อนโพสต์แล้ว') }}><Icon name="eyeoff" size={20} /><span className="grow">ซ่อนโพสต์นี้</span></button>}
-          {!isMine && <button className="list-row" style={{ width: '100%' }} aria-label="รายงานโพสต์นี้" onClick={() => { setMenu(false); setTimeout(() => setReport(true), 200) }}><Icon name="flag" size={20} /><span className="grow">รายงานโพสต์</span></button>}
-          {isMine && FEATURES.accounts && <>
-            <button className="list-row" style={{ width: '100%' }} onClick={() => { setMenu(false); setDraft(p.text); setTimeout(() => setOwn('edit'), 200) }}><Icon name="edit" size={20} /><span className="grow">แก้ไขข้อความ<small>คนอ่านจะเห็นว่า “แก้ไขแล้ว”</small></span></button>
-            <button className="list-row" style={{ width: '100%', color: '#DC2626' }} onClick={async () => { if (!confirm('ลบโพสต์นี้? ความคิดเห็นทั้งหมดจะหายไปด้วย')) return; try { await community.deletePost(p.id); setMenu(false); toast('ลบโพสต์แล้ว'); if (full) nav('/community', { replace: true }) } catch (e) { toast((e as Error).message) } }}><Icon name="trash" size={20} color="#DC2626" /><span className="grow">ลบโพสต์<small>ลบแล้วกู้คืนไม่ได้</small></span></button>
-          </>}
-        </div>
-      </Sheet>
+      <PostMenu p={p} open={menu} onClose={() => setMenu(false)} full={full} onEdit={() => setOwn('edit')} onReport={() => setReport(true)} onShare={() => sharePost(p.id)} />
       <ReportSheet open={report} onClose={() => setReport(false)} target="post" id={p.id} />
-      <Sheet open={who} onClose={() => setWho(false)} title="ความรู้สึกต่อโพสต์นี้" sub={`ทั้งหมด ${p.likes.toLocaleString('th-TH')}`}>
-        <div style={{ margin: '0 -16px' }}>
-          {REACTIONS.filter((r) => (p.rx?.[r.k] ?? 0) > 0 || mine === r.k).map((r) => (
-            <div key={r.k} className="list-row"><span style={{ fontSize: 24 }}>{r.e}</span><span className="grow">{r.l}{mine === r.k && <small>รวมของคุณ</small>}</span><b>{(p.rx?.[r.k] ?? 0).toLocaleString('th-TH')}</b></div>
-          ))}
-        </div>
-      </Sheet>
-      {isMine && FEATURES.accounts && (
-        <Sheet open={own === 'edit'} onClose={() => setOwn(null)} title="แก้ไขโพสต์" footer={<button className="btn btn-p btn-block" disabled={!draft.trim() || draft === p.text} onClick={async () => { try { await community.editPost(p.id, { text: draft.trim() }); setOwn(null); toast('บันทึกแล้ว') } catch (e) { toast((e as Error).message) } }}>บันทึก</button>}>
-          <textarea className="ta" rows={6} value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="ข้อความโพสต์" maxLength={2000} />
-        </Sheet>
-      )}
+      <LikersSheet p={p} open={who} onClose={() => setWho(false)} mine={mine} />
+      {isMine && <EditPostSheet p={p} open={own === 'edit'} onClose={() => setOwn(null)} />}
     </article>
   )
 }
