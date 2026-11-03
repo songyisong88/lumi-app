@@ -41,3 +41,12 @@ export const SOCIAL: Record<SocialId, boolean> = {
 }
 /** “ลองใช้แบบตัวอย่าง” on the sign-in screen. */
 export const SHOW_DEMO = !REAL
+
+/** New look (owner approved 2026-11-03, DEMO first): one account with a ฝั่งผู้ซื้อ / ร้านของฉัน switch, 6-size type scale,
+ *  3 button styles, purple only for tappable things, 4 px spacing, ☰ เมนูและตั้งค่า, + sheet with 3 choices, admin review page.
+ *  ON only on the demo build; the real site keeps today's look until the owner approves it there. */
+export const UI_V2 = DEMO_SITE
+/** Hire jobs (งานจ้าง) category. Owner 2026-11-03: hidden for now, DEMO first. The code stays so it can be reopened:
+ *  set this to true (or VITE_FEATURE_HIRE=1). When off: no งานจ้าง type in the sell form, search, feeds, chat filter
+ *  or product page, and hire listings are dropped from the catalog. Backend block: supabase/migrations/0021_hire_paused.sql. */
+export const HIRE_ON = import.meta.env.VITE_FEATURE_HIRE === '1' || !DEMO_SITE

@@ -8,6 +8,8 @@ import './services/cloud'
 import './styles/global.css'
 import './styles/kit.css'
 import './styles/motion.css'
+// UI v2 (demo site only): every rule in v2.css is scoped under html.ui2, which only the demo build sets
+import './styles/v2.css'
 import { registerSW } from 'virtual:pwa-register'
 
 /* Service worker auto-update: the new SW activates at once (skipWaiting + clientsClaim),
@@ -56,6 +58,8 @@ window.addEventListener('unhandledrejection', (e) => signInNotice(e.reason, e))
 
 // after services/cloud is imported, so the session hooks are registered
 initSession()
+// UI v2 (= config UI_V2), inlined so the real build drops this branch
+if (import.meta.env.VITE_SITE === 'demo') { document.documentElement.classList.add('ui2'); void import('./services/moderation').then((m) => m.initModeration()) }
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

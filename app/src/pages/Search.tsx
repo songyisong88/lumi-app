@@ -7,8 +7,8 @@ import { scrollPageTop } from '../components/Stage'
 import { Sheet } from '../components/ui'
 import { MasonryFeed } from '../components/MasonryFeed'
 import { ProductCard } from '../components/ProductCard'
-import { CREATORS, ME, PRODUCTS, creatorById, imgUrl, isLive } from '../data/sampleData'
-import { REAL } from '../config'
+import { CREATORS, ME, PRODUCTS, creatorById, imgUrl, isHidden, isLive } from '../data/sampleData'
+import { HIRE_ON, REAL } from '../config'
 import { useDb } from '../services/db'
 import type { Product } from '../data/types'
 import { creatorStats, statsOf } from '../data/productExtras'
@@ -297,7 +297,7 @@ export function Search() {
   const published = useDb().published
   const found = useMemo(() => searchWorks(q, cat), [q, cat, published]) // eslint-disable-line react-hooks/exhaustive-deps
   /** “ผลงานสำหรับคุณ”: the sample works on the demo site, the live works on the real site. */
-  const forYou = useMemo(() => (REAL ? published.filter(isLive) : PRODUCTS), [published])
+  const forYou = useMemo(() => (REAL ? published.filter(isLive) : PRODUCTS.filter((p) => !isHidden(p.id))), [published])
   const results = useMemo(() => arrange(found, sort, price), [found, sort, price])
   const creators = useMemo(() => matchCreators(q, found), [q, found])
   const nav = useNavigate()
@@ -379,7 +379,7 @@ export function Search() {
           <>
             <div className={`hscroll ${s.chips}`} ref={chipsRef}>
               <button className={!cat ? s.chipOn : ''} onClick={() => update({ cat: null })}>ทั้งหมด</button>
-              {(Object.keys(CATEGORIES) as CatKey[]).map((k) => (
+              {(Object.keys(CATEGORIES) as CatKey[]).filter((k) => HIRE_ON || k !== 'svc').map((k) => (
                 <button key={k} className={cat === k ? s.chipOn : ''} onClick={() => update({ cat: k })}>
                   <i style={{ background: CATEGORIES[k].accent }} />{CATEGORIES[k].name}
                 </button>

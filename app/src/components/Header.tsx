@@ -5,7 +5,8 @@ import { Icon } from './Icon'
 import { Sheet } from './ui'
 import { scrollPageTop } from './Stage'
 import s from './Header.module.css'
-import { REAL } from '../config'
+import { HIRE_ON, REAL, UI_V2 } from '../config'
+import { CreateSheetV2 } from './v2/CreateSheetV2'
 
 export const NAV = [
   { to: '/', label: 'หน้าแรก', icon: 'home' },
@@ -16,7 +17,7 @@ export const NAV = [
 ] as const
 
 /** Routes that keep the tab bar visible; every other page is a pushed detail screen. */
-const TABBED = ['/', '/search', '/community', '/profile', '/chat', '/favorites', '/notifications']
+const TABBED = ['/', '/search', '/community', '/profile', '/chat', '/favorites', '/notifications', ...(UI_V2 ? ['/menu'] : [])]
 const ROOTS = ['/', '/search', '/community', '/profile']
 
 /** Re-tapping the tab or logo of the page you are already on scrolls it back to the top (like Instagram/TikTok). */
@@ -35,7 +36,7 @@ export function Brand() {
 export function useBadges() {
   const db = useDb()
   return {
-    chat: db.threads.reduce((a, t) => a + (t.muted ? 0 : t.unread), 0),
+    chat: db.threads.reduce((a, t) => a + (t.muted || (!HIRE_ON && t.hire) ? 0 : t.unread), 0),
     notif: db.notifs.filter((n) => !n.read).length,
     cart: db.cart.filter((c) => !c.direct).length,
   }
@@ -68,7 +69,7 @@ export function Header() {
         </nav>
         <HeaderActions />
       </div>
-      <CreateSheet open={create} onClose={() => setCreate(false)} />
+      <Create open={create} onClose={() => setCreate(false)} />
     </header>
   )
 }
@@ -82,7 +83,7 @@ export function CreateSheet({ open, onClose }: { open: boolean; onClose: () => v
       <div className={s.cs}>
         <button className={`${s.csi} rise`} style={{ '--i': 0 } as React.CSSProperties} onClick={() => go('/sell')}>
           <span className={s.csic} style={{ background: 'var(--grad)' }}><Icon name="store" size={24} color="#fff" /></span>
-          <span><b>ลงขายผลงาน</b><small>ภาพ เทมเพลต โปรแกรม บอท คอร์ส วิดีโอ ชุดข้อมูล หรือรับจ้าง</small></span><Icon name="chev" size={18} color="var(--mut)" />
+          <span><b>ลงขายผลงาน</b><small>{HIRE_ON ? 'ภาพ เทมเพลต โปรแกรม บอท คอร์ส วิดีโอ ชุดข้อมูล หรือรับจ้าง' : 'ภาพ เทมเพลต โปรแกรม บอท คอร์ส วิดีโอ หรือชุดข้อมูล'}</small></span><Icon name="chev" size={18} color="var(--mut)" />
         </button>
         <button className={`${s.csi} rise`} style={{ '--i': 1 } as React.CSSProperties} onClick={() => go('/community/new')}>
           <span className={s.csic} style={{ background: 'linear-gradient(135deg,#0EA5E9,#6366F1)' }}><Icon name="edit" size={22} color="#fff" /></span>
@@ -97,6 +98,9 @@ export function CreateSheet({ open, onClose }: { open: boolean; onClose: () => v
     </Sheet>
   )
 }
+
+/** UI v2 (demo): 3-choice create sheet; the real site keeps the original. */
+const Create = UI_V2 ? CreateSheetV2 : CreateSheet
 
 export function BottomNav() {
   const { pathname } = useLocation()
@@ -117,7 +121,7 @@ export function BottomNav() {
           </NavLink>
         ))}
       </nav>
-      <CreateSheet open={create} onClose={() => setCreate(false)} />
+      <Create open={create} onClose={() => setCreate(false)} />
     </>
   )
 }
