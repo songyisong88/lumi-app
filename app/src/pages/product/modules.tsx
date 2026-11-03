@@ -51,6 +51,41 @@ function usePreviewFont(item: PreviewItem | undefined, key: string) {
 }
 
 /** Real audio preview in the approved waveform row: play/pause, progress on the bars, time left. */
+/** The cover's own colours for “โทนสีของภาพนี้” (was a fixed list shown on every image). Falls back to PAL if the image can't be read. */
+function usePalette(src: string) {
+  const [pal, setPal] = useState<string[] | null>(null)
+  useEffect(() => {
+    setPal(null)
+    if (!src) return
+    let dead = false
+    const im = new Image()
+    im.crossOrigin = 'anonymous'
+    im.onload = () => {
+      try {
+        const n = 48, c = document.createElement('canvas'); c.width = n; c.height = n
+        const x = c.getContext('2d', { willReadFrequently: true }); if (!x) return
+        x.drawImage(im, 0, 0, n, n)
+        const d = x.getImageData(0, 0, n, n).data, cnt = new Map<number, [number, number, number, number]>()
+        for (let i = 0; i < d.length; i += 4) {
+          if (d[i + 3] < 128) continue
+          const k = ((d[i] >> 5) << 6) | ((d[i + 1] >> 5) << 3) | (d[i + 2] >> 5)
+          const v = cnt.get(k) ?? [0, 0, 0, 0]; v[0] += d[i]; v[1] += d[i + 1]; v[2] += d[i + 2]; v[3]++; cnt.set(k, v)
+        }
+        const out: [number, number, number][] = []
+        for (const [r, g, b, k] of [...cnt.values()].sort((a, b) => b[3] - a[3])) {
+          const c3: [number, number, number] = [r / k, g / k, b / k]
+          if (out.every((o) => Math.abs(o[0] - c3[0]) + Math.abs(o[1] - c3[1]) + Math.abs(o[2] - c3[2]) > 60)) out.push(c3)
+          if (out.length === 5) break
+        }
+        if (!dead && out.length >= 3) setPal(out.map((o) => '#' + o.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')))
+      } catch { /* tainted canvas: keep fallback */ }
+    }
+    im.src = src
+    return () => { dead = true }
+  }, [src])
+  return pal
+}
+
 function WavePlayer({ src }: { src: string }) {
   const a = useRef<HTMLAudioElement>(null)
   const [play, setPlay] = useState(false)
@@ -76,6 +111,7 @@ function WavePlayer({ src }: { src: string }) {
 function TypeModules({ p, L, spec, opts, optId, setOptId, onTrial, onLesson, unlocked = false, free = false }: ModProps) {
   const [fontText, setFontText] = useState('')
   const g = galleryOf(p)
+  const pal = usePalette(L === 'img' && g[0] ? imgUrl(g[0]) : '')
   const pv = previewsOf(spec.previews)
   const pages = previewsOf(spec.samplePages)
   const font = usePreviewFont(L === 'font' ? pv.find((x) => /font|woff|otf|ttf/i.test(x.mime + x.name)) : undefined, p.id)
@@ -84,7 +120,7 @@ function TypeModules({ p, L, spec, opts, optId, setOptId, onTrial, onLesson, unl
       return (
         <>
           <div className={s.st}>โทนสีของภาพนี้</div>
-          <div className={s.sw}>{PAL.map((c) => <div key={c} style={{ background: c }} />)}</div>
+          <div className={s.sw}>{(pal ?? PAL).map((c, i) => <div key={i} style={{ background: c }} data-pal={pal ? 'image' : 'fallback'} />)}</div>
           {(on(spec.sellPrompt) || promptOnly(spec)) && <>
             <div className={s.st}>สูตรพรอมต์{promptOnly(spec) ? ' · ขายพรอมต์อย่างเดียว' : ''}</div>
             {unlocked
