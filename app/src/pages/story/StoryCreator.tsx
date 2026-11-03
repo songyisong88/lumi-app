@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Av, Img } from '../../components/ui'
@@ -12,7 +12,7 @@ import { useSession } from '../../services/session'
 import { myStories } from '../../services/storyGroups'
 import { toast } from '../../services/toast'
 import { ago } from '../../utils/time'
-import { FILTERS, TEXT_BG, bakeImage, drawStrokes, ovlKind, type Stroke } from '../../social/storyCanvas'
+import { BG_PRESETS, FILTERS, MT0, TEXT_BG, bakeImage, bgCss, drawStrokes, fitBox, measure, mediaCss, mediaTransform, ovlColors, ovlKind, sampleColors, type MT, type Stroke } from '../../social/storyCanvas'
 import s from '../../social/Social.module.css'
 
 const MAX_SLIDES = 10
@@ -25,7 +25,7 @@ const STICKERS: [string, string, string][] = [['🔗', 'ลิงก์ผลง
 const EMOJI = ['🌸', '✨', '🔥', '💜', '😍', '🎉', '👀', '💯', '🛺', '☕', '🎨', '🙏']
 const HINT_KEY = 'lumi_story_gest'
 
-interface Slide { id: string; src: string; kind: 'image' | 'video'; file?: Blob; bg?: string; durationMs?: number; overlays: StoryOverlay[]; filter: number; strokes: Stroke[]; productId?: string; linkLabel: StoryLinkLabel }
+interface Slide { id: string; src: string; kind: 'image' | 'video'; file?: Blob; bg?: string; mt?: MT; nat?: [number, number]; bgc?: string[]; durationMs?: number; overlays: StoryOverlay[]; filter: number; strokes: Stroke[]; productId?: string; linkLabel: StoryLinkLabel }
 type Panel = null | 'stk' | 'prod' | 'men' | 'mine'
 const rid = () => Math.random().toString(36).slice(2, 9)
 
@@ -86,7 +86,8 @@ function Creator() {
   }
 
   const share = async () => {
-    const W = window.innerWidth, H = window.innerHeight
+    const fr = document.querySelector<HTMLElement>('[data-story-frame]')
+    const W = fr?.clientWidth || window.innerWidth, H = fr?.clientHeight || window.innerHeight
     try {
       for (let i = 0; i < slides.length; i++) {
         const sl = slides[i]
@@ -94,10 +95,10 @@ function Creator() {
         const mentions: Mention[] = sl.overlays.filter((o) => o.t === 'mention' && o.uid).map((o) => ({ id: o.uid!, name: creatorById(o.uid!).name }))
         const caption = sl.overlays.filter((o) => o.t === 'text').map((o) => o.text).join(' ').slice(0, 200)
         if (sl.kind === 'image') {
-          const file = await bakeImage({ src: sl.bg ? undefined : sl.src, filter: FILTERS[sl.filter][1], strokes: sl.strokes, overlays: sl.overlays, frameW: W, frameH: H })
+          const file = await bakeImage({ src: sl.bg ? undefined : sl.src, bg: sl.bgc ?? (sl.bg ? BG_PRESETS[0] : undefined), bgDeg: sl.bg ? 135 : 180, mt: sl.mt, filter: FILTERS[sl.filter][1], strokes: sl.strokes, overlays: sl.overlays, frameW: W, frameH: H })
           await stories.post({ file, kind: 'image', caption, productId: sl.productId, linkLabel: sl.linkLabel, overlays: sl.overlays.map((o) => ({ ...o, baked: true })), mentions })
         } else {
-          await stories.post({ file: sl.file!, kind: 'video', caption, productId: sl.productId, linkLabel: sl.linkLabel, overlays: sl.overlays, durationMs: sl.durationMs, mentions })
+          await stories.post({ file: sl.file!, kind: 'video', caption, productId: sl.productId, linkLabel: sl.linkLabel, overlays: [{ id: '_m', t: 'media', text: '', ...(sl.mt ?? MT0), nw: sl.nat?.[0], nh: sl.nat?.[1], bg: sl.bgc }, ...sl.overlays], durationMs: sl.durationMs, mentions })
         }
       }
       setBusy('')
@@ -175,20 +176,25 @@ function Creator() {
   )
 }
 
-type Gest = { id: string; pts: Map<number, [number, number]>; base: StoryOverlay; start: Map<number, [number, number]>; t0: number; moved: boolean }
+type Target = string // overlay id or 'media'
+type Gest = { id: Target; pts: Map<number, [number, number]>; start: Map<number, [number, number]>; base: StoryOverlay | MT; t0: number; moved: boolean; onEmpty: boolean }
+const SNAP = 7
 
 function Editor({ slide, index, total, panel, setPanel, onChange, onNext, onAdd, onRemove, onClose, onShare }: {
   slide: Slide; index: number; total: number; panel: Panel; setPanel: (p: Panel) => void; onChange: (s: Slide) => void
   onNext: () => void; onAdd: () => void; onRemove: () => void; onClose: () => void; onShare: () => void
 }) {
   const frame = useRef<HTMLDivElement>(null)
+  const mediaEl = useRef<HTMLElement | null>(null)
   const els = useRef(new Map<string, HTMLDivElement>())
   const g = useRef<Gest | null>(null)
   const [sel, setSel] = useState<string>()
-  const [dragging, setDragging] = useState(false)
+  const [dragging, setDragging] = useState<'' | 'ovl' | 'media'>('')
   const [trashHot, setTrashHot] = useState(false)
+  const hotRef = useRef(false)
+  const [guides, setGuides] = useState<{ v: boolean; h: boolean }>({ v: false, h: false })
   const [hint, setHint] = useState(() => !localStorage.getItem(HINT_KEY))
-  const [text, setText] = useState<null | { id?: string; v: string; color: string; st: 0 | 1 | 2 }>(slide.bg && !slide.overlays.length ? { v: '', color: '#ffffff', st: 1 } : null)
+  const [text, setText] = useState<null | { id?: string; v: string; color: string; st: 0 | 1 | 2; al: 'l' | 'c' | 'r'; size: number }>(slide.bg && !slide.overlays.length ? { v: '', color: '#ffffff', st: 1, al: 'c', size: 1 } : null)
   const [draw, setDraw] = useState<null | { c: string; w: number }>(null)
   const [fname, setFname] = useState('')
   const fnT = useRef(0)
@@ -196,11 +202,20 @@ function Editor({ slide, index, total, panel, setPanel, onChange, onNext, onAdd,
   const [cands, setCands] = useState<{ id: string; reason: string }[]>([])
   const [lbl, setLbl] = useState<StoryLinkLabel>(slide.linkLabel)
   const [prod, setProd] = useState<string | undefined>(slide.productId)
+  const [fsz, setFsz] = useState({ w: window.innerWidth, h: window.innerHeight })
   const cv = useRef<HTMLCanvasElement>(null)
   const stroke = useRef<Stroke | null>(null)
-  const set = (patch: Partial<Slide>) => onChange({ ...slide, ...patch })
+  const sref = useRef(slide); sref.current = slide
+  const set = (patch: Partial<Slide>) => onChange({ ...sref.current, ...patch })
   const myWorks = useMemo(() => ALL_PRODUCTS.filter((p) => p.creatorId === ME && (!q || p.title.toLowerCase().includes(q.toLowerCase()))), [q])
+  const mt = slide.mt ?? MT0
+  const box = slide.nat ? fitBox(slide.nat[0], slide.nat[1], fsz.w, fsz.h) : null
 
+  useLayoutEffect(() => {
+    const f = frame.current; if (!f) return
+    const ro = new ResizeObserver(() => setFsz({ w: f.clientWidth, h: f.clientHeight })); ro.observe(f)
+    return () => ro.disconnect()
+  }, [])
   // drawing layer
   useEffect(() => {
     const c = cv.current; if (!c) return
@@ -208,170 +223,247 @@ function Editor({ slide, index, total, panel, setPanel, onChange, onNext, onAdd,
     c.width = r.width * dpr; c.height = r.height * dpr
     const ctx = c.getContext('2d')!; ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     drawStrokes(ctx, slide.strokes, r.width, r.height, 1)
-  }, [slide.strokes])
+  }, [slide.strokes, fsz])
   useEffect(() => {
     if (panel !== 'men') return
     let on = true
     const h = setTimeout(() => void community.mentionCandidates(q).then((r) => { if (on) setCands(r.filter((x) => x.id !== ME)) }), 120)
     return () => { on = false; clearTimeout(h) }
   }, [q, panel])
+  // remember each layer's real box so the shared picture is drawn exactly like the screen
+  useLayoutEffect(() => {
+    let changed = false
+    const next = slide.overlays.map((o) => {
+      const el = els.current.get(o.id); if (!el) return o
+      const m = measure(el)
+      if (o.m && Math.abs(o.m.w - m.w) < 0.5 && Math.abs(o.m.h - m.h) < 0.5 && o.m.fs === m.fs) return o
+      changed = true; return { ...o, m }
+    })
+    if (changed) set({ overlays: next })
+  })
 
-  const addOverlay = (o: Omit<StoryOverlay, 'id' | 'x' | 'y' | 's' | 'r'>, y = 0.42) => {
+  const onMediaReady = (el: HTMLImageElement | HTMLVideoElement) => {
+    mediaEl.current = el
+    const nw = (el as HTMLImageElement).naturalWidth || (el as HTMLVideoElement).videoWidth, nh = (el as HTMLImageElement).naturalHeight || (el as HTMLVideoElement).videoHeight
+    if (!nw || !nh) return
+    const patch: Partial<Slide> = {}
+    if (!slide.nat || slide.nat[0] !== nw) patch.nat = [nw, nh]
+    if (!slide.bgc) patch.bgc = sampleColors(el)
+    if (Object.keys(patch).length) set(patch)
+  }
+
+  const addOverlay = (o: Omit<StoryOverlay, 'id' | 'x' | 'y' | 's' | 'r'> & { s?: number }, y = 0.42) => {
     const n: StoryOverlay = { id: rid(), x: 0.5, y: y + (slide.overlays.length % 4) * 0.05, s: 1, r: o.t === 'text' ? 0 : -3, ...o }
     set({ overlays: [...slide.overlays, n] }); setSel(n.id); setPanel(null)
   }
-  const style = (o: StoryOverlay) => ({ left: `${o.x * 100}%`, top: `${o.y * 100}%`, transform: `translate(-50%,-50%) rotate(${o.r}deg) scale(${o.s})`, color: o.t === 'text' && o.color ? o.color : undefined })
-
-  // gestures: 1 finger = move, 2 fingers = pinch zoom + rotate; drop on the bin = delete. DOM is moved directly (60 fps), state is set on release.
-  const down = (e: React.PointerEvent, o: StoryOverlay) => {
-    if (draw) return
-    e.stopPropagation(); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    if (!g.current || g.current.id !== o.id) g.current = { id: o.id, pts: new Map(), start: new Map(), base: o, t0: Date.now(), moved: false }
-    const cur = live(o.id) ?? o
-    g.current.base = cur; g.current.start = new Map(g.current.pts); g.current.pts.set(e.pointerId, [e.clientX, e.clientY]); g.current.start.set(e.pointerId, [e.clientX, e.clientY])
-    const el = els.current.get(o.id); if (el) el.style.transition = 'none'
-    setSel(o.id)
+  const style = (o: StoryOverlay): React.CSSProperties => {
+    const cl = ovlColors(o)
+    return { left: `${o.x * 100}%`, top: `${o.y * 100}%`, transform: `translate(-50%,-50%) rotate(${o.r}deg) scale(${o.s})`, color: cl.fg, background: o.t === 'text' && o.st === 0 ? cl.bg : undefined, textAlign: o.al === 'l' ? 'left' : o.al === 'r' ? 'right' : 'center' }
   }
-  const swallow = useRef(false)
-  const overlayAt = (x: number, y: number) => [...slide.overlays].reverse().find((o) => {
-    const r = els.current.get(o.id)?.getBoundingClientRect()
-    return !!r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom
-  })
-  const liveMap = useRef(new Map<string, StoryOverlay>())
-  const live = (id: string) => liveMap.current.get(id)
-  const move = (e: React.PointerEvent) => {
+
+  // ---- gestures (Instagram): a finger on a layer moves it; on the photo moves the photo. Two fingers = pinch-zoom + rotate
+  // of the layer you touched first (or the photo). Centre guides snap with a tick, drag a layer onto the bin to delete.
+  // The DOM is moved directly at 60 fps; state is written once on release.
+  const live = useRef(new Map<Target, StoryOverlay | MT>())
+  const baseOf = (id: Target): StoryOverlay | MT => live.current.get(id) ?? (id === 'media' ? mt : slide.overlays.find((x) => x.id === id)!)
+  const paint = (id: Target, v: StoryOverlay | MT, anim = false) => {
+    const el = id === 'media' ? mediaEl.current : els.current.get(id)
+    if (!el) return
+    el.style.transition = anim ? 'transform .3s cubic-bezier(.2,1.25,.4,1), left .3s cubic-bezier(.2,1.25,.4,1), top .3s cubic-bezier(.2,1.25,.4,1), opacity .2s' : 'none'
+    if (id === 'media') el.style.transform = mediaTransform(v as MT, fsz.w, fsz.h)
+    else { const st = style(v as StoryOverlay); el.style.left = st.left as string; el.style.top = st.top as string; el.style.transform = st.transform as string }
+  }
+  const targetAt = (x: number, y: number): Target | null => {
+    const hit = [...slide.overlays].reverse().find((o) => { const r = els.current.get(o.id)?.getBoundingClientRect(); return !!r && x >= r.left - 8 && x <= r.right + 8 && y >= r.top - 8 && y <= r.bottom + 8 })
+    if (hit) return hit.id
+    return slide.kind === 'video' || slide.src ? 'media' : null
+  }
+  const onDown = (e: React.PointerEvent) => {
+    if (draw || text || panel) return
+    const tgt = e.target as HTMLElement
+    if (tgt.closest('button,input,textarea,[data-nogest]')) {
+      // a layer that sits under a tool label is still draggable (but not the round tool icon itself)
+      if (!tgt.closest('[data-tool]') || tgt.tagName === 'I') return
+    }
+    const G = g.current
+    if (G) { // extra finger joins the current gesture
+      G.base = baseOf(G.id); G.start = new Map(G.pts); G.pts.set(e.pointerId, [e.clientX, e.clientY]); G.start.set(e.pointerId, [e.clientX, e.clientY]); G.moved = true
+      return
+    }
+    const id = targetAt(e.clientX, e.clientY)
+    g.current = { id: id ?? 'none', pts: new Map([[e.pointerId, [e.clientX, e.clientY]]]), start: new Map([[e.pointerId, [e.clientX, e.clientY]]]), base: id ? baseOf(id) : MT0, t0: Date.now(), moved: false, onEmpty: !id || id === 'media' }
+    if (id && id !== 'media') setSel(id)
+  }
+  const onMove = (e: React.PointerEvent) => {
     const G = g.current; if (!G || !G.pts.has(e.pointerId)) return
     G.pts.set(e.pointerId, [e.clientX, e.clientY])
+    if (G.id === 'none') return
     const F = frame.current!.getBoundingClientRect()
     const ids = [...G.pts.keys()]
-    let n = { ...G.base }
+    const isM = G.id === 'media'
+    let n: StoryOverlay | MT = { ...G.base }
+    let gv = false, gh = false
     if (ids.length === 1) {
       const [sx, sy] = G.start.get(ids[0])!, [x, y] = G.pts.get(ids[0])!
-      if (Math.hypot(x - sx, y - sy) > 6) G.moved = true
-      n.x = Math.min(1, Math.max(0, G.base.x + (x - sx) / F.width)); n.y = Math.min(1, Math.max(0, G.base.y + (y - sy) / F.height))
-      const hot = y > F.bottom - 150 && Math.abs(x - (F.left + F.width / 2)) < 70
-      if (G.moved && !dragging) setDragging(true)
-      if (hot !== trashHot) setTrashHot(hot)
+      if (!G.moved && Math.hypot(x - sx, y - sy) < 6) return
+      if (!G.moved) { G.moved = true; setDragging(isM ? 'media' : 'ovl') }
+      if (isM) { const b = G.base as MT; n = { ...b, x: b.x + (x - sx) / F.width, y: b.y + (y - sy) / F.height } }
+      else {
+        const b = G.base as StoryOverlay
+        let nx = b.x + (x - sx) / F.width, ny = b.y + (y - sy) / F.height
+        if (Math.abs(nx - 0.5) * F.width < SNAP) { nx = 0.5; gv = true }
+        if (Math.abs(ny - 0.5) * F.height < SNAP) { ny = 0.5; gh = true }
+        n = { ...b, x: Math.min(1, Math.max(0, nx)), y: Math.min(1, Math.max(0, ny)) }
+        const hot = Math.hypot(x - (F.left + F.width / 2), y - (F.bottom - 136)) < 64
+        if (hot !== hotRef.current) { hotRef.current = hot; setTrashHot(hot); if (hot) navigator.vibrate?.(12) }
+      }
+      if (isM) { const m = n as MT; if (Math.abs(m.x) * F.width < SNAP) { m.x = 0; gv = true } if (Math.abs(m.y) * F.height < SNAP) { m.y = 0; gh = true } }
     } else {
-      G.moved = true
+      G.moved = true; if (!dragging) setDragging(isM ? 'media' : 'ovl')
       const [a, b] = ids.slice(0, 2), [a0, b0] = [G.start.get(a)!, G.start.get(b)!], [a1, b1] = [G.pts.get(a)!, G.pts.get(b)!]
       const d0 = Math.hypot(b0[0] - a0[0], b0[1] - a0[1]), d1 = Math.hypot(b1[0] - a1[0], b1[1] - a1[1])
       const r0 = Math.atan2(b0[1] - a0[1], b0[0] - a0[0]), r1 = Math.atan2(b1[1] - a1[1], b1[0] - a1[0])
-      n.s = Math.min(5, Math.max(0.25, G.base.s * (d1 / Math.max(1, d0))))
-      n.r = G.base.r + ((r1 - r0) * 180) / Math.PI
       const m0 = [(a0[0] + b0[0]) / 2, (a0[1] + b0[1]) / 2], m1 = [(a1[0] + b1[0]) / 2, (a1[1] + b1[1]) / 2]
-      n.x = G.base.x + (m1[0] - m0[0]) / F.width; n.y = G.base.y + (m1[1] - m0[1]) / F.height
+      let r = G.base.r + ((r1 - r0) * 180) / Math.PI
+      const near = Math.round(r / 90) * 90; if (Math.abs(r - near) < 3) r = near // snap upright like IG
+      n = { ...G.base, s: Math.min(isM ? 6 : 8, Math.max(isM ? 0.25 : 0.2, G.base.s * (d1 / Math.max(1, d0)))), r, x: G.base.x + (m1[0] - m0[0]) / F.width, y: G.base.y + (m1[1] - m0[1]) / F.height }
     }
-    liveMap.current.set(G.id, n)
-    const el = els.current.get(G.id); if (el) Object.assign(el.style, style(n))
+    if (gv !== guides.v || gh !== guides.h) { if ((gv && !guides.v) || (gh && !guides.h)) navigator.vibrate?.(6); setGuides({ v: gv, h: gh }) }
+    live.current.set(G.id, n)
+    paint(G.id, n)
+    const el = !isM && els.current.get(G.id)
+    if (el) el.style.opacity = hotRef.current ? '0.55' : ''
+    if (el && hotRef.current) el.style.transform += ' scale(.5)'
     if (hint) { setHint(false); localStorage.setItem(HINT_KEY, '1') }
   }
-  const up = (e: React.PointerEvent) => {
-    const G = g.current; if (!G) return
+  const onUp = (e: React.PointerEvent) => {
+    const G = g.current; if (!G || !G.pts.has(e.pointerId)) return
     G.pts.delete(e.pointerId); G.start.delete(e.pointerId)
-    if (G.pts.size) { G.base = live(G.id) ?? G.base; G.start = new Map(G.pts); return }
-    g.current = null; setDragging(false)
-    const n = live(G.id); liveMap.current.delete(G.id)
-    const o = slide.overlays.find((x) => x.id === G.id)!
-    if (trashHot) { setTrashHot(false); set({ overlays: slide.overlays.filter((x) => x.id !== G.id) }); setSel(undefined); navigator.vibrate?.(15); return }
-    if (!G.moved && Date.now() - G.t0 < 350 && o.t === 'text') { setText({ id: o.id, v: o.text, color: o.color ?? '#ffffff', st: (o.st ?? 0) as 0 | 1 | 2 }); return }
-    if (n) {
-      // spring back inside the frame / to a sane size
-      const fixed = { ...n, s: Math.min(4, Math.max(0.4, n.s)), x: Math.min(0.95, Math.max(0.05, n.x)), y: Math.min(0.95, Math.max(0.05, n.y)) }
-      const el = els.current.get(G.id)
-      if (el) { el.style.transition = 'transform .32s cubic-bezier(.2,1.4,.4,1), left .32s cubic-bezier(.2,1.4,.4,1), top .32s cubic-bezier(.2,1.4,.4,1)'; Object.assign(el.style, style(fixed)) }
-      set({ overlays: slide.overlays.map((x) => (x.id === G.id ? fixed : x)) })
+    if (G.pts.size) { G.base = baseOf(G.id); G.start = new Map(G.pts); return }
+    g.current = null; setDragging(''); setGuides({ v: false, h: false })
+    const n = live.current.get(G.id); live.current.delete(G.id)
+    const wasHot = hotRef.current; hotRef.current = false; setTrashHot(false)
+    if (!G.moved && Date.now() - G.t0 < 350) {
+      const o = slide.overlays.find((x) => x.id === G.id)
+      if (o?.t === 'text') return setText({ id: o.id, v: o.text, color: o.color ?? '#ffffff', st: (o.st ?? 0) as 0 | 1 | 2, al: o.al ?? 'c', size: o.s })
+      if (!o) { if (sel) setSel(undefined); else setText({ v: '', color: '#ffffff', st: 1, al: 'c', size: 1 }) } // tap on the picture = type (Instagram)
+      return
     }
+    if (!n) return
+    if (G.id === 'media') { set({ mt: n as MT }); return }
+    if (wasHot) {
+      const el = els.current.get(G.id)
+      if (el) { el.style.transition = 'transform .18s ease-in, opacity .18s'; el.style.opacity = '0'; el.style.transform += ' scale(.2)' }
+      navigator.vibrate?.(20)
+      setTimeout(() => { set({ overlays: sref.current.overlays.filter((x) => x.id !== G.id) }); setSel(undefined) }, 170)
+      return
+    }
+    const o = n as StoryOverlay
+    const fixed = { ...o, s: Math.min(6, Math.max(0.3, o.s)), x: Math.min(0.96, Math.max(0.04, o.x)), y: Math.min(0.96, Math.max(0.04, o.y)) }
+    if (fixed.s !== o.s || fixed.x !== o.x || fixed.y !== o.y) paint(G.id, fixed, true)
+    set({ overlays: sref.current.overlays.map((x) => (x.id === G.id ? fixed : x)) })
   }
   const saveText = () => {
     if (!text) return
-    const v = text.v.trim()
-    if (text.id) set({ overlays: v ? slide.overlays.map((o) => (o.id === text.id ? { ...o, text: v, color: text.color, st: text.st } : o)) : slide.overlays.filter((o) => o.id !== text.id) })
-    else if (v) addOverlay({ t: 'text', text: v, color: text.color, st: text.st }, 0.35)
+    const v = text.v.replace(/\s+$/, '').replace(/^\s+/, '')
+    const patch = { text: v, color: text.color, st: text.st, al: text.al, s: text.size }
+    if (text.id) set({ overlays: v ? slide.overlays.map((o) => (o.id === text.id ? { ...o, ...patch, m: undefined } : o)) : slide.overlays.filter((o) => o.id !== text.id) })
+    else if (v) addOverlay({ t: 'text', ...patch }, 0.35)
     setText(null)
   }
   const cycleFilter = () => { const f = (slide.filter + 1) % FILTERS.length; set({ filter: f }); setFname(FILTERS[f][0]); clearTimeout(fnT.current); fnT.current = window.setTimeout(() => setFname(''), 900) }
+  const cycleBg = () => { const i = BG_PRESETS.findIndex((c) => c[0] === slide.bgc?.[0] && c[1] === slide.bgc?.[1]); set({ bgc: BG_PRESETS[(i + 1) % BG_PRESETS.length] }) }
   const p = prod ? ALL_PRODUCTS.find((x) => x.id === prod) : undefined
   const drawPt = (e: React.PointerEvent): [number, number] => { const r = cv.current!.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height] }
-  const media = slide.bg
-    ? <div className={s.mediaFill} style={{ background: slide.bg }} />
-    : slide.kind === 'video'
-      ? <video className={s.mediaFill} src={slide.src} autoPlay muted loop playsInline style={{ filter: FILTERS[slide.filter][1] || undefined }} />
-      : <img className={s.mediaFill} src={slide.src} alt="" style={{ filter: FILTERS[slide.filter][1] || undefined }} draggable={false} />
+  const textOnly = !!slide.bg
+  const mStyle = box ? { ...mediaCss(mt, box, fsz.w, fsz.h), filter: FILTERS[slide.filter][1] || undefined } : { position: 'absolute' as const, inset: 0, width: '100%', height: '100%', objectFit: 'contain' as const, opacity: 0 }
+  const media = textOnly ? null : slide.kind === 'video'
+    ? <video ref={(v) => { if (v) mediaEl.current = v }} src={slide.src} autoPlay muted loop playsInline style={mStyle} onLoadedMetadata={(e) => onMediaReady(e.currentTarget)} onLoadedData={(e) => { if (!slide.bgc) onMediaReady(e.currentTarget) }} />
+    : <img ref={(im) => { if (im) { mediaEl.current = im; if (im.complete && im.naturalWidth && !slide.nat) onMediaReady(im) } }} src={slide.src} alt="" crossOrigin="anonymous" style={mStyle} draggable={false} onLoad={(e) => onMediaReady(e.currentTarget)} />
+  const busyUi = !!dragging
+  const pillBtn = { fontWeight: 700, fontSize: 13, minHeight: 44, minWidth: 44, padding: '0 12px', borderRadius: 99, background: 'rgba(0,0,0,.35)' }
   return (
-    <div className={s.dark} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
-      <div ref={frame} className={`${s.media} ${s.fullh}`} style={{ touchAction: 'none' }} onPointerDown={(e) => { const o = g.current && slide.overlays.find((x) => x.id === g.current!.id); if (o) down(e, o); else setSel(undefined) }}>{media}</div>
-      <div className={s.shadeT} />
+    <div className={s.dark} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} style={{ touchAction: 'none' }}>
+      <div ref={frame} className={`${s.media} ${s.fullh}`} data-story-frame style={{ touchAction: 'none', background: bgCss(slide.bgc ?? (textOnly ? BG_PRESETS[0] : undefined), textOnly ? 135 : 180) }}>{media}</div>
+      <div className={s.shadeT} style={{ opacity: busyUi ? 0 : 1, transition: 'opacity .2s' }} />
+      {guides.v && <div className={s.guideV} aria-hidden />}
+      {guides.h && <div className={s.guideH} aria-hidden />}
       <canvas ref={cv} className={s.drawC} style={{ pointerEvents: draw ? 'auto' : 'none' }}
-        onPointerDown={(e) => { if (!draw) return; e.currentTarget.setPointerCapture(e.pointerId); stroke.current = { c: draw.c, w: draw.w, pts: [drawPt(e)] } }}
+        onPointerDown={(e) => { if (!draw) return; e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId); stroke.current = { c: draw.c, w: draw.w, pts: [drawPt(e)] } }}
         onPointerMove={(e) => {
           const st = stroke.current; if (!draw || !st) return
+          e.stopPropagation()
           st.pts.push(drawPt(e))
           const c = cv.current!, r = c.getBoundingClientRect(), ctx = c.getContext('2d')!
           drawStrokes(ctx, [{ ...st, pts: st.pts.slice(-2) }], r.width, r.height, 1)
         }}
-        onPointerUp={() => { if (stroke.current) { set({ strokes: [...slide.strokes, stroke.current] }); stroke.current = null } }} />
+        onPointerUp={(e) => { e.stopPropagation(); if (stroke.current) { set({ strokes: [...slide.strokes, stroke.current] }); stroke.current = null } }} />
       {slide.overlays.map((o) => (
-        <div key={o.id} ref={(el) => { if (el) els.current.set(o.id, el); else els.current.delete(o.id) }} role="button" tabIndex={0}
-          aria-label={o.t === 'text' ? `ข้อความ ${o.text}` : o.text} className={`${s.ovl} ${s[ovlKind(o)]} ${sel === o.id ? s.selO : ''}`} style={{ ...style(o), pointerEvents: draw ? 'none' : undefined }}
-          onPointerDown={(e) => down(e, o)}
+        <div key={o.id} ref={(el) => { if (el) els.current.set(o.id, el); else els.current.delete(o.id) }} role="button" tabIndex={0} data-ovl={o.id}
+          aria-label={o.t === 'text' ? `ข้อความ ${o.text}` : o.text} className={`${s.ovl} ${s[ovlKind(o)]} ${sel === o.id && !dragging ? s.selO : ''}`} style={{ ...style(o), pointerEvents: draw ? 'none' : undefined, visibility: text?.id === o.id ? 'hidden' : undefined }}
           onKeyDown={(e) => { if (e.key === 'Delete' || e.key === 'Backspace') set({ overlays: slide.overlays.filter((x) => x.id !== o.id) }) }}>{o.text}</div>
       ))}
       {fname && <div className={s.fName}>{fname}</div>}
-      <div className={s.etop}>
+      <div className={s.etop} style={{ opacity: busyUi ? 0 : 1, transition: 'opacity .2s', pointerEvents: busyUi ? 'none' : undefined }}>
         <button type="button" className={s.vbtn} aria-label="ปิดตัวแก้ไข" onClick={onClose}><Icon name="x" size={26} color="#fff" /></button>
         <span style={{ display: 'flex', gap: 6 }}>
-          {total > 1 && <button type="button" style={{ fontWeight: 700, fontSize: 13, minHeight: 44, minWidth: 44, padding: '0 12px', borderRadius: 99, background: 'rgba(0,0,0,.35)' }} aria-label="ภาพถัดไปที่จะแก้" onClick={onNext}>{index + 1} / {total} ▸</button>}
-          <button type="button" style={{ fontWeight: 700, fontSize: 13, minHeight: 44, minWidth: 44, padding: '0 12px', borderRadius: 99, background: 'rgba(0,0,0,.35)' }} aria-label="เพิ่มภาพ" onClick={onAdd}>＋</button>
-          <button type="button" style={{ fontWeight: 700, fontSize: 13, minHeight: 44, minWidth: 44, padding: '0 10px', borderRadius: 99, background: 'rgba(0,0,0,.35)' }} aria-label="เอาภาพนี้ออก" onClick={onRemove}><Icon name="trash" size={16} color="#fff" /></button>
+          {textOnly && <button type="button" style={pillBtn} aria-label="เปลี่ยนสีพื้นหลัง" onClick={cycleBg}><span style={{ display: 'inline-block', width: 22, height: 22, borderRadius: 99, border: '2px solid #fff', background: bgCss(slide.bgc ?? BG_PRESETS[0], 135), verticalAlign: 'middle' }} /></button>}
+          {!textOnly && (mt.s !== 1 || mt.x || mt.y || mt.r) ? <button type="button" style={pillBtn} aria-label="จัดรูปกลับที่เดิม" onClick={() => { paint('media', MT0, true); set({ mt: MT0 }) }}>↺</button> : null}
+          {total > 1 && <button type="button" style={pillBtn} aria-label="ภาพถัดไปที่จะแก้" onClick={onNext}>{index + 1} / {total} ▸</button>}
+          <button type="button" style={pillBtn} aria-label="เพิ่มภาพ" onClick={onAdd}>＋</button>
+          <button type="button" style={{ ...pillBtn, padding: '0 10px' }} aria-label="เอาภาพนี้ออก" onClick={onRemove}><Icon name="trash" size={16} color="#fff" /></button>
         </span>
       </div>
       {draw ? (
-        <div className={s.drawBar}>
+        <div className={s.drawBar} data-nogest>
           {COLORS.map((c) => <button key={c} type="button" aria-label={`สี ${c}`} className={draw.c === c ? s.on : ''} style={{ background: c }} onClick={() => setDraw({ ...draw, c })} />)}
           <button type="button" className={s.done} onClick={() => set({ strokes: slide.strokes.slice(0, -1) })} disabled={!slide.strokes.length}>ย้อน</button>
           <button type="button" className={s.done} style={{ marginLeft: 6 }} onClick={() => setDraw(null)}>เสร็จ</button>
         </div>
       ) : !panel && !text && (
-        <div className={s.etools}>
-          {([['Aa', 'ข้อความ', () => setText({ v: '', color: '#ffffff', st: 0 })], ['😊', 'สติกเกอร์', () => { setQ(''); setPanel('stk') }], ['@', 'แท็กคน', () => { setQ(''); setPanel('men') }],
+        <div className={s.etools} style={{ opacity: busyUi ? 0 : 1, transition: 'opacity .2s', pointerEvents: busyUi ? 'none' : undefined }}>
+          {([['Aa', 'ข้อความ', () => setText({ v: '', color: '#ffffff', st: 0, al: 'c', size: 1 })], ['😊', 'สติกเกอร์', () => { setQ(''); setPanel('stk') }], ['@', 'แท็กคน', () => { setQ(''); setPanel('men') }],
             ['🔗', 'ลิงก์ผลงาน', () => { setQ(''); setPanel('prod') }], ['✨', 'ฟิลเตอร์', cycleFilter],
             ['✏️', 'วาด', () => (slide.kind === 'video' ? toast('วาดได้เฉพาะรูปภาพ') : setDraw({ c: '#ffffff', w: 6 }))], ['🎵', 'เพลง', () => toast('ใส่เพลงยังไม่เปิดให้ใช้ · เร็ว ๆ นี้')]] as [string, string, () => void][])
-            .map(([e, l, fn]) => <button key={l} type="button" className={(l === 'ลิงก์ผลงาน' && p) || (l === 'ฟิลเตอร์' && slide.filter) ? s.onT : ''}
-              onPointerDown={(ev) => { // a sticker under the label (not the round icon) still gets dragged
-                swallow.current = false
-                if ((ev.target as HTMLElement).tagName === 'I') return
-                const o = overlayAt(ev.clientX, ev.clientY); if (o) { swallow.current = true; down(ev, o) } }}
-              onClick={() => { if (swallow.current) { swallow.current = false; return } fn() }}>{l}<i>{e}</i></button>)}
+            .map(([e, l, fn]) => <button key={l} type="button" data-tool className={(l === 'ลิงก์ผลงาน' && p) || (l === 'ฟิลเตอร์' && slide.filter) ? s.onT : ''}
+              onClick={() => { if (g.current || dragging) return; fn() }}>{l}<i>{e}</i></button>)}
         </div>
       )}
-      {p && !panel && <button type="button" className={s.elink} onClick={() => setPanel('prod')}>🛍️ {slide.linkLabel} · {p.title.slice(0, 22)}</button>}
-      {hint && !panel && !text && !draw && slide.overlays.length > 0 && <div className={s.gest}><i>🤏</i>ลากเพื่อย้าย · ถ่างสองนิ้วเพื่อซูม/หมุน<span style={{ opacity: .8, fontWeight: 500 }}>ลากลงถังเพื่อลบ</span></div>}
-      {dragging && <div className={`${s.trash} ${trashHot ? s.hot2 : ''}`} aria-hidden><Icon name="trash" size={24} color="#fff" /></div>}
-      {!panel && !text && !draw && !dragging && (
+      {p && !panel && !busyUi && <button type="button" className={s.elink} onClick={() => setPanel('prod')}>🛍️ {slide.linkLabel} · {p.title.slice(0, 22)}</button>}
+      {hint && !panel && !text && !draw && !busyUi && <div className={s.gest}><i>🤏</i>{slide.overlays.length ? 'ลากเพื่อย้าย · ถ่างสองนิ้วเพื่อซูม/หมุน' : 'ลากรูปเพื่อย้าย · ถ่างสองนิ้วเพื่อซูม/หมุน'}<span style={{ opacity: .8, fontWeight: 500 }}>{slide.overlays.length ? 'ลากลงถังเพื่อลบ' : 'แตะที่รูปเพื่อพิมพ์ข้อความ'}</span></div>}
+      {dragging === 'ovl' && <div className={`${s.trash} ${trashHot ? s.hot2 : ''}`} style={{ bottom: 110 }} aria-hidden><Icon name="trash" size={24} color="#fff" /></div>}
+      {!panel && !text && !draw && !busyUi && (
         <div className={s.ebot}>
           <span className={s.pillD}><Av src={creatorById(ME).avatar} size={26} />สตอรี่ของคุณ</span>
           <button type="button" className={s.share} onClick={onShare}>แชร์ไปยังสตอรี่ <Icon name="arrow" size={18} /></button>
         </div>
       )}
 
-      {text && (
-        <div className={s.textEd} role="dialog" aria-label="ใส่ข้อความ">
-          <button type="button" className={s.ok} onClick={saveText}>เสร็จ</button>
-          <textarea autoFocus rows={3} value={text.v} maxLength={120} aria-label="ข้อความบนสตอรี่" placeholder="พิมพ์ข้อความ…" onChange={(e) => setText({ ...text, v: e.target.value })} style={{ color: text.color }} />
-          <div className={s.row}>
-            <button type="button" className={s.stb} onClick={() => setText({ ...text, st: ((text.st + 1) % 3) as 0 | 1 | 2 })}>{['กล่องขาว', 'ตัวหนังสือ', 'ไล่สี'][text.st]}</button>
-            {COLORS.map((c) => <button key={c} type="button" aria-label={`สีตัวอักษร ${c}`} className={text.color === c ? s.on : ''} style={{ background: c }} onClick={() => setText({ ...text, color: c })} />)}
+      {text && (() => {
+        const pv = ovlColors({ id: '', t: 'text', text: '', x: 0, y: 0, s: 1, r: 0, st: text.st, color: text.color })
+        return (
+          <div className={s.textEd} role="dialog" aria-label="ใส่ข้อความ" data-nogest>
+            <button type="button" className={s.ok} onClick={saveText}>เสร็จ</button>
+            <div className={s.tedTop}>
+              <button type="button" className={s.stb} onClick={() => setText({ ...text, st: ((text.st + 1) % 3) as 0 | 1 | 2 })}>{['กล่องสี', 'ตัวหนังสือ', 'ไล่สี'][text.st]}</button>
+              <button type="button" className={s.stb} aria-label="จัดตำแหน่งข้อความ" onClick={() => setText({ ...text, al: text.al === 'c' ? 'l' : text.al === 'l' ? 'r' : 'c' })}>{text.al === 'l' ? '⇤ ชิดซ้าย' : text.al === 'r' ? 'ชิดขวา ⇥' : '↔ กึ่งกลาง'}</button>
+            </div>
+            <input type="range" className={s.tsize} min={0.5} max={2.2} step={0.01} value={text.size} aria-label="ขนาดตัวอักษร" onChange={(e) => setText({ ...text, size: Number(e.target.value) })} />
+            <textarea autoFocus rows={Math.min(5, text.v.split('\n').length + 1)} value={text.v} maxLength={120} aria-label="ข้อความบนสตอรี่" placeholder="พิมพ์ข้อความ…" onChange={(e) => setText({ ...text, v: e.target.value })}
+              className={`${s.ted} ${s['t' + text.st]}`} style={{ color: pv.fg, background: text.st === 0 ? pv.bg : undefined, textAlign: text.al === 'l' ? 'left' : text.al === 'r' ? 'right' : 'center', fontSize: 30 * text.size }} />
+            <div className={s.row}>
+              {COLORS.map((c) => <button key={c} type="button" aria-label={`สีตัวอักษร ${c}`} className={text.color === c ? s.on : ''} style={{ background: c }} onClick={() => setText({ ...text, color: c })} />)}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
       {panel === 'stk' && (
         <div className={s.dsheet} role="dialog" aria-label="สติกเกอร์">
           <div className={s.grab} /><button type="button" className={s.dclose} aria-label="ปิดแผง" onClick={() => setPanel(null)}><Icon name="x" size={20} color="#fff" /></button>
           <input className={s.dsearch} value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาสติกเกอร์" aria-label="ค้นหาสติกเกอร์" />
           <div className={s.stkg}>{STICKERS.filter(([, l]) => !q || l.includes(q)).map(([e, l, act]) => (
             <button key={l} type="button" className={act === 'link' ? s.hl : ''} onClick={() => {
-              if (act === 'link') { setQ(''); setPanel('prod') } else if (act === 'mention') { setQ(''); setPanel('men') } else if (act === 'hash') { setPanel(null); setText({ v: '#', color: '#ffffff', st: 2 }) }
+              if (act === 'link') { setQ(''); setPanel('prod') } else if (act === 'mention') { setQ(''); setPanel('men') } else if (act === 'hash') { setPanel(null); setText({ v: '#', color: '#ffffff', st: 2, al: 'c', size: 1 }) }
               else addOverlay({ t: 'sticker', text: act === 'time' ? `🕒 ${new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}` : act })
             }}>{e} {l}</button>))}</div>
           <div className={s.emog}>{EMOJI.map((e) => <button key={e} type="button" aria-label={`อีโมจิ ${e}`} onClick={() => addOverlay({ t: 'emoji', text: e }, 0.3)}>{e}</button>)}</div>

@@ -8,12 +8,12 @@ import { ME, baht, creatorById, imgUrl, productById } from '../data/sampleData'
 import type { Story, StorySlide } from '../data/types'
 import { follows, stories } from '../services/api'
 import { useDb } from '../services/db'
-import { SPRING, peekUnder, reducedMotion, skipNextTransition, spring, zoomIn, zoomOut } from '../services/motion'
+import { SPRING, peekUnder, reducedMotion, skipNextTransition, zoomIn, zoomOut } from '../services/motion'
 import { markStorySeen } from '../services/seenStories'
 import { storyGroups } from '../services/storyGroups'
 import { toast } from '../services/toast'
 import { STORY_EMOJI } from '../social/reactions'
-import { ovlKind } from '../social/storyCanvas'
+import { bgCss, fitBox, mediaCss, ovlColors, ovlKind } from '../social/storyCanvas'
 import { ago } from '../utils/time'
 import s from '../social/Social.module.css'
 import { BRAND } from '../config'
@@ -64,32 +64,53 @@ function Viewer({ groups, start }: { groups: Story[]; start: number }) {
   }, [groups, start])
   useEffect(() => { markStorySeen(g.creatorId) }, [g.creatorId])
 
+  // Instagram cube: each face turns around the edge it shares with its neighbour. Shading is an overlay's opacity
+  // (no CSS filter → no repaint each frame), only transform/opacity change, so it stays on the compositor at 60 fps.
   const paint = (p: number) => {
     const faces = cube.current?.querySelectorAll<HTMLElement>('[data-face]')
     faces?.forEach((f) => {
       const o = Number(f.dataset.face) - p
-      const vis = Math.abs(o) < 1.001
+      const vis = Math.abs(o) < 0.999
       f.style.visibility = vis ? 'visible' : 'hidden'
       if (!vis) return
+      const sh = f.querySelector<HTMLElement>('[data-shade]')
       if (reducedMotion()) { f.style.transform = `translate3d(${o * 100}%,0,0)`; return }
       f.style.transformOrigin = o > 0 ? '0% 50%' : '100% 50%'
       f.style.transform = `translate3d(${o * 100}%,0,0) rotateY(${o * 90}deg)`
-      f.style.filter = o === 0 ? '' : `brightness(${1 - Math.abs(o) * 0.45})`
+      if (sh) sh.style.opacity = String(Math.min(0.6, Math.abs(o) * 0.6))
     })
   }
   useLayoutEffect(() => { paint(pos.current) })
+  // preload the next / previous person's first picture so the cube never turns onto a blank face
+  useEffect(() => {
+    for (const k of [gi + 1, gi - 1]) {
+      const sl0 = groups[k]?.slides[slideOf[groups[k]?.creatorId] ?? 0]
+      const u = sl0 && sl0.kind !== 'video' ? bgOf(sl0) : undefined
+      if (u) { const im = new Image(); im.decoding = 'async'; im.src = u }
+    }
+  }, [gi]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const goGroup = (to: number, from = pos.current) => {
+  /** Settles the cube with an ease-out (no overshoot: a cube that bounces past the face looks broken).
+   *  Duration follows the distance left and the finger's speed; can be grabbed again mid-way. */
+  const goGroup = (to: number, from = pos.current, vel = 0) => {
     anim.current?.cancel()
-    if (to < 0) { pos.current = 0; paint(0); return }
+    if (to < 0) to = 0
     if (to >= groups.length) { void dismiss(); return }
-    const done = () => { pos.current = to; paint(to); setGi(to) }
-    if (reducedMotion()) return done()
-    const sp = spring(from, to, (v) => { pos.current = v; paint(v) }, 0.16, 0.7)
-    anim.current = sp
-    let cancelled = false
-    anim.current = { cancel: () => { cancelled = true; sp.cancel() } }
-    void sp.done.then(() => { if (!cancelled) done() })
+    const done = () => { pos.current = to; paint(to); if (to !== gi) setGi(to) }
+    if (reducedMotion() || Math.abs(to - from) < 0.001) return done()
+    const dist = Math.abs(to - from)
+    const ms = Math.max(160, Math.min(380, (dist / Math.max(2.6, vel)) * 1000))
+    let raf = 0, stop = false
+    const t0 = performance.now()
+    const ease = (x: number) => 1 - Math.pow(1 - x, 3)
+    const tick = (t: number) => {
+      if (stop) return
+      const k = Math.min(1, (t - t0) / ms)
+      pos.current = from + (to - from) * ease(k); paint(pos.current)
+      if (k < 1) raf = requestAnimationFrame(tick); else done()
+    }
+    raf = requestAnimationFrame(tick)
+    anim.current = { cancel: () => { stop = true; cancelAnimationFrame(raf) } }
   }
   const dismiss = async (fromGesture = false) => {
     const layer = root.current?.closest<HTMLElement>('.layer')
@@ -103,9 +124,10 @@ function Viewer({ groups, start }: { groups: Story[]; start: number }) {
   // gestures: horizontal = cube between people (1:1 with the finger), down = shrink back to the ring, hold = pause
   const gs = useRef<null | { x0: number; y0: number; t0: number; mode: '' | 'x' | 'y' | 'no'; dx: number; dy: number; holdT: number; dragged: boolean; raf: number }>(null)
   const suppressClick = useRef(false)
+  const grab = useRef(start)
   const onDown = (e: React.PointerEvent) => {
     if (ui || hint || (e.target as HTMLElement).closest('input,textarea,[data-nogest]')) return
-    anim.current?.cancel(); pos.current = Math.round(pos.current) === gi ? pos.current : gi
+    anim.current?.cancel(); grab.current = pos.current
     const holdT = window.setTimeout(() => { setHeld(true); suppressClick.current = true }, HOLD_MS)
     gs.current = { x0: e.clientX, y0: e.clientY, t0: performance.now(), mode: '', dx: 0, dy: 0, holdT, dragged: false, raf: 0 }
     suppressClick.current = false
@@ -127,7 +149,7 @@ function Viewer({ groups, start }: { groups: Story[]; start: number }) {
       G.raf = 0
       const W = root.current?.clientWidth ?? 390, H = root.current?.clientHeight ?? 844
       if (G.mode === 'x') {
-        let p = gi - G.dx / W
+        let p = grab.current - G.dx / W
         if (p < 0) p = p * 0.3; if (p > groups.length - 1) p = groups.length - 1 + (p - groups.length + 1) * 0.3
         pos.current = p; paint(p)
       } else if (G.mode === 'y') {
@@ -145,12 +167,12 @@ function Viewer({ groups, start }: { groups: Story[]; start: number }) {
     const dt = Math.max(1, performance.now() - G.t0)
     if (G.mode === 'x') {
       const W = root.current?.clientWidth ?? 390, v = G.dx / dt
-      let to = gi
-      if (G.dx < -W * 0.25 || v < -0.45) to = gi + 1
-      else if (G.dx > W * 0.25 || v > 0.45) to = gi - 1
-      to = Math.max(0, to)
-      if (to >= groups.length) { goGroup(groups.length - 1); return }
-      goGroup(to)
+      const base = Math.round(grab.current)
+      let to = base
+      if (pos.current - base > 0.25 || v < -0.45) to = base + 1
+      else if (pos.current - base < -0.25 || v > 0.45) to = base - 1
+      to = Math.max(0, Math.min(groups.length - 1, to))
+      goGroup(to, pos.current, (Math.abs(v) * 1000) / W)
     } else if (G.mode === 'y') {
       const layer = root.current?.closest<HTMLElement>('.layer')
       if (G.dy > 110 || (G.dy / dt > 0.6 && G.dy > 30)) void dismiss(true)
@@ -173,6 +195,7 @@ function Viewer({ groups, start }: { groups: Story[]; start: number }) {
             <Face g={groups[i]} active={i === gi} paused={held || !!ui || hint} hideUi={held}
               slide={slideOf[groups[i].creatorId] ?? 0} setSlide={(n) => setSlideOf((m) => ({ ...m, [groups[i].creatorId]: n }))}
               onNextGroup={() => goGroup(gi + 1)} onPrevGroup={() => goGroup(gi - 1)} onClose={() => void dismiss()} ui={ui} setUi={setUi} />
+            <div data-shade aria-hidden style={{ position: 'absolute', inset: 0, background: '#000', opacity: 0, pointerEvents: 'none', zIndex: 20 }} />
           </div>
         ))}
       </div>
@@ -209,6 +232,10 @@ function Face({ g, active, paused, hideUi, slide, setSlide, onNextGroup, onPrevG
   const elapsed = useRef(0)
   const myRx = sl.storyId ? db.storyReactions?.[sl.storyId] : undefined
   const dur = isVid ? (sl.durationMs ?? IMG_MS) : IMG_MS
+  const mo = sl.overlays?.find((o) => o.t === 'media')
+  const frameRef = useRef<HTMLDivElement>(null)
+  const [fr, setFr] = useState({ w: 0, h: 0 })
+  useLayoutEffect(() => { const f = frameRef.current; if (f) setFr({ w: f.clientWidth, h: f.clientHeight }) }, [])
 
   useEffect(() => { setLoaded(false); elapsed.current = 0; if (bar.current) bar.current.style.width = '0%' }, [g.creatorId, i])
   useEffect(() => { if (active && sl.storyId && !mine) void stories.view(sl.storyId).catch(() => {}) }, [active, sl.storyId, mine])
@@ -265,18 +292,19 @@ function Face({ g, active, paused, hideUi, slide, setSlide, onNextGroup, onPrevG
   return (
     <div className={s.dark} style={{ position: 'absolute' }}>
       {/* media: dark skeleton until it's ready, then fade in */}
-      <div className={`${s.media} ${s.fullh} ${loaded ? '' : 'sk-dark'}`} style={{ background: !bg && p ? p.gradient : undefined }}>
+      <div ref={frameRef} className={`${s.media} ${s.fullh} ${loaded ? '' : 'sk-dark'}`} style={{ background: mo?.bg ? bgCss(mo.bg) : !bg && p ? p.gradient : undefined }}>
         {bg && (isVid
-          ? <video ref={vid} key={bg} src={bg} muted={!active} playsInline preload="auto" className={`img-fade ${loaded ? 'is-in' : ''}`} onLoadedData={() => setLoaded(true)} onError={() => setLoaded(true)} />
+          ? <video ref={vid} key={bg} src={bg} muted={!active} playsInline preload="auto" className={`img-fade ${loaded ? 'is-in' : ''}`} onLoadedData={() => setLoaded(true)} onError={() => setLoaded(true)}
+              style={mo?.nw && mo.nh && fr.w ? mediaCss(mo, fitBox(mo.nw, mo.nh, fr.w, fr.h), fr.w, fr.h) : undefined} />
           : <img key={bg} src={bg} alt={sl.caption ?? ''} className={`img-fade ${loaded ? 'is-in' : ''}`} draggable={false} decoding="async"
             ref={(im) => { if (im?.complete && im.naturalWidth && !loaded) setLoaded(true) }} onLoad={() => setLoaded(true)} onError={() => setLoaded(true)} />)}
         {!bg && <LoadedNow onReady={() => !loaded && setLoaded(true)} />}
       </div>
       <div className={s.shadeT} />
       {/* layers that were not burned into the picture (clips); mentions on pictures are tappable spots */}
-      {sl.overlays?.map((o) => o.baked
+      {sl.overlays?.filter((o) => o.t !== 'media').map((o) => o.baked
         ? (o.t === 'mention' && o.uid ? <Link key={o.id} to={`/creator/${o.uid}`} className={s.hot} data-nogest aria-label={`ดูโปรไฟล์ ${o.text}`} style={{ left: `${o.x * 100}%`, top: `${o.y * 100}%` }} /> : null)
-        : <div key={o.id} className={`${s.ovl} ${s[ovlKind(o)]}`} style={{ left: `${o.x * 100}%`, top: `${o.y * 100}%`, transform: `translate(-50%,-50%) rotate(${o.r}deg) scale(${o.s})`, color: o.t === 'text' && o.color ? o.color : undefined, pointerEvents: 'none' }}>{o.text}</div>)}
+        : <div key={o.id} className={`${s.ovl} ${s[ovlKind(o)]}`} style={{ left: `${o.x * 100}%`, top: `${o.y * 100}%`, transform: `translate(-50%,-50%) rotate(${o.r}deg) scale(${o.s})`, color: ovlColors(o).fg, background: o.t === 'text' && o.st === 0 ? ovlColors(o).bg : undefined, textAlign: o.al === 'l' ? 'left' : o.al === 'r' ? 'right' : 'center', pointerEvents: 'none' }}>{o.text}</div>)}
       {!sl.media && sl.caption && <div className={`${s.ovl} ${s.t1}`} style={{ left: '50%', top: '40%', transform: 'translate(-50%,-50%)', fontSize: 22, whiteSpace: 'normal', width: '86%', textAlign: 'center', pointerEvents: 'none' }}>{sl.caption}</div>}
 
       <div className={s.bars} style={chrome}>

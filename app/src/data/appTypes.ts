@@ -215,8 +215,14 @@ export interface UserStory {
 export type StoryLinkLabel = 'ดูสินค้า' | 'ดูผลงาน' | 'รับฟรี' | 'จ้างเลย'
 /** One layer on a story. x/y = centre as a fraction of the 9:16 frame, s = scale, r = rotation (deg). */
 export interface StoryOverlay {
-  id: string; t: 'text' | 'sticker' | 'mention' | 'emoji'
+  id: string; t: 'text' | 'sticker' | 'mention' | 'emoji' | 'media'
   text: string; x: number; y: number; s: number; r: number
+  /** text alignment (l / c / r), default centre. */
+  al?: 'l' | 'c' | 'r'
+  /** layer box measured in the editor (CSS px, before scale) so the saved picture matches the screen exactly. */
+  m?: { w: number; h: number; fs: number; fw: number; lh: number; px: number; py: number; br: number }
+  /** t = 'media' (clips only): the clip's natural size and the 2 background colours behind it. */
+  nw?: number; nh?: number; bg?: string[]
   /** text style: 0 box, 1 plain, 2 neon. */
   st?: number; color?: string
   /** mention: the tagged person. */
