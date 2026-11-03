@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Icon } from '../../components/Icon'
 import { Empty, Img, SampleNote, Sheet, Toggle, TopBar, blockTap } from '../../components/ui'
-import { newSpec, licRows, presetRows, MAX_FILES, SPECS, uploadRule, fmtMB, arr, checkListing, completion, filesOf, on, str, visible, sellTypeOf, specOf, SELL_TYPE_ORDER, previewsOf, promptOnly, PROMPT_ONLY } from '../../data/listingSpec'
+import { newSpec, previewSrc, licRows, presetRows, MAX_FILES, SPECS, uploadRule, fmtMB, arr, checkListing, completion, filesOf, on, str, visible, sellTypeOf, specOf, SELL_TYPE_ORDER, previewsOf, promptOnly, PROMPT_ONLY } from '../../data/listingSpec'
 import type { Field, ListingDraft, SellType, Spec, SpecValue, Step, UploadedFile } from '../../data/listingSpec'
 import { CATEGORIES, childrenOf } from '../../data/searchData'
 import { baht, ME, productById } from '../../data/sampleData'
@@ -17,7 +17,9 @@ import { ProductView } from '../product/ProductView'
 import { PRICE_OPTS } from '../../data/sellDefaults'
 import { FEATURES, REAL, BRAND } from '../../config'
 import { useModStatus } from '../../components/ModStatus'
-import { cloudOn, removeDeliverable, uploadDeliverable, uploadPreview } from '../../services/cloud'
+import { cleanupPreviews, cloudOn, removeDeliverable, uploadDeliverable, uploadPreview } from '../../services/cloud'
+import { SAMPLE_TEXT_EXTS, makeSample } from '../../utils/sampleFile'
+import { skillExcerpt, skillMdFromZip } from '../../utils/skillMd'
 import { publicUrl } from '../../services/supabase'
 import s from './Sell.module.css'
 
@@ -370,7 +372,7 @@ function FieldView({ f, v, spec, set, type, draftId }: { f: Field; v: SpecValue 
       {f.kind === 'multi' && <div className="chips" style={{ flexWrap: 'wrap' }}>{f.options!.map((x) => { const sel = arr(v).includes(x); return <button key={x} className={`chip ${sel ? 'on' : ''}`} onClick={() => set(f.id, (old) => (sel ? arr(old).filter((y) => y !== x) : [...arr(old), x]))}>{sel && '✓ '}{x}</button> })}</div>}
       {f.kind === 'list' && <ListEdit f={f} v={v} set={set} />}
       {f.kind === 'files' && <FilesEdit f={f} v={v} set={set} type={type} spec={spec} draftId={draftId} />}
-      {f.kind === 'previews' && <PreviewsEdit f={f} v={v} set={set} />}
+      {f.kind === 'previews' && <PreviewsEdit f={f} v={v} set={set} spec={spec} draftId={draftId} />}
       {f.pattern && str(v) && !f.pattern.test(str(v)) && <span className="hint" style={{ color: '#DC2626' }}>{f.patternNote}</span>}
       {f.hint && f.kind !== 'files' && f.kind !== 'previews' && <span className="hint">{f.hint}</span>}
     </div>
@@ -402,6 +404,21 @@ function FilesEdit({ f, v, set, type, spec, draftId }: { f: Field; v: SpecValue 
   const rule = uploadRule(type, spec, f.id)
   const badExt = (n: string) => rule.exts.length > 0 && !rule.exts.includes((n.split('.').pop() ?? '').toLowerCase())
   const write = (fn: (xs: UploadedFile[]) => UploadedFile[]) => set(f.id, (old) => fn(filesOf(old)).map((x) => JSON.stringify(x)))
+  /** Data sample → rows shown on the product page; skill SKILL.md / ZIP → the SKILL.md preview (only if still empty). */
+  const readExtras = async (file: File) => {
+    const ext = (file.name.split('.').pop() ?? '').toLowerCase()
+    try {
+      if (type === 'data' && f.id === 'sample') {
+        if (!SAMPLE_TEXT_EXTS.includes(ext)) { set('sampleData', ''); return }
+        set('sampleData', JSON.stringify(makeSample(file.name, await file.text())))
+        toast(`อ่านตัวอย่างจาก “${file.name}” แล้ว · หน้าผลงานจะโชว์แถวจากไฟล์นี้`)
+      }
+      if (type === 'skill' && f.id === 'files' && !str(spec.skillMd).trim()) {
+        const md = /^skill\.md$/i.test(file.name) ? await file.text() : ext === 'zip' ? await skillMdFromZip(await file.arrayBuffer()) : null
+        if (md) { set('skillMd', skillExcerpt(md)); toast('ดึง SKILL.md มาเป็นตัวอย่างแล้ว · แก้หรือตัดส่วนที่เป็นความลับได้') }
+      }
+    } catch (e) { if (f.id === 'sample') set('sampleData', ''); toast((e as Error).message || `อ่าน “${file.name}” ไม่ได้`) }
+  }
   const add = (fl: FileList | null) => {
     if (!fl) return
     let room = MAX_FILES - files.length
@@ -413,6 +430,7 @@ function FilesEdit({ f, v, set, type, spec, draftId }: { f: Field; v: SpecValue 
       if (file.size === 0) { toast(`“${name}” เป็นไฟล์ว่าง`); continue }
       if (room-- <= 0) { toast(`อัปโหลดได้สูงสุด ${MAX_FILES} ไฟล์ · รวมเป็น ZIP ได้`); break }
       write((xs) => [...xs.filter((x) => x.name !== name), { name, size: sizeOf(file.size), scan: 'scan', pct: 0 }])
+      void readExtras(file)
       // signed-in account: real upload → private quarantine → server virus scan (same look as the demo)
       if (cloudOn() && draftId) {
         const upd = (u: Partial<UploadedFile>) => write((xs) => xs.map((x) => (x.name === name ? { ...x, ...u } : x)))
@@ -439,7 +457,7 @@ function FilesEdit({ f, v, set, type, spec, draftId }: { f: Field; v: SpecValue 
             <small>{x.size}{x.size && ' · '}{badExt(x.name) ? 'ไม่ตรงรูปแบบที่เลือก · ลบแล้วอัปใหม่' : x.scan === 'scan' ? `กำลังสแกนไวรัส ${x.pct ?? 0}%` : x.scan === 'ok' ? 'ไม่พบภัยที่รู้จัก ✓' : 'พบความเสี่ยง · ลบแล้วอัปใหม่'}</small>
             {x.scan === 'scan' && <span className={s.fbar}><i style={{ transform: `scaleX(${(x.pct ?? 0) / 100})` }} /></span>}
           </span>
-          <button onClick={() => { if (x.fileId && cloudOn()) void removeDeliverable(x.fileId); write((xs) => xs.filter((y) => y.name !== x.name)) }} aria-label={`ลบ ${x.name}`}><Icon name="trash" size={16} /></button>
+          <button onClick={() => { if (x.fileId && cloudOn()) void removeDeliverable(x.fileId); write((xs) => xs.filter((y) => y.name !== x.name)); if (type === 'data' && f.id === 'sample') set('sampleData', '') }} aria-label={`ลบ ${x.name}`}><Icon name="trash" size={16} /></button>
         </div>
       ))}
       <button className={`${s.drop} press`} onClick={() => ref.current?.click()}><Icon name="upload" size={22} color="var(--p)" /><b>เลือกไฟล์จากเครื่อง</b><small>{f.hint}</small></button>
@@ -455,7 +473,8 @@ function FilesEdit({ f, v, set, type, spec, draftId }: { f: Field; v: SpecValue 
 const LOCAL_PREVIEW_MB = 1
 const MIME_BY_EXT: Record<string, string> = { otf: 'font/otf', ttf: 'font/ttf', woff: 'font/woff', woff2: 'font/woff2', mp3: 'audio/mpeg', mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' }
 const readDataUrl = (b: Blob) => new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error('อ่านไฟล์ไม่ได้')); r.readAsDataURL(b) })
-function PreviewsEdit({ f, v, set }: { f: Field; v: SpecValue | undefined; set: SetSpec }) {
+const PV_LABEL: Record<string, string> = { itemSamples: 'ภาพตัวอย่างชิ้นงาน', shots: 'ภาพหน้าจอ', samplePages: 'หน้าตัวอย่าง' }
+function PreviewsEdit({ f, v, set, spec, draftId }: { f: Field; v: SpecValue | undefined; set: SetSpec; spec: Spec; draftId?: string }) {
   const ref = useRef<HTMLInputElement>(null)
   const items = previewsOf(v)
   const [busy, setBusy] = useState(false)
@@ -475,7 +494,7 @@ function PreviewsEdit({ f, v, set }: { f: Field; v: SpecValue | undefined; set: 
       if (room-- <= 0) { toast(`ใส่ตัวอย่างได้สูงสุด ${max} ไฟล์`); break }
       try {
         const blob = new Blob([file], { type: mime })
-        const url = cloudOn() ? publicUrl(await uploadPreview(blob, 'samples', file.name))! : mime.startsWith('image/') ? await fileToDataUrl(file, 1400) : await readDataUrl(blob)
+        const url = cloudOn() ? publicUrl(await uploadPreview(blob, 'samples', file.name))! : mime.startsWith('image/') ? await fileToDataUrl(file, f.id === 'samplePages' ? 1400 : 900) : await readDataUrl(blob)
         set(f.id, (old) => [...arr(old), JSON.stringify({ name: file.name.slice(-80), url, mime })])
       } catch (e) { toast((e as Error).message || 'อัปโหลดตัวอย่างไม่สำเร็จ') }
     }
@@ -485,10 +504,16 @@ function PreviewsEdit({ f, v, set }: { f: Field; v: SpecValue | undefined; set: 
     <div className={s.files} data-previews={f.id}>
       {items.map((x, i) => (
         <div key={x.url + i} className={`${s.fi} rise`}>
-          {x.mime.startsWith('image/') ? <img src={x.url} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flex: 'none' }} />
+          {x.mime.startsWith('image/') ? <img src={previewSrc(x.url)} alt="" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flex: 'none' }} />
             : <span className={s.fic}><Icon name={x.mime.startsWith('video/') ? 'play' : x.mime.startsWith('audio/') ? 'mic' : 'font'} size={18} /></span>}
-          <span className="grow"><b className="ell">{x.name}</b><small>{x.mime.startsWith('video/') ? 'คลิปตัวอย่าง' : x.mime.startsWith('audio/') ? 'เสียงตัวอย่าง' : x.mime.startsWith('image/') ? 'หน้าตัวอย่าง' : 'ฟอนต์สำหรับช่องลองพิมพ์'} · ทุกคนเปิดดูได้</small></span>
-          <button onClick={() => set(f.id, (old) => arr(old).filter((_, k) => k !== i))} aria-label={`ลบ ${x.name}`}><Icon name="trash" size={16} /></button>
+          <span className="grow"><b className="ell">{x.name}</b><small>{x.mime.startsWith('video/') ? 'คลิปตัวอย่าง' : x.mime.startsWith('audio/') ? 'เสียงตัวอย่าง' : x.mime.startsWith('image/') ? PV_LABEL[f.id] ?? 'ภาพตัวอย่าง' : 'ฟอนต์สำหรับช่องลองพิมพ์'} · ทุกคนเปิดดูได้</small></span>
+          <button onClick={() => {
+            const keep = (raw: string) => previewsOf([raw])[0]?.url !== x.url
+            const left = arr(v).filter(keep)
+            set(f.id, (old) => arr(old).filter(keep))
+            // real accounts: delete the public file now unless another listing/draft of mine still uses it
+            if (cloudOn()) void cleanupPreviews({ removed: [x.url], current: { ...spec, [f.id]: left }, draftLocalId: draftId }).catch((e) => console.warn('[lumi] preview cleanup', e))
+          }} aria-label={`ลบ ${x.name}`}><Icon name="trash" size={16} /></button>
         </div>
       ))}
       {items.length < max && <button className={`${s.drop} press`} disabled={busy} onClick={() => ref.current?.click()}><Icon name="upload" size={22} color="var(--p)" /><b>{busy ? 'กำลังอัปโหลด…' : 'เลือกไฟล์ตัวอย่าง'}</b><small>{f.hint}</small></button>}

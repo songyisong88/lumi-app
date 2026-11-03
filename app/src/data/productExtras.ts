@@ -27,7 +27,16 @@ export function optionsOf(p: Product): ProductOption[] {
         ? [{ id: 'both', label: 'ภาพ + พรอมต์', sub: 'ไฟล์ความละเอียดสูง และสูตรครบ', price: x, best: 'คุ้มสุด' }, { id: 'prompt', label: 'พรอมต์อย่างเดียว', sub: 'สูตรภาพ ไม่รวมไฟล์', price: r10(x * 0.4) }]
         : [{ id: 'personal', label: 'ใช้ส่วนตัว', sub: 'ไฟล์เต็ม ไม่มีลายน้ำ', price: x }, { id: 'commercial', label: 'เชิงพาณิชย์', sub: 'ใช้ขายของ โฆษณาได้', price: r10(x * 2.2), best: 'คุ้มสุด' }]
     case 'tpl': return [{ id: 'full', label: 'ชุดเต็ม', sub: /พิมพ์/.test(p.label ?? '') ? 'ไฟล์ PDF พร้อมพิมพ์ · พิมพ์ใช้เองได้ไม่จำกัดจำนวน · ดูตารางสิทธิ์สำหรับงานขาย' : /เว็บ/.test(p.label ?? '') ? 'ไฟล์เว็บ (HTML) + ไฟล์ Figma' : 'ลิงก์ Canva + ไฟล์ทุกแบบ', price: x }]
-    case 'sw': return [
+    case 'sw':
+      if (/เกม/.test(p.label ?? '')) return [
+        { id: 'per', label: 'เล่น / ใช้ส่วนตัว', sub: `ดาวน์โหลด + อัปเดตฟรี${supportShort(p)}`, price: x },
+        { id: 'src', label: 'พร้อมซอร์สโค้ด', sub: 'ไฟล์โปรเจกต์ แก้ต่อเองได้ ห้ามขายซ้ำ', price: r10(x * 2.5), best: 'คุ้มสุด' },
+        { id: 'com', label: 'เชิงพาณิชย์ / ทีม', sub: 'ใช้ในงานลูกค้า หรือทีมสูงสุด 5 คน', price: r10(x * 5) }]
+      if (/ปลั๊กอิน|ส่วนขยาย/.test(p.label ?? '')) return [
+        { id: 'one', label: '1 ร้าน / 1 บัญชี', sub: `ซื้อขาด${supportShort(p)}`, price: x },
+        { id: 'three', label: '3 ร้าน / 3 บัญชี', sub: 'สำหรับหลายร้าน หลายแบรนด์', price: r10(x * 2.3), best: 'คุ้มสุด' },
+        { id: 'agency', label: 'เอเจนซี · ไม่จำกัด', sub: 'ติดตั้งให้ลูกค้าได้ไม่จำกัดร้าน', price: r10(x * 5) }]
+      return [
       { id: 'one', label: p.label === 'เกม' ? 'ซอร์สโค้ด 1 โปรเจกต์' : '1 เครื่อง', sub: `ซื้อขาด${supportShort(p)}`, price: x },
       { id: 'three', label: p.label === 'เกม' ? 'สิทธิ์ทีม (3 คน)' : '3 เครื่อง', sub: 'สำหรับหลายสาขา / หลายคน', price: r10(x * 2.3), best: 'คุ้มสุด' }]
     case 'bot': return [{ id: 'setup', label: 'ติดตั้งให้ + ใช้ได้ไม่จำกัด', sub: 'ซื้อครั้งเดียว ไม่มีค่ารายเดือน', price: x, best: 'คุ้มสุด' }, { id: 'diy', label: 'ติดตั้งเอง (ไฟล์ + คู่มือ)', sub: 'ทำตามคลิปทีละขั้น', price: r10(x * 0.6) }]

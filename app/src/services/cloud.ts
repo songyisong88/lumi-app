@@ -11,6 +11,7 @@ import { ROOMS, setRoomCounts } from '../data/appSeed'
 import { REAL, BRAND, brandName } from '../config'
 import { postOptsFrom } from './social'
 import { getDb, update } from './db'
+import { orphanPreviews, ownSampleName, sampleRefs } from '../utils/previewCleanup'
 import { publicUrl, sb } from './supabase'
 import { getSession, registerSessionHooks, setProfile, type Profile } from './session'
 
@@ -486,6 +487,40 @@ export async function deleteServerDraft(localId: string) {
   if (!id) return
   await S().from('listing_drafts').delete().eq('id', id)
   const m = draftMap(); delete m[localId]; localStorage.setItem(MAP_KEY, JSON.stringify(m))
+}
+
+// ---------- preview cleanup: public samples (previews/<me>/samples/) that no listing uses any more
+const SWEEP_KEY = 'lumi_preview_sweep_at'
+const SWEEP_AGE_MS = 14 * 864e5
+/** Deletes my public preview files that no product, server draft, pending edit or draft on this device mentions.
+ *  `removed` = preview URLs the creator just took out: deleted at once when unused (a live listing or a pending
+ *  edit that still shows one keeps it). With `sweep`, older leftovers (14 days+) go too, at most once a day.
+ *  `current` is the open draft (its newest state, not yet saved), `draftLocalId` its id. Any failed read aborts. */
+/** Every own preview path a draft/spec uses (to clean up when the draft is deleted). */
+export const previewPathsOf = (spec: unknown) => [...sampleRefs([JSON.stringify(spec ?? {})], ME)].map((n) => `${ME}/samples/${n}`)
+export async function cleanupPreviews(opts: { removed?: string[]; current?: unknown; draftLocalId?: string; sweep?: boolean } = {}): Promise<string[]> {
+  if (!cloudOn()) return []
+  const removed = (opts.removed ?? []).map((u) => ownSampleName(toPath(u), ME)).filter((x): x is string => !!x)
+  const sweep = !!opts.sweep && Date.now() - Number(localStorage.getItem(SWEEP_KEY) ?? 0) > 864e5
+  if (!removed.length && !sweep) return []
+  const c = S(), skipDraft = opts.draftLocalId ? draftMap()[opts.draftLocalId] : undefined
+  const [prods, drafts, revs] = await Promise.all([
+    c.from('products').select('spec').eq('creator_id', ME),
+    c.from('listing_drafts').select('id, spec').eq('owner_id', ME),
+    c.from('listing_revisions').select('payload').eq('author_id', ME).in('status', ['pending_review', 'needs_changes']),
+  ])
+  const texts = [
+    ...(must(prods, 'preview refs') as Row[]).map((r) => JSON.stringify(r.spec ?? {})),
+    ...(must(drafts, 'preview refs') as Row[]).filter((r) => r.id !== skipDraft).map((r) => JSON.stringify(r.spec ?? {})),
+    ...(must(revs, 'preview refs') as Row[]).map((r) => JSON.stringify(r.payload ?? {})),
+    ...getDb().drafts.filter((d) => d.id !== opts.draftLocalId).map((d) => JSON.stringify(d.spec ?? {})),
+    JSON.stringify(opts.current ?? {}),
+  ]
+  const listed = must(await c.storage.from('previews').list(`${ME}/samples`, { limit: 1000 }), 'preview list') as { name: string; created_at?: string | null }[]
+  const dead = orphanPreviews(listed ?? [], sampleRefs(texts, ME), Date.now(), { removed, minAgeMs: sweep ? SWEEP_AGE_MS : Number.POSITIVE_INFINITY })
+  if (dead.length) must(await c.storage.from('previews').remove(dead.map((n) => `${ME}/samples/${n}`)), 'preview delete')
+  if (sweep) localStorage.setItem(SWEEP_KEY, String(Date.now()))
+  return dead
 }
 
 // ---------- commerce

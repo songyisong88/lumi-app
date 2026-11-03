@@ -1,4 +1,6 @@
 import { FEATURES, HIRE_ON, BRAND } from '../config'
+import { SAMPLE_DATA_FILES, SAMPLE_SKILL_MD } from './sampleFiles'
+import { makeSample } from '../utils/sampleFile'
 /**
  * Listing spec: what each product type MUST tell the buyer.
  * One source of truth for (1) the sell wizard fields, (2) the pre-publish auto-check,
@@ -122,6 +124,11 @@ const withPrompt = (s: Spec) => on(s.sellPrompt) || promptOnly(s)
 const PREVIEW = (label: string, hint: string, accept: string, maxMB: number, maxItems: number, extra: Partial<Field> = {}): Field =>
   ({ id: 'previews', label, kind: 'previews', step: 'files', hint, accept, maxMB, maxItems, ...extra })
 const SAMPLE_PAGES = (when?: (s: Spec) => boolean) => PREVIEW('หน้าตัวอย่าง (ไม่บังคับ)', 'ภาพแคปหน้าจริง 1–6 หน้า JPG PNG · ผู้ซื้อเปิดดูได้ก่อนซื้อ · อย่าใส่หน้าที่เป็นเนื้อหาหลักทั้งหมด', 'image/jpeg,image/png,image/webp', 10, 6, { id: 'samplePages', when })
+const IMG_ACCEPT = 'image/jpeg,image/png,image/webp'
+/** Sticker / icon / preset / brush sets show each piece the creator uploaded (presets: before, after, before, after …). */
+export const ITEM_SUBS = ['สติกเกอร์ PNG', 'ไอคอน', 'พรีเซ็ต / LUT', 'แปรง']
+export const isPreset = (s: Spec) => str(s.sub) === 'พรีเซ็ต / LUT'
+const itemSub = (s: Spec) => ITEM_SUBS.includes(str(s.sub))
 const FILES = (label: string, hint: string, req: boolean | ((s: Spec) => boolean) = true): Field => ({ id: 'files', label, kind: 'files', step: 'files', hint, required: req })
 
 export const SPECS: Record<SellType, TypeSpec> = {
@@ -168,6 +175,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
       { ...FILES('ไฟล์ติดตั้ง', `.exe .dmg .apk .zip · ${BRAND} สแกนไวรัสเบื้องต้นทุกไฟล์ ไฟล์ไม่ผ่านลงขายไม่ได้`), when: (s) => str(s.sub) !== 'เว็บแอป' },
       { id: 'webLink', label: 'ลิงก์เข้าใช้งานเว็บแอป', kind: 'text', step: 'files', when: (s) => str(s.sub) === 'เว็บแอป', required: (s) => str(s.sub) === 'เว็บแอป', placeholder: 'https://app.ร้านคุณ.com', pattern: /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i, patternNote: 'ต้องเป็นลิงก์เว็บ เช่น https://app.example.com', hint: 'เว็บแอปไม่ต้องอัปไฟล์ติดตั้ง · ส่งลิงก์ให้ผู้ซื้อหลังจ่ายเท่านั้น' },
       { id: 'storeLink', label: 'ลิงก์ร้านค้าแอป (App Store / Google Play / Chrome Web Store / TestFlight)', kind: 'text', step: 'files', when: (s) => arr(s.platforms).some((x) => ['iOS', 'Android', 'Chrome'].includes(x)), required: (s) => arr(s.platforms).includes('iOS'), placeholder: 'เช่น testflight.apple.com/join/…', pattern: /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i, patternNote: 'ต้องเป็นลิงก์ เช่น apps.apple.com/… หรือ testflight.apple.com/join/…', hint: 'iOS ติดตั้งจากไฟล์ไม่ได้ ต้องมีลิงก์ App Store หรือ TestFlight' },
+      PREVIEW('ภาพหน้าจอ', 'แคปหน้าจอจริง 1–6 ภาพ JPG PNG WEBP · ผู้ซื้อเห็นก่อนซื้อ · อย่าให้เห็นคีย์ รหัสผ่าน หรือข้อมูลลูกค้า', IMG_ACCEPT, 10, 6, { id: 'shots', required: true }),
       { id: 'platforms', label: 'ใช้กับเครื่องอะไรได้', kind: 'multi', step: 'files', options: ['Windows', 'macOS', 'Linux', 'เว็บ', 'Android', 'iOS'], required: true },
       { id: 'minSpec', label: 'สเปกขั้นต่ำ', kind: 'text', step: 'files', required: true, placeholder: 'เช่น Windows 10 · RAM 4 GB · พื้นที่ 200 MB' },
       { id: 'version', label: 'เวอร์ชัน', kind: 'text', step: 'files', required: true, placeholder: 'เช่น v1.3' },
@@ -194,6 +202,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
       { id: 'platform', label: 'ใช้กับแพลตฟอร์มไหน', kind: 'multi', step: 'files', options: ['LINE OA', 'Facebook Messenger', 'Instagram', 'เว็บไซต์', 'TikTok', 'Telegram', 'Google Sheets', 'n8n / Make'], required: true },
       { id: 'buyerNeeds', label: 'ผู้ซื้อต้องมีบัญชี / API key อะไร', kind: 'list', step: 'files', required: true, placeholder: 'เช่น บัญชี LINE OA (ฟรี) · Channel access token' },
       { id: 'features', label: 'บอททำอะไรได้บ้าง', kind: 'list', step: 'details', required: true },
+      { id: 'demo', label: 'ตัวอย่างบทสนทนา (ลูกค้า / บอท สลับกัน)', kind: 'list', step: 'details', required: true, min: 2, placeholder: 'บรรทัดคี่ = ลูกค้าพิมพ์ · บรรทัดคู่ = บอทตอบ', hint: 'โชว์บนหน้าผลงานเป็นแชตตัวอย่าง · ใส่คำตอบจริงของบอท' },
       { id: 'setupMode', label: 'การติดตั้ง', kind: 'chips', step: 'details', options: ['ติดตั้งให้ฟรี 1 ครั้ง', 'ผู้ซื้อติดตั้งเองตามคู่มือ', 'มีค่าติดตั้งแยก'], required: true },
       { id: 'setup', label: 'ขั้นตอนติดตั้ง', kind: 'list', step: 'details', required: true },
       { id: 'limits', label: 'ข้อจำกัด / โควตา', kind: 'text', step: 'details', required: true, placeholder: 'เช่น ตอบได้ 1,000 ข้อความ/เดือน ตามโควตา LINE ฟรี' },
@@ -229,6 +238,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
       { id: 'sub', label: 'เป็นแบบไหน', kind: 'chips', step: 'files', options: ['ฟอนต์', 'สติกเกอร์ PNG', 'ไอคอน', 'พรีเซ็ต / LUT', 'แปรง'], required: true, hint: 'ใช้จัดหมวดย่อยบนหน้าค้นหา: สติกเกอร์ · ฟอนต์ พรีเซ็ต ไอคอน' },
       FILES('ไฟล์ที่ผู้ซื้อได้รับ', 'OTF TTF PNG SVG CUBE XMP ABR'),
       PREVIEW('ไฟล์ฟอนต์สำหรับช่องลองพิมพ์', 'OTF TTF WOFF WOFF2 ไม่เกิน 5 MB · ไฟล์นี้ทุกคนโหลดได้ ใช้ฉบับตัวอย่างหรือตัดเหลือเฉพาะตัวอักษรที่ใช้โชว์ได้', '.otf,.ttf,.woff,.woff2', 5, 1, { when: (s) => str(s.sub) === 'ฟอนต์', required: (s) => str(s.sub) === 'ฟอนต์' }),
+      PREVIEW('ภาพตัวอย่างทีละชิ้น', 'ภาพจริงของแต่ละชิ้น JPG PNG WEBP 1–12 ภาพ · พรีเซ็ต: ใส่เป็นคู่ ภาพก่อน แล้วภาพหลังใส่พรีเซ็ต · ทุกคนเปิดดูได้ อย่าใส่ไฟล์เต็มที่ขาย', IMG_ACCEPT, 5, 12, { id: 'itemSamples', when: itemSub, required: (s) => itemSub(s) && str(s.sub) !== 'แปรง' }),
       { id: 'formats', label: 'นามสกุลไฟล์', kind: 'multi', step: 'files', options: ['OTF', 'TTF', 'WOFF2', 'PNG', 'SVG', 'LUT (.cube)', 'XMP', 'ABR'], required: true },
       { id: 'count', label: 'จำนวนในชุด', kind: 'text', step: 'files', required: true, placeholder: 'เช่น 3 น้ำหนัก · 24 ตัว · 12 พรีเซ็ต' },
       { id: 'languages', label: 'รองรับภาษา / ตัวอักษร', kind: 'multi', step: 'details', options: ['ไทย', 'อังกฤษ', 'ตัวเลข', 'สัญลักษณ์', 'วรรณยุกต์ครบ'], when: (s) => str(s.sub) === 'ฟอนต์', required: (s) => str(s.sub) === 'ฟอนต์' },
@@ -262,6 +272,7 @@ export const SPECS: Record<SellType, TypeSpec> = {
 SPECS.game.fields = SPECS.sw.fields.map((f) =>
   f.id === 'sub' ? { ...f, options: ['เกม', 'ซอร์สโค้ดเกม', 'ปลั๊กอิน', 'ส่วนขยาย Chrome', 'ม็อด'], hint: 'ใช้จัดหมวดย่อยบนหน้าค้นหา: เกม · ปลั๊กอิน · ส่วนขยาย Chrome' }
     : f.id === 'platforms' ? { ...f, options: ['Windows', 'macOS', 'เว็บ', 'Android', 'iOS', 'WordPress', 'Shopify', 'Chrome', 'Unity', 'Godot'] }
+      : f.id === 'shots' ? { ...f, label: 'ภาพหน้าจอเกม / ตอนใช้งาน', hint: 'แคปหน้าจอจริง 1–6 ภาพ เช่น ฉากในเกม หน้าตั้งค่าปลั๊กอิน · ผู้ซื้อเห็นก่อนซื้อ · อย่าให้เห็นคีย์หรือข้อมูลลูกค้า' }
       : f.id === 'licAllowed' ? { ...f, options: licRows('game') } : f)
 SPECS.game.defaults = { ...SPECS.sw.defaults, sub: 'เกม', keyType: 'ไม่ต้องใช้คีย์', ...licDefaults('game') }
 
@@ -291,6 +302,7 @@ SPECS.skill = {
   fields: [
     { id: 'platforms', label: 'ใช้กับ AI agent ตัวไหน', kind: 'multi', step: 'files', options: ['Claude (Agent Skills)', 'ChatGPT (GPTs / Projects)', 'Cursor (Rules / Skills)', 'Gemini Gems', 'Grok', 'OpenAI Agents SDK', 'n8n / LangChain agent'], required: true },
     FILES('ไฟล์สกิล', 'เช่น ZIP ที่มี SKILL.md สคริปต์ เอกสารอ้างอิง · สแกนไวรัสเบื้องต้นทุกไฟล์'),
+    { id: 'skillMd', label: 'ตัวอย่าง SKILL.md (ผู้ซื้ออ่านได้ก่อนซื้อ)', kind: 'textarea', step: 'files', required: true, placeholder: '---\nname: …\ndescription: …\n---\n# วิธีทำงาน\n…', hint: 'อัป SKILL.md หรือ ZIP ด้านบนแล้วระบบดึงส่วนต้นมาให้ (สูงสุด 4,000 ตัวอักษร) · แก้หรือตัดส่วนที่เป็นความลับออกได้' },
     { id: 'contents', label: 'ในชุดมีไฟล์อะไรบ้าง', kind: 'list', step: 'files', required: true, placeholder: 'เช่น SKILL.md — คำสั่งหลักของสกิล' },
     { id: 'version', label: 'เวอร์ชัน', kind: 'text', step: 'files', required: true, placeholder: 'เช่น v1.0' },
     { id: 'changelog', label: 'ประวัติอัปเดต', kind: 'list', step: 'files' },
@@ -306,7 +318,7 @@ SPECS.data = {
   key: 'data', name: 'ชุดข้อมูล', sub: 'CSV JSON สำหรับแอป/AI', icon: 'grid', color: '#1D4ED8', bg: '#E8EFFF', layout: 'data',
   fields: [
     FILES('ไฟล์ชุดข้อมูล', 'CSV JSON Parquet ฯลฯ · สแกนไวรัสเบื้องต้นทุกไฟล์'),
-    { ...FILES('ไฟล์ตัวอย่างให้โหลดฟรี (ไม่บังคับ)', 'ไม่เกิน 100 แถว · ผู้ซื้อโหลดดูได้ก่อนจ่าย ช่วยให้ขายง่ายขึ้น', false), id: 'sample' },
+    { ...FILES('ไฟล์ตัวอย่างให้โหลดฟรี (ไม่บังคับ)', 'CSV TSV JSON JSONL · ไม่เกิน 100 แถว · หน้าผลงานโชว์แถวจากไฟล์นี้ และผู้ซื้อโหลดไปดูได้ก่อนจ่าย', false), id: 'sample' },
     { id: 'formats', label: 'รูปแบบไฟล์', kind: 'multi', step: 'files', options: ['CSV', 'JSON', 'JSONL', 'Parquet', 'XLSX', 'SQL'], required: true },
     { id: 'size', label: 'ขนาด (แถว · คอลัมน์ · MB)', kind: 'text', step: 'files', required: true, placeholder: 'เช่น 5,000 แถว · 12 คอลัมน์ · 3.2 MB' },
     { id: 'columns', label: 'คอลัมน์ / โครงสร้างข้อมูล', kind: 'list', step: 'details', required: true, min: 2, placeholder: 'เช่น name — ชื่อเมนู (ข้อความ)' },
@@ -353,7 +365,7 @@ export function uploadRule(t: SellType | null, s?: Spec, fieldId = 'files') {
   return FEATURES.launch && r.maxMB > LAUNCH_MAX_MB ? { ...r, maxMB: LAUNCH_MAX_MB } : r
 }
 function uploadRuleRaw(t: SellType | null, s: Spec | undefined, fieldId: string) {
-  if (t === 'data' && fieldId === 'sample') return { exts: ['csv', 'json', 'jsonl', 'xlsx', 'txt'], maxMB: 10 }
+  if (t === 'data' && fieldId === 'sample') return { exts: ['csv', 'tsv', 'json', 'jsonl', 'txt'], maxMB: 10 }
   if (t === 'course') return FEATURES.launch || str(s?.sub) === 'อีบุ๊ก' ? { exts: ['pdf', 'epub', 'zip'], maxMB: 200 } : { exts: [...VIDEO_EXTS, 'pdf', 'zip'], maxMB: 4096 }
   return (t && UP[t]) || { exts: [] as string[], maxMB: 500 }
 }
@@ -459,6 +471,9 @@ export function layoutOf(p: Product): DetailKind {
   return SPECS[sellTypeOf(p)].layout
 }
 
+/** Bundled samples (public/samples): screenshots per software/game and one image per sticker. */
+const SAMPLE_SHOTS: Record<string, number> = { n05: 2, n06: 2, n07: 2, n08: 2, n09: 1, n11: 2, p10: 1 }
+const SAMPLE_ITEMS = ['p02', 'p06', 'p23']
 /** Plausible complete spec for the built-in SAMPLE works (they predate the wizard). */
 /** English subject for sample prompts, from the image file name (sample prompts are English-only). */
 const engSubject = (p: Product) => `detailed illustration of ${(p.image?.src ?? 'artwork').replace(/^.*\//, '').replace(/\.\w+$/, '').replace(/^[a-z]_/, '').replace(/[_-]+/g, ' ')}`
@@ -477,6 +492,7 @@ export function specOf(p: Product): Spec {
     d.fonts = print ? [] : ['Prompt — fonts.google.com/specimen/Prompt', 'Mali — fonts.google.com/specimen/Mali']
   }
   if (t === 'sw' || t === 'game') Object.assign(d, { sub: /แอป/.test(l) ? 'แอปมือถือ' : /เกม/.test(l) ? 'ซอร์สโค้ดเกม' : /ปลั๊กอิน/.test(l) ? 'ปลั๊กอิน' : /ส่วนขยาย/.test(l) ? 'ส่วนขยาย Chrome' : 'โปรแกรม', platforms: p.platforms ?? ['Windows'], version: 'v1.3', changelog: ['v1.3 · เร็วขึ้น 2 เท่า แก้บั๊กภาษาไทย', 'v1.2 · เพิ่มรายงานรายวัน', 'v1.0 · เปิดตัว'], minSpec: /iOS|Android/.test((p.platforms ?? []).join()) ? 'iOS 15 / Android 10 ขึ้นไป' : 'RAM 4 GB · พื้นที่ว่าง 200 MB', files: [JSON.stringify({ name: `${slug}-v1.3.zip`, size: '48 MB', scan: 'ok' })] })
+  if ((t === 'sw' || t === 'game') && SAMPLE_SHOTS[p.id]) d.shots = Array.from({ length: SAMPLE_SHOTS[p.id] }, (_, i) => pv(`ภาพหน้าจอ ${i + 1}.webp`, `samples/${p.id}-shot${i + 1}.webp`, 'image/webp'))
   if (t === 'game' && /เกม/.test(l)) Object.assign(d, { platforms: ['เว็บ', 'Android'], deps: 'Godot 4.2 (ฟรี) ถ้าจะแก้ซอร์ส', install: ['แตกไฟล์ ZIP', 'เปิดโปรเจกต์ด้วย Godot 4.2', 'กด Run เพื่อเล่น หรือ Export เป็น APK'] })
   if (t === 'sw' && p.kind === 'tool' && !/โปรแกรม|แอป/.test(l)) Object.assign(d, { sub: 'เว็บแอป', platforms: ['เว็บ'], keyType: 'คีย์ต่อบัญชี', minSpec: 'เบราว์เซอร์ Chrome / Safari รุ่นล่าสุด', install: ['ไม่ต้องติดตั้ง เปิดลิงก์ในคลังของที่ซื้อ', 'ล็อกอินด้วยอีเมลที่ใช้ซื้อ'], deps: `บัญชี ${(p.platforms ?? []).join(' / ')}` })
   if (t === 'bot') {
@@ -485,7 +501,7 @@ export function specOf(p: Product): Spec {
       : /แอดมิน/.test(p.title) ? ['ลูกค้าถาม: ส่งต่างจังหวัดกี่วันคะ', 'ร่างคำตอบ: ส่งขนส่งเอกชน 1–2 วันทำการค่ะ สั่งก่อนบ่าย 2 ส่งวันนี้เลย 🙏']
       : /สต็อก/.test(p.title) ? ['สต็อก: ชาไทยผง เหลือ 3 ถุง', '⚠️ ของใกล้หมด ชาไทยผงเหลือ 3 ถุง (ต่ำกว่า 5) · แจ้งในกลุ่ม LINE ร้านแล้ว']
       : /ออเดอร์/.test(p.title) ? ['ขอสั่งชาไทย 2 แก้ว ส่งบ้านค่ะ', 'บันทึกออเดอร์ #1024 ลง Google Sheets แล้ว ✓ แจ้งร้านใน LINE แล้ว']
-      : []
+      : ['ช่วยอะไรได้บ้าง', `${p.use} · พิมพ์งานของคุณมาได้เลย เดี๋ยวจัดการให้`]
     const line = (p.platforms ?? ['LINE OA']).some((x) => /LINE/.test(x))
     Object.assign(d, { demo, trialLink: line ? 'line.me/R/ti/p/@lumi-demo' : 'chatgpt.com/g/lumi-demo', sub: /ผู้ช่วย/.test(l) ? 'ผู้ช่วย AI' : /อัตโนมัติ/.test(l) ? 'ระบบอัตโนมัติ' : 'บอทแชต' })
   }
@@ -499,6 +515,7 @@ export function specOf(p: Product): Spec {
     Object.assign(d, sticker ? { sub: 'สติกเกอร์ PNG', formats: ['PNG'], count: /(\d+) (ตัว|อารมณ์)/.exec(p.title)?.[0] ?? '8 ตัว', compat: 'LINE (ส่งเป็นรูป) · LINE Creators Market', install: ['ดาวน์โหลดไฟล์ PNG พื้นใสจากคลังของที่ซื้อ', 'บันทึกลงอัลบั้มมือถือ', 'ส่งในแชตเป็นรูป หรืออัปขึ้น LINE Creators Market'], files: [JSON.stringify({ name: `${slug}-stickers.zip`, size: '3.2 MB', scan: 'ok' })] }
       : { count: '3 น้ำหนัก (ปกติ หนา บาง)', previews: [pv('ตัวอย่างฟอนต์.woff2', 'samples/sriracha.woff2', 'font/woff2')], files: [JSON.stringify({ name: `${slug}-Regular.otf`, size: '420 KB', scan: 'ok' }), JSON.stringify({ name: `${slug}-Bold.otf`, size: '436 KB', scan: 'ok' })] })
   }
+  if (t === 'font' && SAMPLE_ITEMS.includes(p.id)) d.itemSamples = Array.from({ length: 6 }, (_, i) => pv(`ชิ้นที่ ${i + 1}.webp`, `samples/${p.id}-item${i + 1}.webp`, 'image/webp'))
   if (t === 'media') {
     const music = /เพลง/.test(l), tplv = /เทมเพลต/.test(l)
     Object.assign(d, music ? { sub: 'เพลงต้นฉบับ', count: '10 เพลง', duration: 'รวม 32 นาที (เพลงละ 2–4 นาที)', formats: ['WAV', 'MP3'], quality: 'WAV 48kHz 24-bit', aiTool: 'Suno', musicLic: 'ผู้ขายรับรองว่าใช้ในคลิปโซเชียลได้', files: [JSON.stringify({ name: 'lukthung-chill-10.zip', size: '410 MB', scan: 'ok' })], howUse: ['ดาวน์โหลด ZIP จากคลังของที่ซื้อ แล้วแตกไฟล์', 'ลากเพลงเข้า CapCut / Premiere เป็นแทร็กเสียง', 'ใส่เครดิต “Music by Ton Sheets” ในคำบรรยาย (ไม่บังคับ)'] }
@@ -515,6 +532,12 @@ export function specOf(p: Product): Spec {
     ? { formats: ['CSV', 'JSON'], size: '5,000 แถว · 12 คอลัมน์ · 3.2 MB', columns: ['name — ชื่อเมนู (ข้อความ)', 'name_en — ชื่ออังกฤษ', 'category — หมวด เช่น ต้ม ผัด แกง', 'kcal — แคลอรี่โดยประมาณ (ตัวเลข)', 'spicy — ระดับเผ็ด 0–3', 'price_avg — ราคาเฉลี่ย (บาท)'], source: 'รวบรวมเองจากเมนูร้านที่ได้รับอนุญาต 120 ร้าน และสูตรที่เผยแพร่สาธารณะ ระหว่าง ม.ค.–ก.ย. 2569', useCases: ['ทำแอปสั่งอาหาร / แนะนำเมนู', 'เทรนหรือทดสอบโมเดลภาษาไทย', 'วิเคราะห์ราคาอาหาร'], updates: 'อัปเดตรายไตรมาส', files: [JSON.stringify({ name: 'thai-menu-5000.csv', size: '3.2 MB', scan: 'ok' }), JSON.stringify({ name: 'thai-menu-5000.json', size: '4.1 MB', scan: 'ok' })] }
     : { formats: ['JSONL', 'CSV'], size: '12,000 แถว · 4 คอลัมน์ · 2.6 MB', columns: ['text — ข้อความรีวิว (ตัดชื่อคนออกแล้ว)', 'label — บวก / กลาง / ลบ', 'category — หมวดสินค้า', 'stars — คะแนน 1–5'], source: `ผู้ขายบน ${BRAND} ยินยอมให้ใช้รีวิวร้านตัวเอง ตัดข้อมูลส่วนตัวด้วยสคริปต์และตรวจด้วยคน`, useCases: ['วิเคราะห์ความรู้สึก (sentiment)', 'ทดสอบบอทตอบรีวิว'], files: [JSON.stringify({ name: 'th-reviews-12k.jsonl', size: '2.6 MB', scan: 'ok' })] })
   if (t === 'data') Object.assign(d, { rights: true, noPII: true })
+  if (t === 'data' && SAMPLE_DATA_FILES[p.id]) {
+    const f = SAMPLE_DATA_FILES[p.id]
+    d.sample = [JSON.stringify({ name: f.name, size: `${Math.ceil(new TextEncoder().encode(f.text).length / 1024)} KB`, scan: 'ok' })]
+    d.sampleData = JSON.stringify(makeSample(f.name, f.text))
+  }
+  if (t === 'skill' && SAMPLE_SKILL_MD[p.id]) d.skillMd = SAMPLE_SKILL_MD[p.id]
   if (t === 'hire') Object.assign(d, { deliverables: [p.title.replace(/^จ้าง/, ''), 'ไฟล์ PNG พื้นใส ความละเอียดสูง', 'ไฟล์ต้นฉบับสำหรับแก้ต่อ'], revisions: `${p.revisions ?? 3} ครั้ง`, timeline: (p.days ?? 5) <= 3 ? '1–3 วัน' : '3–7 วัน' })
   return d
 }

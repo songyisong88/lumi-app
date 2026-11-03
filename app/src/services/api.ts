@@ -16,7 +16,7 @@ import { getDb, resetDb, uid, update } from './db'
 import { FEATURES, BRAND } from '../config'
 import { assetsFor } from '../data/library'
 import * as K from './cloudApi'
-import { CloudError, cloudOn, deleteServerDraft, publishListing, unpublishListing } from './cloud'
+import { CloudError, cleanupPreviews, cloudOn, deleteServerDraft, previewPathsOf, publishListing, unpublishListing } from './cloud'
 import { getSession } from './session'
 
 export interface FollowService { toggle(creatorId: string): Promise<boolean> }
@@ -685,12 +685,20 @@ export const orders: OrderService & { answerRefund(refundId: string, refund: boo
 }
 export const sell: SellService = {
   saveDraft: (d) => L.sell.saveDraft(d),
-  deleteDraft: async (id) => { await L.sell.deleteDraft(id); if (cloudOn()) await deleteServerDraft(id) },
+  deleteDraft: async (id) => {
+    const spec = getDb().drafts.find((x) => x.id === id)?.spec
+    await L.sell.deleteDraft(id)
+    if (!cloudOn()) return
+    await deleteServerDraft(id)
+    // previews only this draft used are deleted now; anything older and unused goes in the daily sweep
+    void cleanupPreviews({ removed: previewPathsOf(spec), draftLocalId: id, sweep: true }).catch((e) => console.warn('[lumi] preview cleanup', e))
+  },
   publish: async (dr, share, notify) => {
     if (!cloudOn()) return L.sell.publish(dr, share, notify)
     if (checkListing(dr).some((c) => !c.ok)) throw new Error('listing incomplete')
     const pid = await publishListing(dr, share, notify, false)
     update((d) => { d.drafts = d.drafts.filter((x) => x.id !== dr.id) })
+    void cleanupPreviews({ sweep: true }).catch((e) => console.warn('[lumi] preview cleanup', e))
     return pid
   },
   unpublish: (id) => (live(id) ? unpublishListing(id) : L.sell.unpublish(id)),

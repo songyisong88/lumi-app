@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { copyText, Img } from '../../components/ui'
 import { toast } from '../../services/toast'
-import { arr, filesOf, licRows, on, previewSrc, previewsOf, promptOnly, str, type PreviewItem, type Spec } from '../../data/listingSpec'
+import { arr, filesOf, isPreset, licRows, on, previewSrc, previewsOf, promptOnly, str, type PreviewItem, type Spec } from '../../data/listingSpec'
+import { parseSample, sampleMime, sampleOf } from '../../utils/sampleFile'
 import { galleryOf } from '../../data/productExtras'
 import { baht, imgUrl } from '../../data/sampleData'
 import type { DetailKind, Product, ProductOption } from '../../data/types'
@@ -114,6 +115,7 @@ function TypeModules({ p, L, spec, opts, optId, setOptId, onTrial, onLesson, unl
   const pal = usePalette(L === 'img' && g[0] ? imgUrl(g[0]) : '')
   const pv = previewsOf(spec.previews)
   const pages = previewsOf(spec.samplePages)
+  const [mdOpen, setMdOpen] = useState(false)
   const font = usePreviewFont(L === 'font' ? pv.find((x) => /font|woff|otf|ttf/i.test(x.mime + x.name)) : undefined, p.id)
   switch (L) {
     case 'img':
@@ -145,9 +147,14 @@ function TypeModules({ p, L, spec, opts, optId, setOptId, onTrial, onLesson, unl
           {arr(spec.apps).includes('Canva') && <div className={s.scan} style={{ background: '#EAF1FF', color: '#1E40AF' }}><Icon name="link" size={20} color="#2563EB" /><div><b>ได้ลิงก์ Canva ทันทีหลังซื้อ</b>{on(spec.noPro) ? 'ผู้ขายรับรองว่าไม่มีองค์ประกอบ Pro ใช้ Canva ฟรีได้' : 'บางองค์ประกอบอาจต้องใช้ Canva Pro'}</div></div>}
         </>
       )
-    case 'sw':
+    case 'sw': {
+      const shots = previewsOf(spec.shots)
       return (
         <>
+          {shots.length > 0 && <>
+            <div className={s.st}>ภาพหน้าจอ</div>
+            <div className={`hscroll ${s.canva}`} data-shots={shots.length}>{shots.map((x, i) => <img key={i} src={previewSrc(x.url)} alt={`ภาพหน้าจอ ${i + 1}`} className={s.shotI} loading="lazy" />)}</div>
+          </>}
           <div className={s.st}>ใช้กับเครื่องของคุณได้ไหม</div>
           <div className={s.cmpt}>
             {arr(spec.platforms).map((x) => <div key={x}><Icon name={/iOS|Android/.test(x) ? 'phone' : /เว็บ|Chrome/.test(x) ? 'globe' : 'monitor'} size={18} color="#4F46E5" />{x}<span className={s.yes}>รองรับ</span></div>)}
@@ -157,6 +164,7 @@ function TypeModules({ p, L, spec, opts, optId, setOptId, onTrial, onLesson, unl
           <div className={s.box}>{arr(spec.changelog).map((c) => <div key={c} className={s.ok}><Icon name="rocket" size={15} color="var(--p)" />{c}</div>)}</div>
         </>
       )
+    }
     case 'bot':
       return (
         <>
@@ -164,7 +172,8 @@ function TypeModules({ p, L, spec, opts, optId, setOptId, onTrial, onLesson, unl
             <div className={s.st}>ลองก่อน ไม่ต้องจ่าย</div>
             <button className={`${s.trial} press`} onClick={onTrial}><span className={s.q}><Icon name="qr" size={60} stroke={1.6} /></span><span><b>ทดลองฟรี {str(spec.trialDays)}</b><small>{/line\.me/.test(str(spec.trialLink)) ? 'สแกน QR เพื่อลองคุยกับบอทได้เลย' : 'เปิดลิงก์แล้วลองใช้ได้เลย'}</small><span className={s.g}>เปิดลิงก์ทดลอง</span></span></button>
           </>}
-          {arr(spec.demo).length > 0 && <div className={s.demo}>{arr(spec.demo).map((x, i) => <div key={i} className={i % 2 ? s.da : s.dq}>{x}</div>)}</div>}
+          {arr(spec.demo).length > 0 && <div className={s.st}>ตัวอย่างบทสนทนา</div>}
+          {arr(spec.demo).length > 0 && <div className={s.demo} data-bot-demo={arr(spec.demo).length}>{arr(spec.demo).map((x, i) => <div key={i} className={i % 2 ? s.da : s.dq}>{x}</div>)}</div>}
           <div className={s.st}>ทำอะไรได้บ้าง</div>
           {arr(spec.features).map((f) => <Ok key={f}>{f}</Ok>)}
         </>
@@ -194,15 +203,12 @@ function TypeModules({ p, L, spec, opts, optId, setOptId, onTrial, onLesson, unl
     case 'font':
       return (
         <>
-          {!/สติกเกอร์|ไอคอน/.test(str(spec.sub)) ? <>
+          {!str(spec.sub) || str(spec.sub) === 'ฟอนต์' ? <>
             <div className={s.st}>ลองพิมพ์ดู</div>
             <div className={s.spc}><div className={s.spcBig} data-font-preview={font.fam ? 'loaded' : 'app'} style={font.fam ? { fontFamily: `"${font.fam}", Prompt, sans-serif` } : undefined}>{fontText || 'ร้านขนมบ้านพิมพ์ อร่อยทุกคำ ✿'}</div>
               <input className={s.spcIn} value={fontText} onChange={(e) => setFontText(e.target.value)} placeholder="พิมพ์ชื่อร้านคุณเพื่อลองฟอนต์…" /></div>
             <p className={s.pvNote}>{font.fam ? 'ตัวอย่างนี้ใช้ไฟล์ฟอนต์ที่ครีเอเตอร์อัปไว้' : font.err ? 'โหลดไฟล์ฟอนต์ตัวอย่างไม่ได้ · ตอนนี้แสดงด้วยฟอนต์ของแอป' : pv.length ? 'กำลังโหลดฟอนต์ตัวอย่าง…' : 'ครีเอเตอร์ยังไม่ได้อัปไฟล์ตัวอย่าง · ตอนนี้แสดงด้วยฟอนต์ของแอป'}</p>
-          </> : <>
-            <div className={s.st}>ในชุดนี้มี {str(spec.count)}</div>
-            <div className={s.port}>{['0 0', '50% 0', '100% 0', '0 100%'].map((x) => <div key={x} style={{ backgroundImage: `url(${imgUrl(g[0])})`, backgroundSize: '300%', backgroundPosition: x }} />)}</div>
-          </>}
+          </> : <ItemSamples spec={spec} cover={g[0] ? imgUrl(g[0]) : ''} />}
           {opts.length > 1 && <>
             <div className={s.st}>ตารางสิทธิ์ตามแบบที่ซื้อ</div>
             <table className={s.lic}><thead><tr><th>ใช้ทำ</th>{opts.map((o) => <th key={o.id}>{o.label}<br />{baht(o.price)}</th>)}</tr></thead>
@@ -257,40 +263,64 @@ function TypeModules({ p, L, spec, opts, optId, setOptId, onTrial, onLesson, unl
           <div className={s.cmpt}>{arr(spec.platforms).map((x) => <div key={x}><Icon name="bulb" size={18} color="#0F766E" />{x}<span className={s.yes}>รองรับ</span></div>)}</div>
           <div className={s.st}>ไฟล์ในชุด</div>
           <div className={s.tree}>{arr(spec.contents).map((c) => { const [f, d] = c.split(' — '); return <div key={c}><Icon name="file" size={15} color="#0F766E" /><code>{f}</code><span>{d}</span></div> })}</div>
+          {str(spec.skillMd) && <>
+            <div className={s.st}>ตัวอย่าง SKILL.md</div>
+            <div className={`${s.md} ${mdOpen ? s.mdOpen : ''}`} data-skill-md><pre>{str(spec.skillMd)}</pre>
+              {!mdOpen && str(spec.skillMd).split('\n').length > 14 && <button className={s.mdMore} onClick={() => setMdOpen(true)}>อ่านต่อ</button>}</div>
+            <p className={s.pvNote}>ส่วนต้นของไฟล์ที่ครีเอเตอร์เปิดให้อ่าน · ไฟล์เต็มและสคริปต์ได้หลังซื้อ</p>
+          </>}
           <div className={s.st}>ทำให้ agent ทำอะไรได้</div>
           {arr(spec.features).map((f) => <Ok key={f}>{f}</Ok>)}
         </>
       )
     case 'data': {
       const cols = arr(spec.columns).map((c) => c.split(' — '))
+      const smp = sampleOf(spec.sampleData)
+      let tbl: ReturnType<typeof parseSample> = null
+      try { tbl = smp ? parseSample(smp.name, smp.text) : null } catch { tbl = null }
+      const show = tbl ? tbl.rows.slice(0, 5) : []
       return (
         <>
-          <div className={s.st}>ตัวอย่างข้อมูล 3 แถว</div>
-          <div className={`hscroll ${s.dtWrap}`}><table className={s.dt}><thead><tr>{cols.map(([k]) => <th key={k}>{k}</th>)}</tr></thead>
-            <tbody>{[0, 1, 2].map((r) => <tr key={r}>{cols.map(([k], i) => <td key={k}>{SAMPLE_ROW(k, r, i, cols.some(([c]) => c === 'text'))}</td>)}</tr>)}</tbody></table></div>
+          {tbl && smp ? <>
+            <div className={s.st}>ตัวอย่างข้อมูล {show.length} แถว</div>
+            <div className={`hscroll ${s.dtWrap}`} data-sample-rows={show.length}><table className={s.dt}><thead><tr>{tbl.cols.map((k) => <th key={k}>{k}</th>)}</tr></thead>
+              <tbody>{show.map((r, i) => <tr key={i}>{tbl!.cols.map((k, j) => <td key={k}>{(r[j] ?? '').slice(0, 60)}</td>)}</tr>)}</tbody></table></div>
+            <p className={s.pvNote}>จากไฟล์ตัวอย่างของครีเอเตอร์ “{smp.name}” · {smp.rows} แถว{smp.total > smp.rows ? ` (ตัดจาก ${smp.total} แถว)` : ''}</p>
+          </> : <>
+            <div className={s.st}>ตัวอย่างข้อมูล</div>
+            <p className={s.pvNote} data-sample-rows="0">ครีเอเตอร์ยังไม่ได้อัปไฟล์ตัวอย่าง · ดูโครงสร้างจากรายการคอลัมน์ด้านล่าง</p>
+          </>}
           <div className={s.st}>คอลัมน์</div>
           <div className={s.tree}>{cols.map(([k, d]) => <div key={k}><Icon name="hash" size={14} color="#1D4ED8" /><code>{k}</code><span>{d}</span></div>)}</div>
           <div className={s.st}>ที่มาของข้อมูล</div>
           <p className={s.desc}>{str(spec.source)}</p>
           <div className={s.scan}><Icon name="shield" size={22} color="#16A34A" /><div><b>ผู้ขายรับรอง: ไม่มีข้อมูลส่วนบุคคล · มีสิทธิ์เผยแพร่</b>ผ่านการตรวจโดยทีม {BRAND} ก่อนขึ้นขาย · ถ้าพบว่าผิดกฎภายหลัง {BRAND} ลบได้</div></div>
           {filesOf(spec.files).length > 0 && <p className="hint">ไฟล์: {filesOf(spec.files).map((f) => `${f.name} (${f.size})`).join(', ')}</p>}
-          <button className="btn btn-o btn-sm" style={{ marginTop: 10 }} onClick={() => {
-            const sample = filesOf(spec.sample)[0]
-            const csv = '\uFEFF' + [cols.map(([k]) => k).join(','), ...[0, 1, 2].map((r) => cols.map(([k], i) => `"${SAMPLE_ROW(k, r, i, cols.some(([c]) => c === 'text')).replace(/"/g, '""')}"`).join(','))].join('\n')
+          {smp && <button className="btn btn-o btn-sm" style={{ marginTop: 10 }} data-sample-download onClick={() => {
             const a = document.createElement('a')
-            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
-            a.download = sample && /\.csv$/i.test(sample.name) ? sample.name : `${p.id}-sample.csv`
+            a.href = URL.createObjectURL(new Blob([/\.csv$/i.test(smp.name) ? '\uFEFF' + smp.text : smp.text], { type: `${sampleMime(smp.name)};charset=utf-8` }))
+            a.download = smp.name
             a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000)
-            toast(sample ? `ดาวน์โหลดตัวอย่าง “${a.download}” แล้ว` : 'ดาวน์โหลดตัวอย่าง 3 แถวแล้ว (CSV)')
-          }}><Icon name="download" size={15} />ดาวน์โหลดตัวอย่างฟรี</button>
+            toast(`ดาวน์โหลดตัวอย่าง “${smp.name}” แล้ว`)
+          }}><Icon name="download" size={15} />ดาวน์โหลดตัวอย่างฟรี</button>}
         </>
       )
     }
   }
 }
 
-const ROWS: Record<string, string[]> = {
-  name: ['ต้มยำกุ้ง', 'ผัดกะเพราหมู', 'แกงเขียวหวาน'], name_en: ['Tom Yum Goong', 'Pad Kra Pao', 'Green Curry'], category: ['ต้ม', 'ผัด', 'แกง'], kcal: ['310', '580', '420'], spicy: ['3', '2', '2'], price_avg: ['180', '65', '90'],
-  text: ['ส่งไว ของตรงปก', 'สีเพี้ยนนิดหน่อย', 'ไม่ประทับใจเลย'], label: ['บวก', 'กลาง', 'ลบ'], stars: ['5', '3', '1'],
+/** Sticker / icon / brush sets: each uploaded piece. Presets: before/after pairs. No samples: the whole cover, never a crop. */
+function ItemSamples({ spec, cover }: { spec: Spec; cover: string }) {
+  const items = previewsOf(spec.itemSamples)
+  const preset = isPreset(spec)
+  const head = <div className={s.st}>ในชุดนี้มี {str(spec.count)}</div>
+  if (!items.length) return <>{head}<div className={s.items} data-item-samples="0">{cover && <img src={cover} alt="ภาพปก" className={s.itemCover} />}</div>
+    <p className={s.pvNote}>ครีเอเตอร์ยังไม่ได้อัปภาพตัวอย่างทีละชิ้น · ตอนนี้แสดงภาพปก</p></>
+  if (preset) {
+    const pairs = Array.from({ length: Math.ceil(items.length / 2) }, (_, i) => items.slice(i * 2, i * 2 + 2))
+    return <>{head}<div className={s.pairs} data-item-samples={items.length}>{pairs.map((pr, i) => <div key={i} className={s.pair}>{pr.map((x, j) => <figure key={j}><img src={previewSrc(x.url)} alt={`${pr.length === 2 ? (j ? 'หลัง' : 'ก่อน') : 'ตัวอย่าง'} ${i + 1}`} loading="lazy" /><figcaption>{pr.length === 2 ? (j ? 'หลัง' : 'ก่อน') : 'ตัวอย่าง'}</figcaption></figure>)}</div>)}</div>
+      <p className={s.pvNote}>ภาพก่อน/หลังใส่พรีเซ็ตที่ครีเอเตอร์อัปไว้</p></>
+  }
+  return <>{head}<div className={s.items} data-item-samples={items.length}>{items.map((x, i) => <img key={i} src={previewSrc(x.url)} alt={`ชิ้นที่ ${i + 1}`} loading="lazy" />)}</div>
+    <p className={s.pvNote}>ภาพตัวอย่างทีละชิ้นที่ครีเอเตอร์อัปไว้ · ไฟล์จริงความละเอียดเต็ม{/PNG/.test(str(spec.sub)) ? ' พื้นใส' : ''}</p></>
 }
-const SAMPLE_ROW = (k: string, r: number, i: number, rev: boolean) => (rev && k === 'category' ? ['ความงาม', 'แฟชั่น', 'ของใช้'][r] : ROWS[k]?.[r] ?? `ค่า ${r + 1}.${i + 1}`)
