@@ -1,0 +1,33 @@
+name: Uptime check (LUMI real + demo + Supabase)
+
+# Free downtime alert: every ~10 minutes GitHub runs scripts/ops/uptime-check.mjs.
+# If any site or Supabase is down (after 3 tries), the run FAILS and GitHub emails the account that owns this
+# schedule (songyisong88, songyisong88@gmail.com) - GitHub Settings > Notifications > Actions: "failed workflows only".
+# Read-only checks, no writes, no paid services. GitHub may delay scheduled runs by a few minutes at busy times.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/ops
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check sites and Supabase
+        env:
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: node scripts/ops/uptime-check.mjs
