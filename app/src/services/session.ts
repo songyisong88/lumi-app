@@ -78,10 +78,11 @@ export function initSession() {
     const u = raw ? (JSON.parse(raw) as { user?: { id: string; email?: string } }).user : undefined
     if (u?.id) enterCloud(u.id, u.email); else enterGuest()
   } catch { enterGuest() }
-  void sb.auth.getSession().then(({ data }) => { apply(data.session); set({ ready: true }) })
+  void sb.auth.getSession().then(({ data }) => { apply(data.session); set({ ready: true }); if (data.session?.user) logSession('app.open') })
   sb.auth.onAuthStateChange((ev, session) => {
     if (ev === 'PASSWORD_RECOVERY') { set({ recovering: true }); location.hash = '#/account/password' }
     if (demoOn()) return
+    if (ev === 'SIGNED_IN' && session?.user) setTimeout(() => logSession('auth.sign_in'), 0)
     // run outside the auth callback (supabase-js holds a lock while it runs)
     setTimeout(() => apply(session), 0)
   })
@@ -103,7 +104,13 @@ export async function leaveDemo() {
   const { data } = (await sb?.auth.getSession()) ?? { data: { session: null } }
   if (data.session?.user) enterCloud(data.session.user.id, data.session.user.email); else enterGuest()
 }
+/** Access log (Computer Crimes Act s.26): the server records who / when / IP; nothing is shown, errors are ignored. */
+function logSession(event: 'app.open' | 'auth.sign_in' | 'auth.sign_out') {
+  if (!sb || !FEATURES.accounts || demoOn()) return
+  void Promise.resolve(sb.rpc('log_session', { p_event: event })).catch(() => {})
+}
 export async function signOut() {
+  await Promise.race([Promise.resolve(sb?.rpc('log_session', { p_event: 'auth.sign_out' })).catch(() => {}), new Promise(r => setTimeout(r, 1500))])
   hooks.onLeave?.()
   await sb?.auth.signOut()
   enterGuest()
